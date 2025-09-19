@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: dael-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: dosenuno
+      MYSQL_DATABASE: erp-dael
+      MYSQL_USER: amoragau
+      MYSQL_PASSWORD: dosenuno
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/sample_data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=1G
+      --innodb-log-file-size=256M
+      --max-connections=300
+    networks:
+      - dael_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  dael_network:
+    driver: bridge
+    name: dael_network
