@@ -4,22 +4,23 @@ import { useApiStore } from './api'
 
 export interface Categoria {
   id_categoria: number
-  codigo: string
-  nombre: string
+  codigo_categoria: string
+  nombre_categoria: string
   descripcion?: string
   activo: boolean
+  subcategorias?: Subcategoria[]
 }
 
 export interface CategoriaCreate {
-  codigo: string
-  nombre: string
+  codigo_categoria: string
+  nombre_categoria: string
   descripcion?: string
   activo: boolean
 }
 
 export interface CategoriaUpdate {
-  codigo?: string
-  nombre?: string
+  codigo_categoria?: string
+  nombre_categoria?: string
   descripcion?: string
   activo?: boolean
 }
@@ -69,9 +70,14 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
       if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString())
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
-      if (params?.activo !== undefined) queryParams.append('activo', params.activo.toString())
+      if (params?.activo !== undefined) queryParams.append('activo', params.activo === true ? 'true' : 'false')
 
-      const response = await apiStore.apiClient.get(`/categorias?${queryParams.toString()}`)
+      const url = `/categorias?${queryParams.toString()}`
+      console.log('URL construida:', url, 'params recibidos:', params)
+      const response = await apiStore.get(url)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener categorías')
+      }
       categorias.value = response.data
       return response.data
     } catch (error) {
@@ -84,7 +90,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerCategoria = async (id: number): Promise<Categoria> => {
     try {
-      const response = await apiStore.apiClient.get(`/categorias/${id}`)
+      const response = await apiStore.get(`/categorias/${id}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener categoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener categoría:', error)
@@ -94,7 +103,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerCategoriaPorCodigo = async (codigo: string): Promise<Categoria> => {
     try {
-      const response = await apiStore.apiClient.get(`/categorias/codigo/${codigo}`)
+      const response = await apiStore.get(`/categorias/codigo/${codigo}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener categoría por código')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener categoría por código:', error)
@@ -104,7 +116,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const crearCategoria = async (categoria: CategoriaCreate): Promise<Categoria> => {
     try {
-      const response = await apiStore.apiClient.post('/categorias', categoria)
+      const response = await apiStore.post('/categorias', categoria)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al crear categoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al crear categoría:', error)
@@ -114,7 +129,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const actualizarCategoria = async (id: number, categoria: CategoriaUpdate): Promise<Categoria> => {
     try {
-      const response = await apiStore.apiClient.put(`/categorias/${id}`, categoria)
+      const response = await apiStore.put(`/categorias/${id}`, categoria)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al actualizar categoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al actualizar categoría:', error)
@@ -127,7 +145,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
       const params = new URLSearchParams()
       params.append('permanente', permanente.toString())
 
-      await apiStore.apiClient.delete(`/categorias/${id}?${params.toString()}`)
+      const response = await apiStore.delete(`/categorias/${id}?${params.toString()}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al eliminar categoría')
+      }
     } catch (error) {
       console.error('Error al eliminar categoría:', error)
       throw error
@@ -136,7 +157,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const activarCategoria = async (id: number): Promise<Categoria> => {
     try {
-      const response = await apiStore.apiClient.patch(`/categorias/${id}/activar`)
+      const response = await apiStore.patch(`/categorias/${id}/activar`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al activar categoría')
+      }
       return response.data.categoria
     } catch (error) {
       console.error('Error al activar categoría:', error)
@@ -146,7 +170,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerEstadisticasCategorias = async () => {
     try {
-      const response = await apiStore.apiClient.get('/categorias/estadisticas/resumen')
+      const response = await apiStore.get('/categorias/estadisticas/resumen')
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener estadísticas de categorías')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener estadísticas de categorías:', error)
@@ -156,7 +183,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const crearCategoriasMasivo = async (categorias: CategoriaCreate[]): Promise<Categoria[]> => {
     try {
-      const response = await apiStore.apiClient.post('/categorias/bulk', categorias)
+      const response = await apiStore.post('/categorias/bulk', categorias)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al crear categorías masivo')
+      }
       return response.data
     } catch (error) {
       console.error('Error al crear categorías masivo:', error)
@@ -178,7 +208,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
       if (params?.activo !== undefined) queryParams.append('activo', params.activo.toString())
 
-      const response = await apiStore.apiClient.get(`/subcategorias?${queryParams.toString()}`)
+      const response = await apiStore.get(`/subcategorias?${queryParams.toString()}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener subcategorías')
+      }
       subcategorias.value = response.data
       return response.data
     } catch (error) {
@@ -191,7 +224,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerSubcategoria = async (id: number): Promise<Subcategoria> => {
     try {
-      const response = await apiStore.apiClient.get(`/subcategorias/${id}`)
+      const response = await apiStore.get(`/subcategorias/${id}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener subcategoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener subcategoría:', error)
@@ -201,7 +237,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerSubcategoriaPorCodigo = async (codigo: string): Promise<Subcategoria> => {
     try {
-      const response = await apiStore.apiClient.get(`/subcategorias/codigo/${codigo}`)
+      const response = await apiStore.get(`/subcategorias/codigo/${codigo}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener subcategoría por código')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener subcategoría por código:', error)
@@ -224,7 +263,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
       if (params?.activo !== undefined) queryParams.append('activo', params.activo.toString())
 
-      const response = await apiStore.apiClient.get(`/subcategorias/por-categoria/${idCategoria}?${queryParams.toString()}`)
+      const response = await apiStore.get(`/subcategorias/por-categoria/${idCategoria}?${queryParams.toString()}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener subcategorías por categoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener subcategorías por categoría:', error)
@@ -234,7 +276,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const crearSubcategoria = async (subcategoria: SubcategoriaCreate): Promise<Subcategoria> => {
     try {
-      const response = await apiStore.apiClient.post('/subcategorias', subcategoria)
+      const response = await apiStore.post('/subcategorias', subcategoria)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al crear subcategoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al crear subcategoría:', error)
@@ -244,7 +289,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const actualizarSubcategoria = async (id: number, subcategoria: SubcategoriaUpdate): Promise<Subcategoria> => {
     try {
-      const response = await apiStore.apiClient.put(`/subcategorias/${id}`, subcategoria)
+      const response = await apiStore.put(`/subcategorias/${id}`, subcategoria)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al actualizar subcategoría')
+      }
       return response.data
     } catch (error) {
       console.error('Error al actualizar subcategoría:', error)
@@ -257,7 +305,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
       const params = new URLSearchParams()
       params.append('permanente', permanente.toString())
 
-      await apiStore.apiClient.delete(`/subcategorias/${id}?${params.toString()}`)
+      const response = await apiStore.delete(`/subcategorias/${id}?${params.toString()}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al eliminar subcategoría')
+      }
     } catch (error) {
       console.error('Error al eliminar subcategoría:', error)
       throw error
@@ -266,7 +317,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const activarSubcategoria = async (id: number): Promise<Subcategoria> => {
     try {
-      const response = await apiStore.apiClient.patch(`/subcategorias/${id}/activar`)
+      const response = await apiStore.patch(`/subcategorias/${id}/activar`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al activar subcategoría')
+      }
       return response.data.subcategoria
     } catch (error) {
       console.error('Error al activar subcategoría:', error)
@@ -276,7 +330,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const obtenerEstadisticasSubcategorias = async () => {
     try {
-      const response = await apiStore.apiClient.get('/subcategorias/estadisticas/resumen')
+      const response = await apiStore.get('/subcategorias/estadisticas/resumen')
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener estadísticas de subcategorías')
+      }
       return response.data
     } catch (error) {
       console.error('Error al obtener estadísticas de subcategorías:', error)
@@ -286,7 +343,10 @@ export const useCategoriaStore = defineStore('categorias', () => {
 
   const crearSubcategoriasMasivo = async (subcategorias: SubcategoriaCreate[]): Promise<Subcategoria[]> => {
     try {
-      const response = await apiStore.apiClient.post('/subcategorias/bulk', subcategorias)
+      const response = await apiStore.post('/subcategorias/bulk', subcategorias)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al crear subcategorías masivo')
+      }
       return response.data
     } catch (error) {
       console.error('Error al crear subcategorías masivo:', error)

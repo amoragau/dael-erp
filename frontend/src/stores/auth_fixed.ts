@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
-import axios, { type AxiosInstance } from 'axios'
 import type { User } from '../types'
+import { useApiStore } from './api'
 
 interface LoginCredentials {
   username: string
@@ -15,15 +15,7 @@ interface LoginResponse {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // Create axios instance
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
-  const apiClient: AxiosInstance = axios.create({
-    baseURL,
-    timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
+  const apiStore = useApiStore()
 
   // State
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -43,10 +35,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       // Real API authentication using your endpoints
-      const response = await apiClient.post('/usuarios/login', {
+      const response = await apiStore.post('/usuarios/login', {
         username: credentials.username,
         password: credentials.password
       })
+
+      if (!response.success) {
+        throw new Error(response.error || 'Error en login')
+      }
 
       const loginData: LoginResponse = response.data
 
@@ -62,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('user', JSON.stringify(loginData.usuario))
 
       // Set default authorization header (for future JWT implementation)
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${simpleToken}`
+      apiStore.apiClient.defaults.headers.common['Authorization'] = `Bearer ${simpleToken}`
 
       return true
     } catch (err: any) {
@@ -77,7 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = 'No se puede conectar con el servidor. Verifica que el backend esté ejecutándose.'
       } else {
         // Other error
-        error.value = 'Error inesperado durante el login'
+        error.value = err.message || 'Error inesperado durante el login'
       }
       return false
     } finally {
@@ -95,7 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
 
     // Remove authorization header
-    delete apiClient.defaults.headers.common['Authorization']
+    delete apiStore.apiClient.defaults.headers.common['Authorization']
   }
 
   const checkAuth = async (): Promise<boolean> => {
@@ -110,7 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (storedUser && token.value) {
         user.value = JSON.parse(storedUser)
         // Set token in headers for future JWT implementation
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+        apiStore.apiClient.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
         return true
       } else {
         logout()
@@ -126,7 +122,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const updateProfile = async (userData: Partial<User>): Promise<boolean> => {
     try {
-      const response = await apiClient.put('/auth/profile', userData)
+      const response = await apiStore.put('/auth/profile', userData)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al actualizar perfil')
+      }
       user.value = response.data
       return true
     } catch (err) {
@@ -156,9 +155,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkAuth,
-    updateProfile,
-
-    // API Client for other stores
-    apiClient
+    updateProfile
   }
 })

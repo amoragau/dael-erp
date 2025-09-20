@@ -9,7 +9,7 @@ export interface ApiResponse {
 }
 
 export const useApiStore = defineStore('api', () => {
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
   const apiClient: AxiosInstance = axios.create({
     baseURL,
@@ -117,12 +117,28 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
+  const patch = async (url: string, data?: any): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.patch(url, data)
+      return {
+        success: true,
+        data: response.data
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
   return {
     apiClient,
     testConnection,
     get,
     post,
     put,
+    patch,
     delete: del
   }
 })

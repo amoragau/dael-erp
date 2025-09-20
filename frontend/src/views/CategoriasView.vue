@@ -12,7 +12,7 @@
             color="secondary"
             icon="category"
             label="Nueva Subcategoría"
-            @click="showCreateSubcategoriaDialog = true"
+            @click="abrirFormularioSubcategoriaLibre"
           />
           <q-btn
             color="primary"
@@ -46,6 +46,8 @@
               outlined
               dense
               clearable
+              emit-value
+              map-options
               style="min-width: 150px"
             />
             <q-btn
@@ -84,7 +86,7 @@
               flat
               dense
               color="secondary"
-              :label="`Ver (${getSubcategoriasCount(props.row.id_categoria)})`"
+              :label="`Ver (${getSubcategoriasCount(props.row)})`"
               @click="verSubcategorias(props.row as Categoria)"
             />
           </q-td>
@@ -130,13 +132,13 @@
       <q-dialog v-model="showSubcategoriasDialog" maximized>
         <q-card>
           <q-card-section class="row items-center q-pb-none">
-            <div class="text-h6">Subcategorías de: {{ categoriaSeleccionada?.nombre }}</div>
+            <div class="text-h6">Subcategorías de: {{ categoriaSeleccionada?.nombre_categoria }}</div>
             <q-space />
             <q-btn
               color="primary"
               icon="add"
               label="Nueva Subcategoría"
-              @click="showCreateSubcategoriaDialog = true"
+              @click="abrirFormularioSubcategoria"
             />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
@@ -146,6 +148,7 @@
               :rows="subcategorias"
               :columns="columnsSubcategorias"
               :loading="isLoadingSubcategorias"
+              :pagination="{ rowsPerPage: 15 }"
               row-key="id_subcategoria"
               flat
               bordered
@@ -210,14 +213,14 @@
           <q-card-section>
             <q-form @submit="guardarCategoria">
               <q-input
-                v-model="formCategoria.codigo"
+                v-model="formCategoria.codigo_categoria"
                 label="Código *"
                 outlined
                 dense
                 :rules="[val => !!val || 'El código es requerido']"
               />
               <q-input
-                v-model="formCategoria.nombre"
+                v-model="formCategoria.nombre_categoria"
                 label="Nombre *"
                 outlined
                 dense
@@ -273,6 +276,7 @@
                 option-label="label"
                 emit-value
                 map-options
+                :disable="!!formSubcategoria.id_categoria && !!categoriaSeleccionada"
                 :rules="[(val: any) => !!val || 'La categoría es requerida']"
               />
               <q-input
@@ -359,14 +363,14 @@ const paginacion = ref({
   sortBy: 'id_categoria',
   descending: false,
   page: 1,
-  rowsPerPage: 10,
+  rowsPerPage: 25, // Cambiado de 10 a 25 registros por página
   rowsNumber: 0
 })
 
 // Forms
 const formCategoria = ref<CategoriaCreate & { id_categoria?: number }>({
-  codigo: '',
-  nombre: '',
+  codigo_categoria: '',
+  nombre_categoria: '',
   descripcion: '',
   activo: true
 })
@@ -386,7 +390,7 @@ const columnsCategorias = [
     required: true,
     label: 'Código',
     align: 'left' as const,
-    field: 'codigo',
+    field: 'codigo_categoria',
     sortable: true
   },
   {
@@ -394,7 +398,7 @@ const columnsCategorias = [
     required: true,
     label: 'Nombre',
     align: 'left' as const,
-    field: 'nombre',
+    field: 'nombre_categoria',
     sortable: true
   },
   {
@@ -468,7 +472,7 @@ const categoriasOptions = computed(() => {
     .filter(cat => cat.activo)
     .map(cat => ({
       value: cat.id_categoria,
-      label: `${cat.codigo} - ${cat.nombre}`
+      label: `${cat.codigo_categoria} - ${cat.nombre_categoria}`
     }))
 })
 
@@ -494,10 +498,27 @@ const cargarCategorias = async () => {
 
     if (filtros.value.estado !== null) {
       params.activo = filtros.value.estado
+      console.log('Filtro aplicado - estado:', filtros.value.estado, 'params.activo:', params.activo)
+    } else {
+      console.log('Sin filtro de estado aplicado')
     }
 
+    console.log('Parámetros enviados:', params)
     const response = await categoriaStore.obtenerCategorias(params)
-    categorias.value = response
+    console.log('Respuesta del servidor:', response)
+
+    // Filtrar por búsqueda en el frontend si hay texto de búsqueda
+    let categoriasFiltered = response
+    if (filtros.value.busqueda && filtros.value.busqueda.trim()) {
+      const busqueda = filtros.value.busqueda.toLowerCase().trim()
+      categoriasFiltered = response.filter((categoria: any) =>
+        categoria.codigo_categoria.toLowerCase().includes(busqueda) ||
+        categoria.nombre_categoria.toLowerCase().includes(busqueda)
+      )
+      console.log('Filtro de búsqueda aplicado:', busqueda, 'Resultados:', categoriasFiltered.length)
+    }
+
+    categorias.value = categoriasFiltered
 
   } catch (error: any) {
     $q.notify({
@@ -535,9 +556,8 @@ const verSubcategorias = async (categoria: Categoria) => {
   }
 }
 
-const getSubcategoriasCount = (idCategoria: number) => {
-  // En una implementación real, esto vendría del backend
-  return 0
+const getSubcategoriasCount = (categoria: Categoria) => {
+  return categoria.subcategorias?.length || 0
 }
 
 const editarCategoria = (categoria: Categoria) => {
@@ -590,7 +610,13 @@ const guardarSubcategoria = async () => {
     isGuardando.value = true
 
     if (editandoSubcategoria.value && formSubcategoria.value.id_subcategoria) {
-      await categoriaStore.actualizarSubcategoria(formSubcategoria.value.id_subcategoria, formSubcategoria.value)
+      await categoriaStore.actualizarSubcategoria(
+        formSubcategoria.value.id_subcategoria, 
+        {
+          ...formSubcategoria.value,
+          id_categoria: formCategoria.value.id_categoria ?? undefined
+        }
+      )
       $q.notify({
         type: 'positive',
         message: 'Subcategoría actualizada correctamente'
@@ -686,7 +712,7 @@ const toggleEstadoSubcategoria = async (subcategoria: Subcategoria) => {
 const eliminarCategoria = async (categoria: Categoria) => {
   $q.dialog({
     title: 'Confirmar eliminación',
-    message: `¿Está seguro de eliminar la categoría "${categoria.nombre}"?`,
+    message: `¿Está seguro de eliminar la categoría "${categoria.nombre_categoria}"?`,
     cancel: true,
     persistent: true
   }).onOk(async () => {
@@ -737,11 +763,28 @@ const eliminarSubcategoria = async (subcategoria: Subcategoria) => {
 const resetFormCategoria = () => {
   editandoCategoria.value = false
   formCategoria.value = {
-    codigo: '',
-    nombre: '',
+    codigo_categoria: '',
+    nombre_categoria: '',
     descripcion: '',
     activo: true
   }
+}
+
+const abrirFormularioSubcategoriaLibre = () => {
+  editandoSubcategoria.value = false
+  formSubcategoria.value = {
+    id_categoria: null, // Sin categoría preseleccionada
+    codigo_subcategoria: '',
+    nombre_subcategoria: '',
+    descripcion: '',
+    activo: true
+  }
+  showCreateSubcategoriaDialog.value = true
+}
+
+const abrirFormularioSubcategoria = () => {
+  resetFormSubcategoria() // Con categoría preseleccionada
+  showCreateSubcategoriaDialog.value = true
 }
 
 const resetFormSubcategoria = () => {

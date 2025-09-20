@@ -1,18 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios, { type AxiosInstance } from 'axios'
 import type { User, Role, UserCreate, UserUpdate } from '../types'
+import { useApiStore } from './api'
 
 export const useUsersStore = defineStore('users', () => {
-  // Create axios instance
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-  const apiClient: AxiosInstance = axios.create({
-    baseURL,
-    timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
+  const apiStore = useApiStore()
 
   // State
   const users = ref<User[]>([])
@@ -39,7 +31,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
 
     try {
-      const response = await apiClient.get('/api/v1/usuarios/')
+      const response = await apiStore.get('/usuarios/')
       users.value = response.data
     } catch (err: any) {
       console.error('Error fetching users:', err)
@@ -54,7 +46,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
 
     try {
-      const response = await apiClient.get('/api/v1/roles/')
+      const response = await apiStore.get('/roles/')
       roles.value = response.data
     } catch (err: any) {
       console.error('Error fetching roles:', err)
@@ -69,7 +61,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
 
     try {
-      const response = await apiClient.post('/api/v1/usuarios/', userData)
+      const response = await apiStore.post('/usuarios/', userData)
       const newUser = response.data
       users.value.push(newUser)
       return newUser
@@ -89,7 +81,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
 
     try {
-      const response = await apiClient.put(`/api/v1/usuarios/${id}`, userData)
+      const response = await apiStore.put(`/usuarios/${id}`, userData)
       const updatedUser = response.data
 
       const index = users.value.findIndex(user => user.id_usuario === id)
@@ -112,7 +104,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
 
     try {
-      await apiClient.delete(`/api/v1/usuarios/${id}`)
+      await apiStore.delete(`/usuarios/${id}`)
       users.value = users.value.filter(user => user.id_usuario !== id)
       return true
     } catch (err: any) {
