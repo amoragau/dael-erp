@@ -115,8 +115,44 @@ class Proveedor(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
     fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
+    # Relación con sucursales
+    sucursales = relationship("SucursalProveedor", back_populates="proveedor")
+
     def __repr__(self):
         return f"<Proveedor(id={self.id_proveedor}, codigo='{self.codigo_proveedor}', nombre='{self.nombre_proveedor}')>"
+
+class SucursalProveedor(Base):
+    __tablename__ = "sucursales_proveedor"
+
+    id_sucursal = Column(Integer, primary_key=True, autoincrement=True)
+    id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False)
+    codigo_sucursal = Column(String(20), nullable=False)
+    nombre_sucursal = Column(String(200), nullable=False)
+    direccion = Column(Text)
+    ciudad = Column(String(100))
+    estado = Column(String(50))
+    codigo_postal = Column(String(10))
+    pais = Column(String(50), default='Chile')
+    telefono = Column(String(20))
+    email = Column(String(100))
+    contacto = Column(String(100))
+    telefono_contacto = Column(String(20))
+    email_contacto = Column(String(100))
+    es_sucursal_principal = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Índice único para asegurar que el código de sucursal sea único por proveedor
+    __table_args__ = (
+        UniqueConstraint('id_proveedor', 'codigo_sucursal', name='uq_proveedor_codigo_sucursal'),
+    )
+
+    # Relación con proveedor
+    proveedor = relationship("Proveedor", back_populates="sucursales")
+
+    def __repr__(self):
+        return f"<SucursalProveedor(id={self.id_sucursal}, codigo='{self.codigo_sucursal}', nombre='{self.nombre_sucursal}')>"
 
 class Bodega(Base):
     __tablename__ = "bodegas"

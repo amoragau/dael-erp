@@ -98,7 +98,7 @@
           label="Inventario"
           default-opened
         >
-          <q-item clickable :inset-level="1">
+          <q-item clickable :inset-level="1" :to="{ name: 'productos' }">
             <q-item-section avatar>
               <q-icon name="category" />
             </q-item-section>
@@ -116,7 +116,35 @@
             </q-item-section>
           </q-item>
 
-          <q-item clickable :inset-level="1">
+          <q-item clickable :inset-level="1" :to="{ name: 'bodegas' }">
+            <q-item-section avatar>
+              <q-icon name="warehouse" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Bodegas</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-expansion-item>
+
+        <q-expansion-item
+          icon="construction"
+          label="Obras y Proyectos"
+        >
+          <q-item clickable :inset-level="1" :to="{ name: 'obras' }">
+            <q-item-section avatar>
+              <q-icon name="engineering" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Obras</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-expansion-item>
+
+        <q-expansion-item
+          icon="settings"
+          label="Configuraciones"
+        >
+          <q-item clickable :inset-level="1" :to="{ name: 'proveedores' }">
             <q-item-section avatar>
               <q-icon name="business" />
             </q-item-section>
@@ -124,29 +152,16 @@
               <q-item-label>Proveedores</q-item-label>
             </q-item-section>
           </q-item>
-        </q-expansion-item>
-
-        <q-expansion-item
-          icon="people"
-          label="Clientes"
-        >
-          <q-item clickable :inset-level="1">
-            <q-item-section avatar>
-              <q-icon name="person_add" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Registro</q-item-label>
-            </q-item-section>
-          </q-item>
 
           <q-item clickable :inset-level="1">
             <q-item-section avatar>
-              <q-icon name="list" />
+              <q-icon name="people" />
             </q-item-section>
             <q-item-section>
-              <q-item-label>Listado</q-item-label>
+              <q-item-label>Clientes</q-item-label>
             </q-item-section>
           </q-item>
+
         </q-expansion-item>
 
         <!-- Admin only section -->

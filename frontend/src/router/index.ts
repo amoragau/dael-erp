@@ -49,6 +49,38 @@ const router = createRouter({
       }
     },
     {
+      path: '/proveedores',
+      name: 'proveedores',
+      component: () => import('../views/ProveedoresView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/productos',
+      name: 'productos',
+      component: () => import('../views/ProductosView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/bodegas',
+      name: 'bodegas',
+      component: () => import('../views/BodegasView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/obras',
+      name: 'obras',
+      component: () => import('../views/ObrasView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')

@@ -15,6 +15,7 @@ from routes import subcategorias
 from routes import tipos_producto
 from routes import marcas
 from routes import proveedores
+from routes import sucursales_proveedor
 from routes import bodegas
 from routes import pasillos
 from routes import estantes
@@ -89,6 +90,7 @@ app.include_router(subcategorias.router, prefix="/api/v1")
 app.include_router(tipos_producto.router, prefix="/api/v1")
 app.include_router(marcas.router, prefix="/api/v1")
 app.include_router(proveedores.router, prefix="/api/v1")
+app.include_router(sucursales_proveedor.router, prefix="/api/v1")
 app.include_router(bodegas.router, prefix="/api/v1")
 app.include_router(pasillos.router, prefix="/api/v1")
 app.include_router(estantes.router, prefix="/api/v1")

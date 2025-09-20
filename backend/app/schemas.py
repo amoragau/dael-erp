@@ -207,6 +207,57 @@ class ProveedorResponse(ProveedorBase):
         from_attributes = True
 
 # ========================================
+# SCHEMAS PARA SUCURSALES DE PROVEEDORES
+# ========================================
+
+class SucursalProveedorBase(BaseModel):
+    codigo_sucursal: str = Field(..., min_length=1, max_length=20)
+    nombre_sucursal: str = Field(..., min_length=1, max_length=200)
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = Field(None, max_length=100)
+    estado: Optional[str] = Field(None, max_length=50)
+    codigo_postal: Optional[str] = Field(None, max_length=10)
+    pais: str = Field(default='Chile', max_length=50)
+    telefono: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=100)
+    contacto: Optional[str] = Field(None, max_length=100)
+    telefono_contacto: Optional[str] = Field(None, max_length=20)
+    email_contacto: Optional[str] = Field(None, max_length=100)
+    es_sucursal_principal: bool = False
+    activo: bool = True
+
+class SucursalProveedorCreate(SucursalProveedorBase):
+    id_proveedor: int = Field(..., gt=0)
+
+class SucursalProveedorUpdate(BaseModel):
+    codigo_sucursal: Optional[str] = Field(None, min_length=1, max_length=20)
+    nombre_sucursal: Optional[str] = Field(None, min_length=1, max_length=200)
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = Field(None, max_length=100)
+    estado: Optional[str] = Field(None, max_length=50)
+    codigo_postal: Optional[str] = Field(None, max_length=10)
+    pais: Optional[str] = Field(None, max_length=50)
+    telefono: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=100)
+    contacto: Optional[str] = Field(None, max_length=100)
+    telefono_contacto: Optional[str] = Field(None, max_length=20)
+    email_contacto: Optional[str] = Field(None, max_length=100)
+    es_sucursal_principal: Optional[bool] = None
+    activo: Optional[bool] = None
+
+class SucursalProveedorResponse(SucursalProveedorBase):
+    id_sucursal: int
+    id_proveedor: int
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+class SucursalProveedorWithProveedor(SucursalProveedorResponse):
+    proveedor: Optional[ProveedorResponse] = None
+
+# ========================================
 # SCHEMAS PARA ALMACÉN - BODEGAS
 # ========================================
 
