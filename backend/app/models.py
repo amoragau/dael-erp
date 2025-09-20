@@ -909,7 +909,7 @@ class ProgramacionConteos(Base):
     categoria = relationship("Categoria", back_populates="programaciones_conteo")
     obra = relationship("Obra", back_populates="programaciones_conteo")
     conteos_fisicos = relationship("ConteosFisicos", back_populates="programacion")
-    logs = relationship("LogAlertas", back_populates="configuracion_alerta")
+    # logs = relationship("LogAlertas", back_populates="configuracion_alerta")
 
     def __repr__(self):
         return f"<ProgramacionConteos(id={self.id_programacion}, nombre='{self.nombre_conteo}', tipo={self.tipo_conteo}, estado={self.estado})>"
@@ -973,6 +973,8 @@ class ConfiguracionAlertas(Base):
     frecuencia_revision_horas = Column(Integer, default=24)
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
 
+    logs = relationship('LogAlertas', back_populates='configuracion_alerta')
+
     def get_usuarios_lista(self):
         """Convertir usuarios_notificar de string CSV a lista de enteros"""
         if not self.usuarios_notificar:
@@ -1030,6 +1032,7 @@ class LogAlertas(Base):
     producto = relationship("Producto", back_populates="logs_alertas")
     obra = relationship("Obra", back_populates="logs_alertas")
     despacho = relationship("DespachosObra", back_populates="logs_alertas")
+    
 
     @property
     def es_pendiente(self):
@@ -2163,3 +2166,238 @@ class VistaProductosABC(Base):
 
     def __repr__(self):
         return f"<VistaProductosABC(id={self.id_producto}, sku='{self.sku}', clasificacion='{self.clasificacion_abc_calculada}', valor={self.valor_inventario})>"
+
+
+# ========================================
+# MODELOS PARA ESTADOS DE ORDEN DE COMPRA
+# ========================================
+
+class EstadoOrdenCompra(Base):
+    __tablename__ = "estados_orden_compra"
+
+    id_estado = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_estado = Column(String(20), nullable=False, unique=True, index=True)
+    nombre_estado = Column(String(50), nullable=False)
+    descripcion = Column(String(200), nullable=True)
+    es_estado_inicial = Column(Boolean, default=False)
+    es_estado_final = Column(Boolean, default=False)
+    permite_edicion = Column(Boolean, default=True)
+    permite_cancelacion = Column(Boolean, default=True)
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    def __repr__(self):
+        return f"<EstadoOrdenCompra(codigo='{self.codigo_estado}', nombre='{self.nombre_estado}')>"
+
+
+class OrdenCompra(Base):
+    __tablename__ = "ordenes_compra"
+
+    id_orden_compra = Column(Integer, primary_key=True, autoincrement=True)
+    numero_orden = Column(String(50), nullable=False, unique=True, index=True)
+
+    # Referencias
+    id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False, index=True)
+    id_usuario_solicitante = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=False, index=True)
+    id_usuario_aprobador = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    id_estado = Column(Integer, ForeignKey("estados_orden_compra.id_estado"), nullable=False, index=True)
+
+    # Fechas
+    fecha_orden = Column(Date, nullable=False, index=True)
+    fecha_requerida = Column(Date, nullable=False, index=True)
+    fecha_esperada_entrega = Column(Date, nullable=True)
+    fecha_entrega_real = Column(Date, nullable=True)
+
+    # Totales
+    subtotal = Column(DECIMAL(15,4), nullable=False, default=0)
+    impuestos = Column(DECIMAL(15,4), nullable=False, default=0)
+    descuentos = Column(DECIMAL(15,4), nullable=False, default=0)
+    total = Column(DECIMAL(15,4), nullable=False, default=0)
+
+    # Información adicional
+    observaciones = Column(Text, nullable=True)
+    terminos_pago = Column(String(100), nullable=True)
+    moneda = Column(String(3), default='MXN')
+    tipo_cambio = Column(DECIMAL(10,4), default=1.0000)
+
+    # Dirección de entrega
+    direccion_entrega = Column(Text, nullable=True)
+    contacto_entrega = Column(String(100), nullable=True)
+    telefono_contacto = Column(String(20), nullable=True)
+
+    # Control
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+    fecha_aprobacion = Column(TIMESTAMP, nullable=True)
+    fecha_cancelacion = Column(TIMESTAMP, nullable=True)
+    motivo_cancelacion = Column(String(200), nullable=True)
+
+    # Relationships
+    proveedor = relationship("Proveedor")
+    usuario_solicitante = relationship("Usuarios", foreign_keys=[id_usuario_solicitante])
+    usuario_aprobador = relationship("Usuarios", foreign_keys=[id_usuario_aprobador])
+    estado = relationship("EstadoOrdenCompra")
+    detalles = relationship("OrdenCompraDetalle", back_populates="orden_compra", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<OrdenCompra(numero='{self.numero_orden}', proveedor_id={self.id_proveedor}, total={self.total})>"
+
+
+class OrdenCompraDetalle(Base):
+    __tablename__ = "ordenes_compra_detalle"
+
+    id_detalle = Column(Integer, primary_key=True, autoincrement=True)
+    id_orden_compra = Column(Integer, ForeignKey("ordenes_compra.id_orden_compra"), nullable=False, index=True)
+    id_producto = Column(Integer, ForeignKey("productos.id_producto"), nullable=False, index=True)
+
+    # Cantidades
+    cantidad_solicitada = Column(DECIMAL(12,4), nullable=False)
+    cantidad_recibida = Column(DECIMAL(12,4), nullable=False, default=0)
+    cantidad_pendiente = Column(DECIMAL(12,4), nullable=False, default=0)
+
+    # Precios
+    precio_unitario = Column(DECIMAL(15,4), nullable=False)
+    descuento_porcentaje = Column(DECIMAL(5,2), nullable=False, default=0)
+    descuento_importe = Column(DECIMAL(15,4), nullable=False, default=0)
+    precio_neto = Column(DECIMAL(15,4), nullable=False)
+    importe_total = Column(DECIMAL(15,4), nullable=False)
+
+    # Información adicional
+    observaciones = Column(Text, nullable=True)
+    numero_linea = Column(Integer, nullable=False, index=True)
+    codigo_producto_proveedor = Column(String(100), nullable=True)
+
+    # Fechas esperadas
+    fecha_entrega_esperada = Column(Date, nullable=True)
+    fecha_entrega_real = Column(Date, nullable=True)
+
+    # Control
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    orden_compra = relationship("OrdenCompra", back_populates="detalles")
+    producto = relationship("Producto")
+
+    def __repr__(self):
+        return f"<OrdenCompraDetalle(orden_id={self.id_orden_compra}, producto_id={self.id_producto}, cantidad={self.cantidad_solicitada})>"
+
+
+class RecepcionMercancia(Base):
+    __tablename__ = "recepciones_mercancia"
+
+    id_recepcion = Column(Integer, primary_key=True, autoincrement=True)
+    numero_recepcion = Column(String(50), nullable=False, unique=True, index=True)
+    id_orden_compra = Column(Integer, ForeignKey("ordenes_compra.id_orden_compra"), nullable=False, index=True)
+    id_usuario_receptor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=False, index=True)
+
+    # Información de recepción
+    fecha_recepcion = Column(Date, nullable=False, index=True)
+    numero_factura_proveedor = Column(String(100), nullable=True)
+    numero_remision = Column(String(100), nullable=True)
+    numero_guia = Column(String(100), nullable=True)
+    transportista = Column(String(200), nullable=True)
+
+    # Estado de la recepción
+    recepcion_completa = Column(Boolean, default=False)
+    observaciones = Column(Text, nullable=True)
+
+    # Control
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    orden_compra = relationship("OrdenCompra")
+    usuario_receptor = relationship("Usuarios")
+    detalles = relationship("RecepcionMercanciaDetalle", back_populates="recepcion", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<RecepcionMercancia(numero='{self.numero_recepcion}', orden_id={self.id_orden_compra})>"
+
+
+class RecepcionMercanciaDetalle(Base):
+    __tablename__ = "recepciones_mercancia_detalle"
+
+    id_detalle_recepcion = Column(Integer, primary_key=True, autoincrement=True)
+    id_recepcion = Column(Integer, ForeignKey("recepciones_mercancia.id_recepcion"), nullable=False, index=True)
+    id_detalle_orden = Column(Integer, ForeignKey("ordenes_compra_detalle.id_detalle"), nullable=False, index=True)
+
+    # Cantidades
+    cantidad_recibida = Column(DECIMAL(12,4), nullable=False)
+    cantidad_aceptada = Column(DECIMAL(12,4), nullable=False)
+    cantidad_rechazada = Column(DECIMAL(12,4), nullable=False, default=0)
+
+    # Información de calidad
+    observaciones_calidad = Column(Text, nullable=True)
+    motivo_rechazo = Column(String(200), nullable=True)
+    lote_proveedor = Column(String(100), nullable=True, index=True)
+    fecha_vencimiento = Column(Date, nullable=True, index=True)
+
+    # Ubicación en almacén
+    ubicacion_almacen = Column(String(100), nullable=True)
+
+    # Control
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    recepcion = relationship("RecepcionMercancia", back_populates="detalles")
+    detalle_orden = relationship("OrdenCompraDetalle")
+
+    def __repr__(self):
+        return f"<RecepcionMercanciaDetalle(recepcion_id={self.id_recepcion}, cantidad_recibida={self.cantidad_recibida})>"
+
+
+# ========================================
+# VISTAS PARA ÓRDENES DE COMPRA
+# ========================================
+
+class VistaOrdenesCompraResumen(Base):
+    __tablename__ = "vista_ordenes_compra_resumen"
+
+    id_orden_compra = Column(Integer, primary_key=True)
+    numero_orden = Column(String(50))
+    nombre_proveedor = Column(String(200))
+    codigo_proveedor = Column(String(20))
+    solicitante = Column(String(200))
+    aprobador = Column(String(200))
+    nombre_estado = Column(String(50))
+    fecha_orden = Column(Date)
+    fecha_requerida = Column(Date)
+    total = Column(DECIMAL(15,4))
+    moneda = Column(String(3))
+    total_lineas = Column(Integer)
+    lineas_pendientes = Column(Integer)
+    estado_recepcion = Column(String(20))
+
+    def __repr__(self):
+        return f"<VistaOrdenesCompraResumen(numero='{self.numero_orden}', estado='{self.estado_recepcion}')>"
+
+
+class VistaOrdenesDetalleCompleto(Base):
+    __tablename__ = "vista_ordenes_detalle_completo"
+
+    id_detalle = Column(Integer, primary_key=True)
+    numero_orden = Column(String(50))
+    numero_linea = Column(Integer)
+    sku = Column(String(50))
+    producto_nombre = Column(String(200))
+    producto_descripcion = Column(String(500))
+    nombre_unidad = Column(String(50))
+    cantidad_solicitada = Column(DECIMAL(12,4))
+    cantidad_recibida = Column(DECIMAL(12,4))
+    cantidad_pendiente = Column(DECIMAL(12,4))
+    precio_unitario = Column(DECIMAL(15,4))
+    descuento_porcentaje = Column(DECIMAL(5,2))
+    precio_neto = Column(DECIMAL(15,4))
+    importe_total = Column(DECIMAL(15,4))
+    fecha_entrega_esperada = Column(Date)
+    codigo_producto_proveedor = Column(String(100))
+    nombre_proveedor = Column(String(200))
+
+    def __repr__(self):
+        return f"<VistaOrdenesDetalleCompleto(orden='{self.numero_orden}', producto='{self.sku}')>"

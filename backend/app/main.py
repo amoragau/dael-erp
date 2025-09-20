@@ -48,6 +48,10 @@ from routes import inventario_consolidado
 from routes import obras_inventario
 from routes import devoluciones_pendientes
 from routes import productos_abc
+from routes import estados_orden_compra
+from routes import ordenes_compra
+from routes import recepciones_mercancia
+from routes import vistas_ordenes_compra
 
 # Cargar variables de entorno
 load_dotenv()
@@ -118,6 +122,10 @@ app.include_router(inventario_consolidado.router, prefix="/api/v1")
 app.include_router(obras_inventario.router, prefix="/api/v1")
 app.include_router(devoluciones_pendientes.router, prefix="/api/v1")
 app.include_router(productos_abc.router, prefix="/api/v1")
+app.include_router(estados_orden_compra.router, prefix="/api/v1/estados-orden-compra", tags=["Estados Orden Compra"])
+app.include_router(ordenes_compra.router, prefix="/api/v1/ordenes-compra", tags=["Órdenes de Compra"])
+app.include_router(recepciones_mercancia.router, prefix="/api/v1/recepciones-mercancia", tags=["Recepciones de Mercancía"])
+app.include_router(vistas_ordenes_compra.router, prefix="/api/v1/vistas-ordenes-compra", tags=["Vistas Órdenes de Compra"])
 
 @app.get("/")
 def root():

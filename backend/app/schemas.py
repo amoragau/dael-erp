@@ -2600,3 +2600,364 @@ class ExportProductosABCCompleto(BaseModel):
     resumen_estadisticas: EstadisticasProductosABC
     analisis_obsolescencia: List[AnalisisObsolescencia]
     recomendaciones: List[RecomendacionProductoABC]
+
+
+# ========================================
+# SCHEMAS PARA ESTADOS DE ORDEN DE COMPRA
+# ========================================
+
+# Schema base
+class EstadoOrdenCompraBase(BaseModel):
+    codigo_estado: str = Field(..., min_length=1, max_length=20, description="Código único del estado")
+    nombre_estado: str = Field(..., min_length=1, max_length=50, description="Nombre del estado")
+    descripcion: Optional[str] = Field(None, max_length=200, description="Descripción del estado")
+    es_estado_inicial: bool = Field(default=False, description="Es el estado inicial")
+    es_estado_final: bool = Field(default=False, description="Es un estado final")
+    permite_edicion: bool = Field(default=True, description="Permite editar la orden")
+    permite_cancelacion: bool = Field(default=True, description="Permite cancelar la orden")
+    activo: bool = Field(default=True, description="Estado activo")
+
+# Schema para crear (POST)
+class EstadoOrdenCompraCreate(EstadoOrdenCompraBase):
+    pass
+
+# Schema para actualizar (PUT)
+class EstadoOrdenCompraUpdate(BaseModel):
+    codigo_estado: Optional[str] = Field(None, min_length=1, max_length=20)
+    nombre_estado: Optional[str] = Field(None, min_length=1, max_length=50)
+    descripcion: Optional[str] = Field(None, max_length=200)
+    es_estado_inicial: Optional[bool] = None
+    es_estado_final: Optional[bool] = None
+    permite_edicion: Optional[bool] = None
+    permite_cancelacion: Optional[bool] = None
+    activo: Optional[bool] = None
+
+# Schema para respuesta (GET)
+class EstadoOrdenCompraResponse(EstadoOrdenCompraBase):
+    id_estado: int
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ========================================
+# SCHEMAS PARA ÓRDENES DE COMPRA
+# ========================================
+
+# Schema base para OrdenCompra
+class OrdenCompraBase(BaseModel):
+    numero_orden: str = Field(..., min_length=1, max_length=50, description="Número único de la orden")
+    id_proveedor: int = Field(..., description="ID del proveedor")
+    id_usuario_solicitante: int = Field(..., description="ID del usuario que solicita")
+    fecha_orden: date = Field(..., description="Fecha de la orden")
+    fecha_requerida: date = Field(..., description="Fecha requerida de entrega")
+    fecha_esperada_entrega: Optional[date] = Field(None, description="Fecha esperada de entrega")
+    subtotal: Decimal = Field(default=0, ge=0, description="Subtotal de la orden")
+    impuestos: Decimal = Field(default=0, ge=0, description="Impuestos de la orden")
+    descuentos: Decimal = Field(default=0, ge=0, description="Descuentos de la orden")
+    total: Decimal = Field(default=0, ge=0, description="Total de la orden")
+    observaciones: Optional[str] = Field(None, description="Observaciones de la orden")
+    terminos_pago: Optional[str] = Field(None, max_length=100, description="Términos de pago")
+    moneda: str = Field(default="MXN", max_length=3, description="Moneda")
+    tipo_cambio: Decimal = Field(default=1.0000, ge=0, description="Tipo de cambio")
+    direccion_entrega: Optional[str] = Field(None, description="Dirección de entrega")
+    contacto_entrega: Optional[str] = Field(None, max_length=100, description="Contacto para entrega")
+    telefono_contacto: Optional[str] = Field(None, max_length=20, description="Teléfono de contacto")
+    activo: bool = Field(default=True, description="Orden activa")
+
+# Schema para crear (POST)
+class OrdenCompraCreate(OrdenCompraBase):
+    pass
+
+# Schema para actualizar (PUT)
+class OrdenCompraUpdate(BaseModel):
+    numero_orden: Optional[str] = Field(None, min_length=1, max_length=50)
+    id_proveedor: Optional[int] = None
+    id_usuario_solicitante: Optional[int] = None
+    id_usuario_aprobador: Optional[int] = None
+    id_estado: Optional[int] = None
+    fecha_orden: Optional[date] = None
+    fecha_requerida: Optional[date] = None
+    fecha_esperada_entrega: Optional[date] = None
+    fecha_entrega_real: Optional[date] = None
+    subtotal: Optional[Decimal] = Field(None, ge=0)
+    impuestos: Optional[Decimal] = Field(None, ge=0)
+    descuentos: Optional[Decimal] = Field(None, ge=0)
+    total: Optional[Decimal] = Field(None, ge=0)
+    observaciones: Optional[str] = None
+    terminos_pago: Optional[str] = Field(None, max_length=100)
+    moneda: Optional[str] = Field(None, max_length=3)
+    tipo_cambio: Optional[Decimal] = Field(None, ge=0)
+    direccion_entrega: Optional[str] = None
+    contacto_entrega: Optional[str] = Field(None, max_length=100)
+    telefono_contacto: Optional[str] = Field(None, max_length=20)
+    motivo_cancelacion: Optional[str] = Field(None, max_length=200)
+    activo: Optional[bool] = None
+
+# Schema para respuesta (GET)
+class OrdenCompraResponse(OrdenCompraBase):
+    id_orden_compra: int
+    id_usuario_aprobador: Optional[int] = None
+    id_estado: int
+    fecha_entrega_real: Optional[date] = None
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+    fecha_aprobacion: Optional[datetime] = None
+    fecha_cancelacion: Optional[datetime] = None
+    motivo_cancelacion: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# Schema base para OrdenCompraDetalle
+class OrdenCompraDetalleBase(BaseModel):
+    id_producto: int = Field(..., description="ID del producto")
+    cantidad_solicitada: Decimal = Field(..., gt=0, description="Cantidad solicitada")
+    precio_unitario: Decimal = Field(..., ge=0, description="Precio unitario")
+    descuento_porcentaje: Decimal = Field(default=0, ge=0, le=100, description="Descuento en porcentaje")
+    descuento_importe: Decimal = Field(default=0, ge=0, description="Descuento en importe")
+    precio_neto: Decimal = Field(..., ge=0, description="Precio neto")
+    importe_total: Decimal = Field(..., ge=0, description="Importe total")
+    observaciones: Optional[str] = Field(None, description="Observaciones del detalle")
+    numero_linea: int = Field(..., ge=1, description="Número de línea")
+    codigo_producto_proveedor: Optional[str] = Field(None, max_length=100, description="Código del producto en el proveedor")
+    fecha_entrega_esperada: Optional[date] = Field(None, description="Fecha de entrega esperada")
+    activo: bool = Field(default=True, description="Detalle activo")
+
+# Schema para crear detalle (POST)
+class OrdenCompraDetalleCreate(OrdenCompraDetalleBase):
+    pass
+
+# Schema para actualizar detalle (PUT)
+class OrdenCompraDetalleUpdate(BaseModel):
+    id_producto: Optional[int] = None
+    cantidad_solicitada: Optional[Decimal] = Field(None, gt=0)
+    cantidad_recibida: Optional[Decimal] = Field(None, ge=0)
+    precio_unitario: Optional[Decimal] = Field(None, ge=0)
+    descuento_porcentaje: Optional[Decimal] = Field(None, ge=0, le=100)
+    descuento_importe: Optional[Decimal] = Field(None, ge=0)
+    precio_neto: Optional[Decimal] = Field(None, ge=0)
+    importe_total: Optional[Decimal] = Field(None, ge=0)
+    observaciones: Optional[str] = None
+    numero_linea: Optional[int] = Field(None, ge=1)
+    codigo_producto_proveedor: Optional[str] = Field(None, max_length=100)
+    fecha_entrega_esperada: Optional[date] = None
+    fecha_entrega_real: Optional[date] = None
+    activo: Optional[bool] = None
+
+# Schema para respuesta de detalle (GET)
+class OrdenCompraDetalleResponse(OrdenCompraDetalleBase):
+    id_detalle: int
+    id_orden_compra: int
+    cantidad_recibida: Decimal
+    cantidad_pendiente: Decimal
+    fecha_entrega_real: Optional[date] = None
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# Schema para orden completa con detalles
+class OrdenCompraCompleta(BaseModel):
+    orden: OrdenCompraCreate
+    detalles: List[OrdenCompraDetalleCreate]
+
+# Schema para respuesta completa con detalles
+class OrdenCompraCompletaResponse(OrdenCompraResponse):
+    detalles: List[OrdenCompraDetalleResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# Schema para filtros de búsqueda
+class OrdenCompraFilters(BaseModel):
+    id_proveedor: Optional[int] = None
+    id_estado: Optional[int] = None
+    fecha_desde: Optional[date] = None
+    fecha_hasta: Optional[date] = None
+    numero_orden: Optional[str] = None
+    total_minimo: Optional[Decimal] = None
+    total_maximo: Optional[Decimal] = None
+    activo: Optional[bool] = True
+
+
+# ========================================
+# SCHEMAS PARA RECEPCIONES DE MERCANCÍA
+# ========================================
+
+# Schema base para RecepcionMercancia
+class RecepcionMercanciaBase(BaseModel):
+    numero_recepcion: str = Field(..., min_length=1, max_length=50, description="Número único de la recepción")
+    id_orden_compra: int = Field(..., description="ID de la orden de compra")
+    id_usuario_receptor: int = Field(..., description="ID del usuario receptor")
+    fecha_recepcion: date = Field(..., description="Fecha de recepción")
+    numero_factura_proveedor: Optional[str] = Field(None, max_length=100, description="Número de factura del proveedor")
+    numero_remision: Optional[str] = Field(None, max_length=100, description="Número de remisión")
+    numero_guia: Optional[str] = Field(None, max_length=100, description="Número de guía")
+    transportista: Optional[str] = Field(None, max_length=200, description="Transportista")
+    recepcion_completa: bool = Field(default=False, description="Recepción completa")
+    observaciones: Optional[str] = Field(None, description="Observaciones de la recepción")
+    activo: bool = Field(default=True, description="Recepción activa")
+
+# Schema para crear (POST)
+class RecepcionMercanciaCreate(RecepcionMercanciaBase):
+    pass
+
+# Schema para actualizar (PUT)
+class RecepcionMercanciaUpdate(BaseModel):
+    numero_recepcion: Optional[str] = Field(None, min_length=1, max_length=50)
+    id_orden_compra: Optional[int] = None
+    id_usuario_receptor: Optional[int] = None
+    fecha_recepcion: Optional[date] = None
+    numero_factura_proveedor: Optional[str] = Field(None, max_length=100)
+    numero_remision: Optional[str] = Field(None, max_length=100)
+    numero_guia: Optional[str] = Field(None, max_length=100)
+    transportista: Optional[str] = Field(None, max_length=200)
+    recepcion_completa: Optional[bool] = None
+    observaciones: Optional[str] = None
+    activo: Optional[bool] = None
+
+# Schema para respuesta (GET)
+class RecepcionMercanciaResponse(RecepcionMercanciaBase):
+    id_recepcion: int
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# Schema base para RecepcionMercanciaDetalle
+class RecepcionMercanciaDetalleBase(BaseModel):
+    id_detalle_orden: int = Field(..., description="ID del detalle de orden")
+    cantidad_recibida: Decimal = Field(..., ge=0, description="Cantidad recibida")
+    cantidad_aceptada: Decimal = Field(..., ge=0, description="Cantidad aceptada")
+    cantidad_rechazada: Decimal = Field(default=0, ge=0, description="Cantidad rechazada")
+    observaciones_calidad: Optional[str] = Field(None, description="Observaciones de calidad")
+    motivo_rechazo: Optional[str] = Field(None, max_length=200, description="Motivo de rechazo")
+    lote_proveedor: Optional[str] = Field(None, max_length=100, description="Lote del proveedor")
+    fecha_vencimiento: Optional[date] = Field(None, description="Fecha de vencimiento")
+    ubicacion_almacen: Optional[str] = Field(None, max_length=100, description="Ubicación en almacén")
+
+# Schema para crear detalle (POST)
+class RecepcionMercanciaDetalleCreate(RecepcionMercanciaDetalleBase):
+    pass
+
+# Schema para actualizar detalle (PUT)
+class RecepcionMercanciaDetalleUpdate(BaseModel):
+    id_detalle_orden: Optional[int] = None
+    cantidad_recibida: Optional[Decimal] = Field(None, ge=0)
+    cantidad_aceptada: Optional[Decimal] = Field(None, ge=0)
+    cantidad_rechazada: Optional[Decimal] = Field(None, ge=0)
+    observaciones_calidad: Optional[str] = None
+    motivo_rechazo: Optional[str] = Field(None, max_length=200)
+    lote_proveedor: Optional[str] = Field(None, max_length=100)
+    fecha_vencimiento: Optional[date] = None
+    ubicacion_almacen: Optional[str] = Field(None, max_length=100)
+
+# Schema para respuesta de detalle (GET)
+class RecepcionMercanciaDetalleResponse(RecepcionMercanciaDetalleBase):
+    id_detalle_recepcion: int
+    id_recepcion: int
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# Schema para recepción completa con detalles
+class RecepcionMercanciaCompleta(BaseModel):
+    recepcion: RecepcionMercanciaCreate
+    detalles: List[RecepcionMercanciaDetalleCreate]
+
+# Schema para respuesta completa con detalles
+class RecepcionMercanciaCompletaResponse(RecepcionMercanciaResponse):
+    detalles: List[RecepcionMercanciaDetalleResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# Schema para filtros de búsqueda
+class RecepcionMercanciaFilters(BaseModel):
+    id_orden_compra: Optional[int] = None
+    id_usuario_receptor: Optional[int] = None
+    fecha_desde: Optional[date] = None
+    fecha_hasta: Optional[date] = None
+    numero_recepcion: Optional[str] = None
+    numero_factura_proveedor: Optional[str] = None
+    recepcion_completa: Optional[bool] = None
+    activo: Optional[bool] = True
+
+
+# ========================================
+# SCHEMAS PARA VISTAS DE ÓRDENES DE COMPRA
+# ========================================
+
+# Schema para vista resumen de órdenes de compra
+class VistaOrdenesCompraResumenRead(BaseModel):
+    id_orden_compra: int
+    numero_orden: str
+    nombre_proveedor: str
+    codigo_proveedor: str
+    solicitante: str
+    aprobador: Optional[str] = None
+    nombre_estado: str
+    fecha_orden: date
+    fecha_requerida: date
+    total: Decimal
+    moneda: str
+    total_lineas: int
+    lineas_pendientes: int
+    estado_recepcion: str
+
+    class Config:
+        from_attributes = True
+
+# Schema para vista detalle completo de órdenes
+class VistaOrdenesDetalleCompletoRead(BaseModel):
+    id_detalle: int
+    numero_orden: str
+    numero_linea: int
+    sku: str
+    producto_nombre: str
+    producto_descripcion: Optional[str] = None
+    nombre_unidad: str
+    cantidad_solicitada: Decimal
+    cantidad_recibida: Decimal
+    cantidad_pendiente: Decimal
+    precio_unitario: Decimal
+    descuento_porcentaje: Decimal
+    precio_neto: Decimal
+    importe_total: Decimal
+    fecha_entrega_esperada: Optional[date] = None
+    codigo_producto_proveedor: Optional[str] = None
+    nombre_proveedor: str
+
+    class Config:
+        from_attributes = True
+
+# Schema para filtros de vista resumen
+class VistaOrdenesCompraResumenFilters(BaseModel):
+    numero_orden: Optional[str] = None
+    nombre_proveedor: Optional[str] = None
+    codigo_proveedor: Optional[str] = None
+    solicitante: Optional[str] = None
+    nombre_estado: Optional[str] = None
+    fecha_desde: Optional[date] = None
+    fecha_hasta: Optional[date] = None
+    total_minimo: Optional[Decimal] = None
+    total_maximo: Optional[Decimal] = None
+    estado_recepcion: Optional[str] = None
+    moneda: Optional[str] = None
+
+# Schema para filtros de vista detalle completo
+class VistaOrdenesDetalleCompletoFilters(BaseModel):
+    numero_orden: Optional[str] = None
+    sku: Optional[str] = None
+    producto_nombre: Optional[str] = None
+    nombre_proveedor: Optional[str] = None
+    fecha_entrega_desde: Optional[date] = None
+    fecha_entrega_hasta: Optional[date] = None
+    cantidad_pendiente_mayor_que: Optional[Decimal] = None

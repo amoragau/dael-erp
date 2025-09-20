@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # Cargar variables de entorno
 load_dotenv()
@@ -36,7 +37,7 @@ def get_db():
 def test_connection():
     try:
         with engine.connect() as connection:
-            result = connection.execute("SELECT 1")
+            result = connection.execute(text("SELECT 1"))
             print("✅ Conexión a MySQL exitosa")
             return True
     except Exception as e:

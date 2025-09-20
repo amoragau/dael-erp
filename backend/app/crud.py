@@ -6231,3 +6231,746 @@ class ProductosABCCRUD:
 
 # Instancia global
 productos_abc_crud = ProductosABCCRUD()
+
+
+# ========================================
+# CRUD PARA ESTADOS DE ORDEN DE COMPRA
+# ========================================
+
+class EstadoOrdenCompraCRUD:
+    """CRUD operations for EstadoOrdenCompra"""
+
+    def get_estado(self, db: Session, estado_id: int) -> Optional[models.EstadoOrdenCompra]:
+        """Obtener estado por ID"""
+        return db.query(models.EstadoOrdenCompra).filter(models.EstadoOrdenCompra.id_estado == estado_id).first()
+
+    def get_estado_by_codigo(self, db: Session, codigo_estado: str) -> Optional[models.EstadoOrdenCompra]:
+        """Obtener estado por código"""
+        return db.query(models.EstadoOrdenCompra).filter(models.EstadoOrdenCompra.codigo_estado == codigo_estado).first()
+
+    def get_estado_inicial(self, db: Session) -> Optional[models.EstadoOrdenCompra]:
+        """Obtener estado inicial"""
+        return db.query(models.EstadoOrdenCompra).filter(
+            models.EstadoOrdenCompra.es_estado_inicial == True,
+            models.EstadoOrdenCompra.activo == True
+        ).first()
+
+    def get_estados_finales(self, db: Session) -> List[models.EstadoOrdenCompra]:
+        """Obtener estados finales"""
+        return db.query(models.EstadoOrdenCompra).filter(
+            models.EstadoOrdenCompra.es_estado_final == True,
+            models.EstadoOrdenCompra.activo == True
+        ).all()
+
+    def get_estados(self, db: Session, skip: int = 0, limit: int = 100) -> List[models.EstadoOrdenCompra]:
+        """Obtener todos los estados"""
+        return db.query(models.EstadoOrdenCompra).filter(
+            models.EstadoOrdenCompra.activo == True
+        ).order_by(models.EstadoOrdenCompra.codigo_estado).offset(skip).limit(limit).all()
+
+    def create_estado(self, db: Session, estado: schemas.EstadoOrdenCompraCreate) -> models.EstadoOrdenCompra:
+        """Crear nuevo estado"""
+        # Verificar que el código no exista
+        existing = self.get_estado_by_codigo(db, estado.codigo_estado)
+        if existing:
+            raise ValueError(f"Ya existe un estado con código '{estado.codigo_estado}'")
+
+        # Si es estado inicial, desactivar otros estados iniciales
+        if estado.es_estado_inicial:
+            db.query(models.EstadoOrdenCompra).filter(
+                models.EstadoOrdenCompra.es_estado_inicial == True
+            ).update({"es_estado_inicial": False})
+
+        db_estado = models.EstadoOrdenCompra(**estado.model_dump())
+        db.add(db_estado)
+        db.commit()
+        db.refresh(db_estado)
+        return db_estado
+
+    def update_estado(self, db: Session, estado_id: int, estado: schemas.EstadoOrdenCompraUpdate) -> Optional[models.EstadoOrdenCompra]:
+        """Actualizar estado"""
+        db_estado = self.get_estado(db, estado_id)
+        if not db_estado:
+            return None
+
+        # Verificar código único si se está actualizando
+        if estado.codigo_estado and estado.codigo_estado != db_estado.codigo_estado:
+            existing = self.get_estado_by_codigo(db, estado.codigo_estado)
+            if existing:
+                raise ValueError(f"Ya existe un estado con código '{estado.codigo_estado}'")
+
+        # Si es estado inicial, desactivar otros estados iniciales
+        if estado.es_estado_inicial:
+            db.query(models.EstadoOrdenCompra).filter(
+                models.EstadoOrdenCompra.es_estado_inicial == True,
+                models.EstadoOrdenCompra.id_estado != estado_id
+            ).update({"es_estado_inicial": False})
+
+        update_data = estado.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_estado, field, value)
+
+        db.commit()
+        db.refresh(db_estado)
+        return db_estado
+
+    def delete_estado(self, db: Session, estado_id: int) -> bool:
+        """Eliminar estado (soft delete)"""
+        db_estado = self.get_estado(db, estado_id)
+        if not db_estado:
+            return False
+
+        # Verificar que no esté siendo usado en órdenes de compra
+        # (cuando se implemente la tabla ordenes_compra)
+
+        db_estado.activo = False
+        db.commit()
+        return True
+
+    def count_estados(self, db: Session) -> int:
+        """Contar estados activos"""
+        return db.query(models.EstadoOrdenCompra).filter(models.EstadoOrdenCompra.activo == True).count()
+
+    def validate_transicion(self, db: Session, estado_origen_id: int, estado_destino_id: int) -> bool:
+        """Validar si es posible la transición entre estados"""
+        estado_origen = self.get_estado(db, estado_origen_id)
+        estado_destino = self.get_estado(db, estado_destino_id)
+
+        if not estado_origen or not estado_destino:
+            return False
+
+        # Lógica de validación de transiciones
+        # Por ejemplo: no se puede ir de un estado final a otro estado
+        if estado_origen.es_estado_final:
+            return False
+
+        return True
+
+
+# Instancia global
+estado_orden_compra_crud = EstadoOrdenCompraCRUD()
+
+
+# ========================================
+# CRUD PARA ÓRDENES DE COMPRA
+# ========================================
+
+class OrdenCompraCRUD:
+    """CRUD operations for OrdenCompra"""
+
+    def get_orden(self, db: Session, orden_id: int) -> Optional[models.OrdenCompra]:
+        """Obtener orden por ID"""
+        return db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == orden_id).first()
+
+    def get_orden_by_numero(self, db: Session, numero_orden: str) -> Optional[models.OrdenCompra]:
+        """Obtener orden por número"""
+        return db.query(models.OrdenCompra).filter(models.OrdenCompra.numero_orden == numero_orden).first()
+
+    def get_ordenes(self, db: Session, skip: int = 0, limit: int = 100,
+                   filtros: Optional[schemas.OrdenCompraFilters] = None) -> List[models.OrdenCompra]:
+        """Obtener órdenes con filtros"""
+        query = db.query(models.OrdenCompra).filter(models.OrdenCompra.activo == True)
+
+        if filtros:
+            if filtros.id_proveedor:
+                query = query.filter(models.OrdenCompra.id_proveedor == filtros.id_proveedor)
+            if filtros.id_estado:
+                query = query.filter(models.OrdenCompra.id_estado == filtros.id_estado)
+            if filtros.fecha_desde:
+                query = query.filter(models.OrdenCompra.fecha_orden >= filtros.fecha_desde)
+            if filtros.fecha_hasta:
+                query = query.filter(models.OrdenCompra.fecha_orden <= filtros.fecha_hasta)
+            if filtros.numero_orden:
+                query = query.filter(models.OrdenCompra.numero_orden.like(f"%{filtros.numero_orden}%"))
+            if filtros.total_minimo:
+                query = query.filter(models.OrdenCompra.total >= filtros.total_minimo)
+            if filtros.total_maximo:
+                query = query.filter(models.OrdenCompra.total <= filtros.total_maximo)
+            if filtros.activo is not None:
+                query = query.filter(models.OrdenCompra.activo == filtros.activo)
+
+        return query.order_by(models.OrdenCompra.fecha_orden.desc()).offset(skip).limit(limit).all()
+
+    def create_orden(self, db: Session, orden: schemas.OrdenCompraCreate) -> models.OrdenCompra:
+        """Crear nueva orden"""
+        # Verificar que el número no exista
+        existing = self.get_orden_by_numero(db, orden.numero_orden)
+        if existing:
+            raise ValueError(f"Ya existe una orden con número '{orden.numero_orden}'")
+
+        # Verificar que existan las referencias
+        proveedor = db.query(models.Proveedor).filter(models.Proveedor.id_proveedor == orden.id_proveedor).first()
+        if not proveedor:
+            raise ValueError(f"El proveedor con ID {orden.id_proveedor} no existe")
+
+        usuario = db.query(models.Usuarios).filter(models.Usuarios.id_usuario == orden.id_usuario_solicitante).first()
+        if not usuario:
+            raise ValueError(f"El usuario con ID {orden.id_usuario_solicitante} no existe")
+
+        # Obtener estado inicial si no se especifica
+        orden_data = orden.model_dump()
+        if 'id_estado' not in orden_data:
+            estado_inicial = estado_orden_compra_crud.get_estado_inicial(db)
+            if not estado_inicial:
+                raise ValueError("No hay estado inicial configurado")
+            orden_data['id_estado'] = estado_inicial.id_estado
+
+        db_orden = models.OrdenCompra(**orden_data)
+        db.add(db_orden)
+        db.commit()
+        db.refresh(db_orden)
+        return db_orden
+
+    def update_orden(self, db: Session, orden_id: int, orden: schemas.OrdenCompraUpdate) -> Optional[models.OrdenCompra]:
+        """Actualizar orden"""
+        db_orden = self.get_orden(db, orden_id)
+        if not db_orden:
+            return None
+
+        # Verificar número único si se está actualizando
+        if orden.numero_orden and orden.numero_orden != db_orden.numero_orden:
+            existing = self.get_orden_by_numero(db, orden.numero_orden)
+            if existing:
+                raise ValueError(f"Ya existe una orden con número '{orden.numero_orden}'")
+
+        update_data = orden.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_orden, field, value)
+
+        db.commit()
+        db.refresh(db_orden)
+        return db_orden
+
+    def delete_orden(self, db: Session, orden_id: int) -> bool:
+        """Eliminar orden (soft delete)"""
+        db_orden = self.get_orden(db, orden_id)
+        if not db_orden:
+            return False
+
+        db_orden.activo = False
+        db.commit()
+        return True
+
+    def count_ordenes(self, db: Session, filtros: Optional[schemas.OrdenCompraFilters] = None) -> int:
+        """Contar órdenes con filtros"""
+        query = db.query(models.OrdenCompra).filter(models.OrdenCompra.activo == True)
+
+        if filtros:
+            if filtros.id_proveedor:
+                query = query.filter(models.OrdenCompra.id_proveedor == filtros.id_proveedor)
+            if filtros.id_estado:
+                query = query.filter(models.OrdenCompra.id_estado == filtros.id_estado)
+
+        return query.count()
+
+    def aprobar_orden(self, db: Session, orden_id: int, usuario_aprobador_id: int) -> Optional[models.OrdenCompra]:
+        """Aprobar orden"""
+        db_orden = self.get_orden(db, orden_id)
+        if not db_orden:
+            return None
+
+        # Cambiar a estado aprobado
+        estado_aprobado = estado_orden_compra_crud.get_estado_by_codigo(db, "APROBADA")
+        if not estado_aprobado:
+            raise ValueError("No existe el estado 'APROBADA'")
+
+        db_orden.id_estado = estado_aprobado.id_estado
+        db_orden.id_usuario_aprobador = usuario_aprobador_id
+        db_orden.fecha_aprobacion = func.current_timestamp()
+
+        db.commit()
+        db.refresh(db_orden)
+        return db_orden
+
+    def cancelar_orden(self, db: Session, orden_id: int, motivo: str) -> Optional[models.OrdenCompra]:
+        """Cancelar orden"""
+        db_orden = self.get_orden(db, orden_id)
+        if not db_orden:
+            return None
+
+        # Cambiar a estado cancelado
+        estado_cancelado = estado_orden_compra_crud.get_estado_by_codigo(db, "CANCELADA")
+        if not estado_cancelado:
+            raise ValueError("No existe el estado 'CANCELADA'")
+
+        db_orden.id_estado = estado_cancelado.id_estado
+        db_orden.motivo_cancelacion = motivo
+        db_orden.fecha_cancelacion = func.current_timestamp()
+
+        db.commit()
+        db.refresh(db_orden)
+        return db_orden
+
+
+class OrdenCompraDetalleCRUD:
+    """CRUD operations for OrdenCompraDetalle"""
+
+    def get_detalle(self, db: Session, detalle_id: int) -> Optional[models.OrdenCompraDetalle]:
+        """Obtener detalle por ID"""
+        return db.query(models.OrdenCompraDetalle).filter(models.OrdenCompraDetalle.id_detalle == detalle_id).first()
+
+    def get_detalles_by_orden(self, db: Session, orden_id: int) -> List[models.OrdenCompraDetalle]:
+        """Obtener detalles por orden"""
+        return db.query(models.OrdenCompraDetalle).filter(
+            models.OrdenCompraDetalle.id_orden_compra == orden_id,
+            models.OrdenCompraDetalle.activo == True
+        ).order_by(models.OrdenCompraDetalle.numero_linea).all()
+
+    def create_detalle(self, db: Session, detalle: schemas.OrdenCompraDetalleCreate, orden_id: int) -> models.OrdenCompraDetalle:
+        """Crear detalle de orden"""
+        # Verificar que la orden existe
+        orden = db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == orden_id).first()
+        if not orden:
+            raise ValueError(f"La orden con ID {orden_id} no existe")
+
+        # Verificar que el producto existe
+        producto = db.query(models.Producto).filter(models.Producto.id_producto == detalle.id_producto).first()
+        if not producto:
+            raise ValueError(f"El producto con ID {detalle.id_producto} no existe")
+
+        # Calcular cantidad pendiente
+        detalle_data = detalle.model_dump()
+        detalle_data['id_orden_compra'] = orden_id
+        detalle_data['cantidad_pendiente'] = detalle.cantidad_solicitada
+
+        db_detalle = models.OrdenCompraDetalle(**detalle_data)
+        db.add(db_detalle)
+        db.commit()
+        db.refresh(db_detalle)
+
+        # Actualizar totales de la orden
+        self._actualizar_totales_orden(db, orden_id)
+
+        return db_detalle
+
+    def update_detalle(self, db: Session, detalle_id: int, detalle: schemas.OrdenCompraDetalleUpdate) -> Optional[models.OrdenCompraDetalle]:
+        """Actualizar detalle"""
+        db_detalle = self.get_detalle(db, detalle_id)
+        if not db_detalle:
+            return None
+
+        update_data = detalle.model_dump(exclude_unset=True)
+
+        # Recalcular cantidad pendiente si se actualiza cantidad solicitada o recibida
+        if 'cantidad_solicitada' in update_data or 'cantidad_recibida' in update_data:
+            cantidad_solicitada = update_data.get('cantidad_solicitada', db_detalle.cantidad_solicitada)
+            cantidad_recibida = update_data.get('cantidad_recibida', db_detalle.cantidad_recibida)
+            update_data['cantidad_pendiente'] = cantidad_solicitada - cantidad_recibida
+
+        for field, value in update_data.items():
+            setattr(db_detalle, field, value)
+
+        db.commit()
+        db.refresh(db_detalle)
+
+        # Actualizar totales de la orden
+        self._actualizar_totales_orden(db, db_detalle.id_orden_compra)
+
+        return db_detalle
+
+    def delete_detalle(self, db: Session, detalle_id: int) -> bool:
+        """Eliminar detalle (soft delete)"""
+        db_detalle = self.get_detalle(db, detalle_id)
+        if not db_detalle:
+            return False
+
+        orden_id = db_detalle.id_orden_compra
+        db_detalle.activo = False
+        db.commit()
+
+        # Actualizar totales de la orden
+        self._actualizar_totales_orden(db, orden_id)
+
+        return True
+
+    def _actualizar_totales_orden(self, db: Session, orden_id: int):
+        """Actualizar totales de la orden basado en sus detalles"""
+        detalles = self.get_detalles_by_orden(db, orden_id)
+        subtotal = sum(detalle.importe_total for detalle in detalles)
+
+        orden = db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == orden_id).first()
+        if orden:
+            orden.subtotal = subtotal
+            orden.total = subtotal + orden.impuestos - orden.descuentos
+            db.commit()
+
+
+# Instancias globales
+orden_compra_crud = OrdenCompraCRUD()
+orden_compra_detalle_crud = OrdenCompraDetalleCRUD()
+
+
+# ========================================
+# CRUD PARA RECEPCIONES DE MERCANCÍA
+# ========================================
+
+class RecepcionMercanciaCRUD:
+    """CRUD operations for RecepcionMercancia"""
+
+    def get_recepcion(self, db: Session, recepcion_id: int) -> Optional[models.RecepcionMercancia]:
+        """Obtener recepción por ID"""
+        return db.query(models.RecepcionMercancia).filter(models.RecepcionMercancia.id_recepcion == recepcion_id).first()
+
+    def get_recepcion_by_numero(self, db: Session, numero_recepcion: str) -> Optional[models.RecepcionMercancia]:
+        """Obtener recepción por número"""
+        return db.query(models.RecepcionMercancia).filter(models.RecepcionMercancia.numero_recepcion == numero_recepcion).first()
+
+    def get_recepciones_by_orden(self, db: Session, orden_id: int) -> List[models.RecepcionMercancia]:
+        """Obtener recepciones por orden de compra"""
+        return db.query(models.RecepcionMercancia).filter(
+            models.RecepcionMercancia.id_orden_compra == orden_id,
+            models.RecepcionMercancia.activo == True
+        ).order_by(models.RecepcionMercancia.fecha_recepcion.desc()).all()
+
+    def get_recepciones(self, db: Session, skip: int = 0, limit: int = 100,
+                       filtros: Optional[schemas.RecepcionMercanciaFilters] = None) -> List[models.RecepcionMercancia]:
+        """Obtener recepciones con filtros"""
+        query = db.query(models.RecepcionMercancia).filter(models.RecepcionMercancia.activo == True)
+
+        if filtros:
+            if filtros.id_orden_compra:
+                query = query.filter(models.RecepcionMercancia.id_orden_compra == filtros.id_orden_compra)
+            if filtros.id_usuario_receptor:
+                query = query.filter(models.RecepcionMercancia.id_usuario_receptor == filtros.id_usuario_receptor)
+            if filtros.fecha_desde:
+                query = query.filter(models.RecepcionMercancia.fecha_recepcion >= filtros.fecha_desde)
+            if filtros.fecha_hasta:
+                query = query.filter(models.RecepcionMercancia.fecha_recepcion <= filtros.fecha_hasta)
+            if filtros.numero_recepcion:
+                query = query.filter(models.RecepcionMercancia.numero_recepcion.like(f"%{filtros.numero_recepcion}%"))
+            if filtros.numero_factura_proveedor:
+                query = query.filter(models.RecepcionMercancia.numero_factura_proveedor.like(f"%{filtros.numero_factura_proveedor}%"))
+            if filtros.recepcion_completa is not None:
+                query = query.filter(models.RecepcionMercancia.recepcion_completa == filtros.recepcion_completa)
+            if filtros.activo is not None:
+                query = query.filter(models.RecepcionMercancia.activo == filtros.activo)
+
+        return query.order_by(models.RecepcionMercancia.fecha_recepcion.desc()).offset(skip).limit(limit).all()
+
+    def create_recepcion(self, db: Session, recepcion: schemas.RecepcionMercanciaCreate) -> models.RecepcionMercancia:
+        """Crear nueva recepción"""
+        # Verificar que el número no exista
+        existing = self.get_recepcion_by_numero(db, recepcion.numero_recepcion)
+        if existing:
+            raise ValueError(f"Ya existe una recepción con número '{recepcion.numero_recepcion}'")
+
+        # Verificar que la orden existe
+        orden = db.query(models.OrdenCompra).filter(models.OrdenCompra.id_orden_compra == recepcion.id_orden_compra).first()
+        if not orden:
+            raise ValueError(f"La orden con ID {recepcion.id_orden_compra} no existe")
+
+        # Verificar que el usuario existe
+        usuario = db.query(models.Usuarios).filter(models.Usuarios.id_usuario == recepcion.id_usuario_receptor).first()
+        if not usuario:
+            raise ValueError(f"El usuario con ID {recepcion.id_usuario_receptor} no existe")
+
+        db_recepcion = models.RecepcionMercancia(**recepcion.model_dump())
+        db.add(db_recepcion)
+        db.commit()
+        db.refresh(db_recepcion)
+        return db_recepcion
+
+    def update_recepcion(self, db: Session, recepcion_id: int, recepcion: schemas.RecepcionMercanciaUpdate) -> Optional[models.RecepcionMercancia]:
+        """Actualizar recepción"""
+        db_recepcion = self.get_recepcion(db, recepcion_id)
+        if not db_recepcion:
+            return None
+
+        # Verificar número único si se está actualizando
+        if recepcion.numero_recepcion and recepcion.numero_recepcion != db_recepcion.numero_recepcion:
+            existing = self.get_recepcion_by_numero(db, recepcion.numero_recepcion)
+            if existing:
+                raise ValueError(f"Ya existe una recepción con número '{recepcion.numero_recepcion}'")
+
+        update_data = recepcion.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_recepcion, field, value)
+
+        db.commit()
+        db.refresh(db_recepcion)
+        return db_recepcion
+
+    def delete_recepcion(self, db: Session, recepcion_id: int) -> bool:
+        """Eliminar recepción (soft delete)"""
+        db_recepcion = self.get_recepcion(db, recepcion_id)
+        if not db_recepcion:
+            return False
+
+        db_recepcion.activo = False
+        db.commit()
+        return True
+
+    def count_recepciones(self, db: Session, filtros: Optional[schemas.RecepcionMercanciaFilters] = None) -> int:
+        """Contar recepciones con filtros"""
+        query = db.query(models.RecepcionMercancia).filter(models.RecepcionMercancia.activo == True)
+
+        if filtros:
+            if filtros.id_orden_compra:
+                query = query.filter(models.RecepcionMercancia.id_orden_compra == filtros.id_orden_compra)
+            if filtros.id_usuario_receptor:
+                query = query.filter(models.RecepcionMercancia.id_usuario_receptor == filtros.id_usuario_receptor)
+
+        return query.count()
+
+    def marcar_como_completa(self, db: Session, recepcion_id: int) -> Optional[models.RecepcionMercancia]:
+        """Marcar recepción como completa"""
+        db_recepcion = self.get_recepcion(db, recepcion_id)
+        if not db_recepcion:
+            return None
+
+        db_recepcion.recepcion_completa = True
+        db.commit()
+        db.refresh(db_recepcion)
+        return db_recepcion
+
+
+class RecepcionMercanciaDetalleCRUD:
+    """CRUD operations for RecepcionMercanciaDetalle"""
+
+    def get_detalle(self, db: Session, detalle_id: int) -> Optional[models.RecepcionMercanciaDetalle]:
+        """Obtener detalle por ID"""
+        return db.query(models.RecepcionMercanciaDetalle).filter(models.RecepcionMercanciaDetalle.id_detalle_recepcion == detalle_id).first()
+
+    def get_detalles_by_recepcion(self, db: Session, recepcion_id: int) -> List[models.RecepcionMercanciaDetalle]:
+        """Obtener detalles por recepción"""
+        return db.query(models.RecepcionMercanciaDetalle).filter(
+            models.RecepcionMercanciaDetalle.id_recepcion == recepcion_id
+        ).all()
+
+    def create_detalle(self, db: Session, detalle: schemas.RecepcionMercanciaDetalleCreate, recepcion_id: int) -> models.RecepcionMercanciaDetalle:
+        """Crear detalle de recepción"""
+        # Verificar que la recepción existe
+        recepcion = db.query(models.RecepcionMercancia).filter(models.RecepcionMercancia.id_recepcion == recepcion_id).first()
+        if not recepcion:
+            raise ValueError(f"La recepción con ID {recepcion_id} no existe")
+
+        # Verificar que el detalle de orden existe
+        detalle_orden = db.query(models.OrdenCompraDetalle).filter(models.OrdenCompraDetalle.id_detalle == detalle.id_detalle_orden).first()
+        if not detalle_orden:
+            raise ValueError(f"El detalle de orden con ID {detalle.id_detalle_orden} no existe")
+
+        # Validar que cantidad recibida = cantidad aceptada + cantidad rechazada
+        if detalle.cantidad_recibida != (detalle.cantidad_aceptada + detalle.cantidad_rechazada):
+            raise ValueError("La cantidad recibida debe ser igual a la suma de cantidad aceptada y rechazada")
+
+        detalle_data = detalle.model_dump()
+        detalle_data['id_recepcion'] = recepcion_id
+
+        db_detalle = models.RecepcionMercanciaDetalle(**detalle_data)
+        db.add(db_detalle)
+        db.commit()
+        db.refresh(db_detalle)
+
+        # Actualizar cantidad recibida en el detalle de orden
+        self._actualizar_cantidad_recibida_orden(db, detalle.id_detalle_orden)
+
+        return db_detalle
+
+    def update_detalle(self, db: Session, detalle_id: int, detalle: schemas.RecepcionMercanciaDetalleUpdate) -> Optional[models.RecepcionMercanciaDetalle]:
+        """Actualizar detalle de recepción"""
+        db_detalle = self.get_detalle(db, detalle_id)
+        if not db_detalle:
+            return None
+
+        update_data = detalle.model_dump(exclude_unset=True)
+
+        # Validar cantidades si se están actualizando
+        cantidad_recibida = update_data.get('cantidad_recibida', db_detalle.cantidad_recibida)
+        cantidad_aceptada = update_data.get('cantidad_aceptada', db_detalle.cantidad_aceptada)
+        cantidad_rechazada = update_data.get('cantidad_rechazada', db_detalle.cantidad_rechazada)
+
+        if cantidad_recibida != (cantidad_aceptada + cantidad_rechazada):
+            raise ValueError("La cantidad recibida debe ser igual a la suma de cantidad aceptada y rechazada")
+
+        for field, value in update_data.items():
+            setattr(db_detalle, field, value)
+
+        db.commit()
+        db.refresh(db_detalle)
+
+        # Actualizar cantidad recibida en el detalle de orden
+        self._actualizar_cantidad_recibida_orden(db, db_detalle.id_detalle_orden)
+
+        return db_detalle
+
+    def delete_detalle(self, db: Session, detalle_id: int) -> bool:
+        """Eliminar detalle de recepción"""
+        db_detalle = self.get_detalle(db, detalle_id)
+        if not db_detalle:
+            return False
+
+        detalle_orden_id = db_detalle.id_detalle_orden
+        db.delete(db_detalle)
+        db.commit()
+
+        # Actualizar cantidad recibida en el detalle de orden
+        self._actualizar_cantidad_recibida_orden(db, detalle_orden_id)
+
+        return True
+
+    def _actualizar_cantidad_recibida_orden(self, db: Session, detalle_orden_id: int):
+        """Actualizar cantidad recibida en el detalle de orden basado en las recepciones"""
+        # Sumar todas las cantidades aceptadas de todas las recepciones para este detalle
+        total_recibido = db.query(func.sum(models.RecepcionMercanciaDetalle.cantidad_aceptada)).filter(
+            models.RecepcionMercanciaDetalle.id_detalle_orden == detalle_orden_id
+        ).scalar() or 0
+
+        # Actualizar el detalle de orden
+        detalle_orden = db.query(models.OrdenCompraDetalle).filter(models.OrdenCompraDetalle.id_detalle == detalle_orden_id).first()
+        if detalle_orden:
+            detalle_orden.cantidad_recibida = total_recibido
+            detalle_orden.cantidad_pendiente = detalle_orden.cantidad_solicitada - total_recibido
+            db.commit()
+
+
+# Instancias globales
+recepcion_mercancia_crud = RecepcionMercanciaCRUD()
+recepcion_mercancia_detalle_crud = RecepcionMercanciaDetalleCRUD()
+
+
+# ========================================
+# CRUD PARA VISTAS DE ÓRDENES DE COMPRA
+# ========================================
+
+class VistaOrdenesCompraResumenCRUD:
+    """CRUD para vista resumen de órdenes de compra"""
+
+    def __init__(self, db: Session = None):
+        self.db = db
+        self.model = models.VistaOrdenesCompraResumen
+
+    def get_multi_filtered(self, db: Session, skip: int = 0, limit: int = 100,
+                          filtro: Optional[schemas.VistaOrdenesCompraResumenFilters] = None) -> List[models.VistaOrdenesCompraResumen]:
+        """Obtener múltiples registros con filtros avanzados"""
+        query = db.query(self.model)
+
+        if filtro:
+            if filtro.numero_orden:
+                query = query.filter(self.model.numero_orden.like(f"%{filtro.numero_orden}%"))
+            if filtro.nombre_proveedor:
+                query = query.filter(self.model.nombre_proveedor.like(f"%{filtro.nombre_proveedor}%"))
+            if filtro.codigo_proveedor:
+                query = query.filter(self.model.codigo_proveedor.like(f"%{filtro.codigo_proveedor}%"))
+            if filtro.solicitante:
+                query = query.filter(self.model.solicitante.like(f"%{filtro.solicitante}%"))
+            if filtro.nombre_estado:
+                query = query.filter(self.model.nombre_estado == filtro.nombre_estado)
+            if filtro.fecha_desde:
+                query = query.filter(self.model.fecha_orden >= filtro.fecha_desde)
+            if filtro.fecha_hasta:
+                query = query.filter(self.model.fecha_orden <= filtro.fecha_hasta)
+            if filtro.total_minimo:
+                query = query.filter(self.model.total >= filtro.total_minimo)
+            if filtro.total_maximo:
+                query = query.filter(self.model.total <= filtro.total_maximo)
+            if filtro.estado_recepcion:
+                query = query.filter(self.model.estado_recepcion == filtro.estado_recepcion)
+            if filtro.moneda:
+                query = query.filter(self.model.moneda == filtro.moneda)
+
+        return query.order_by(self.model.fecha_orden.desc()).offset(skip).limit(limit).all()
+
+    def get_by_id(self, db: Session, orden_id: int) -> Optional[models.VistaOrdenesCompraResumen]:
+        """Obtener por ID"""
+        return db.query(self.model).filter(self.model.id_orden_compra == orden_id).first()
+
+    def contar_con_filtros(self, db: Session, filtro: Optional[schemas.VistaOrdenesCompraResumenFilters] = None) -> int:
+        """Contar registros con filtros aplicados"""
+        query = db.query(self.model)
+
+        if filtro:
+            if filtro.numero_orden:
+                query = query.filter(self.model.numero_orden.like(f"%{filtro.numero_orden}%"))
+            if filtro.nombre_proveedor:
+                query = query.filter(self.model.nombre_proveedor.like(f"%{filtro.nombre_proveedor}%"))
+            if filtro.estado_recepcion:
+                query = query.filter(self.model.estado_recepcion == filtro.estado_recepcion)
+
+        return query.count()
+
+    def get_estadisticas_resumen(self, db: Session) -> dict:
+        """Obtener estadísticas generales de órdenes"""
+        total_ordenes = db.query(self.model).count()
+        ordenes_pendientes = db.query(self.model).filter(self.model.estado_recepcion == 'PENDIENTE').count()
+        ordenes_parciales = db.query(self.model).filter(self.model.estado_recepcion == 'PARCIAL').count()
+        ordenes_completas = db.query(self.model).filter(self.model.estado_recepcion == 'COMPLETA').count()
+
+        valor_total = db.query(func.sum(self.model.total)).scalar() or 0
+        valor_pendiente = db.query(func.sum(self.model.total)).filter(
+            self.model.estado_recepcion.in_(['PENDIENTE', 'PARCIAL'])
+        ).scalar() or 0
+
+        return {
+            "total_ordenes": total_ordenes,
+            "ordenes_pendientes": ordenes_pendientes,
+            "ordenes_parciales": ordenes_parciales,
+            "ordenes_completas": ordenes_completas,
+            "valor_total": float(valor_total),
+            "valor_pendiente": float(valor_pendiente)
+        }
+
+
+class VistaOrdenesDetalleCompletoCRUD:
+    """CRUD para vista detalle completo de órdenes"""
+
+    def __init__(self, db: Session = None):
+        self.db = db
+        self.model = models.VistaOrdenesDetalleCompleto
+
+    def get_multi_filtered(self, db: Session, skip: int = 0, limit: int = 100,
+                          filtro: Optional[schemas.VistaOrdenesDetalleCompletoFilters] = None) -> List[models.VistaOrdenesDetalleCompleto]:
+        """Obtener múltiples registros con filtros avanzados"""
+        query = db.query(self.model)
+
+        if filtro:
+            if filtro.numero_orden:
+                query = query.filter(self.model.numero_orden.like(f"%{filtro.numero_orden}%"))
+            if filtro.sku:
+                query = query.filter(self.model.sku.like(f"%{filtro.sku}%"))
+            if filtro.producto_nombre:
+                query = query.filter(self.model.producto_nombre.like(f"%{filtro.producto_nombre}%"))
+            if filtro.nombre_proveedor:
+                query = query.filter(self.model.nombre_proveedor.like(f"%{filtro.nombre_proveedor}%"))
+            if filtro.fecha_entrega_desde:
+                query = query.filter(self.model.fecha_entrega_esperada >= filtro.fecha_entrega_desde)
+            if filtro.fecha_entrega_hasta:
+                query = query.filter(self.model.fecha_entrega_esperada <= filtro.fecha_entrega_hasta)
+            if filtro.cantidad_pendiente_mayor_que:
+                query = query.filter(self.model.cantidad_pendiente > filtro.cantidad_pendiente_mayor_que)
+
+        return query.order_by(self.model.numero_orden, self.model.numero_linea).offset(skip).limit(limit).all()
+
+    def get_by_id(self, db: Session, detalle_id: int) -> Optional[models.VistaOrdenesDetalleCompleto]:
+        """Obtener por ID"""
+        return db.query(self.model).filter(self.model.id_detalle == detalle_id).first()
+
+    def get_by_orden(self, db: Session, numero_orden: str) -> List[models.VistaOrdenesDetalleCompleto]:
+        """Obtener detalles por número de orden"""
+        return db.query(self.model).filter(
+            self.model.numero_orden == numero_orden
+        ).order_by(self.model.numero_linea).all()
+
+    def get_productos_pendientes(self, db: Session, skip: int = 0, limit: int = 100) -> List[models.VistaOrdenesDetalleCompleto]:
+        """Obtener productos con cantidades pendientes"""
+        return db.query(self.model).filter(
+            self.model.cantidad_pendiente > 0
+        ).order_by(self.model.fecha_entrega_esperada.asc()).offset(skip).limit(limit).all()
+
+    def contar_con_filtros(self, db: Session, filtro: Optional[schemas.VistaOrdenesDetalleCompletoFilters] = None) -> int:
+        """Contar registros con filtros aplicados"""
+        query = db.query(self.model)
+
+        if filtro:
+            if filtro.numero_orden:
+                query = query.filter(self.model.numero_orden.like(f"%{filtro.numero_orden}%"))
+            if filtro.sku:
+                query = query.filter(self.model.sku.like(f"%{filtro.sku}%"))
+            if filtro.cantidad_pendiente_mayor_que:
+                query = query.filter(self.model.cantidad_pendiente > filtro.cantidad_pendiente_mayor_que)
+
+        return query.count()
+
+
+# Instancias globales
+vista_ordenes_compra_resumen_crud = VistaOrdenesCompraResumenCRUD()
+vista_ordenes_detalle_completo_crud = VistaOrdenesDetalleCompletoCRUD()
