@@ -533,67 +533,10 @@ class EstanteCRUD:
         db.commit()
         return True
 
-class NivelCRUD:
-
-    def get_nivel(self, db: Session, nivel_id: int) -> Optional[models.Nivel]:
-        """Obtener nivel por ID"""
-        return db.query(models.Nivel).filter(models.Nivel.id_nivel == nivel_id).first()
-
-    def get_niveles_by_estante(self, db: Session, estante_id: int, activo: Optional[bool] = None) -> List[models.Nivel]:
-        """Obtener niveles de un estante"""
-        query = db.query(models.Nivel).filter(models.Nivel.id_estante == estante_id)
-
-        if activo is not None:
-            query = query.filter(models.Nivel.activo == activo)
-
-        return query.order_by(models.Nivel.numero_nivel).all()
-
-    def get_niveles(self, db: Session, skip: int = 0, limit: int = 100, activo: Optional[bool] = None) -> List[models.Nivel]:
-        """Obtener lista de niveles con paginación"""
-        query = db.query(models.Nivel)
-
-        if activo is not None:
-            query = query.filter(models.Nivel.activo == activo)
-
-        return query.offset(skip).limit(limit).all()
-
-    def create_nivel(self, db: Session, nivel: schemas.NivelCreate) -> models.Nivel:
-        """Crear nuevo nivel"""
-        db_nivel = models.Nivel(**nivel.dict())
-        db.add(db_nivel)
-        db.commit()
-        db.refresh(db_nivel)
-        return db_nivel
-
-    def update_nivel(self, db: Session, nivel_id: int, nivel_update: schemas.NivelUpdate) -> Optional[models.Nivel]:
-        """Actualizar nivel"""
-        db_nivel = self.get_nivel(db, nivel_id)
-        if not db_nivel:
-            return None
-
-        update_data = nivel_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_nivel, field, value)
-
-        db.commit()
-        db.refresh(db_nivel)
-        return db_nivel
-
-    def delete_nivel(self, db: Session, nivel_id: int) -> bool:
-        """Eliminar nivel (soft delete)"""
-        db_nivel = self.get_nivel(db, nivel_id)
-        if not db_nivel:
-            return False
-
-        db_nivel.activo = False
-        db.commit()
-        return True
-
 # Instancias globales
 bodega_crud = BodegaCRUD()
 pasillo_crud = PasilloCRUD()
 estante_crud = EstanteCRUD()
-nivel_crud = NivelCRUD()
 
 # ========================================
 # CRUD PARA PRODUCTOS

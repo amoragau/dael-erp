@@ -200,25 +200,9 @@ class Estante(Base):
     activo = Column(Boolean, default=True)
 
     pasillo = relationship("Pasillo", back_populates="estantes")
-    niveles = relationship("Nivel", back_populates="estante")
 
     def __repr__(self):
         return f"<Estante(id={self.id_estante}, pasillo_id={self.id_pasillo}, codigo='{self.codigo_estante}')>"
-
-class Nivel(Base):
-    __tablename__ = "niveles"
-
-    id_nivel = Column(Integer, primary_key=True, autoincrement=True)
-    id_estante = Column(Integer, ForeignKey("estantes.id_estante"), nullable=False)
-    numero_nivel = Column(Integer, nullable=False)
-    altura_cm = Column(DECIMAL(6,2))
-    capacidad_peso_kg = Column(DECIMAL(8,2))
-    activo = Column(Boolean, default=True)
-
-    estante = relationship("Estante", back_populates="niveles")
-
-    def __repr__(self):
-        return f"<Nivel(id={self.id_nivel}, estante_id={self.id_estante}, numero={self.numero_nivel})>"
 
 class Producto(Base):
     __tablename__ = "productos"
@@ -333,7 +317,7 @@ class ProductoUbicacion(Base):
 
     id_ubicacion = Column(Integer, primary_key=True, autoincrement=True)
     id_producto = Column(Integer, ForeignKey("productos.id_producto"), nullable=False, index=True)
-    id_nivel = Column(Integer, ForeignKey("niveles.id_nivel"), nullable=False, index=True)
+    id_estante = Column(Integer, ForeignKey("estantes.id_estante"), nullable=False, index=True)
     cantidad = Column(Integer, nullable=False, default=0)
     cantidad_reservada = Column(Integer, default=0)
     posicion_especifica = Column(String(20))
@@ -343,10 +327,10 @@ class ProductoUbicacion(Base):
 
     # Relaciones
     producto = relationship("Producto")
-    nivel = relationship("Nivel")
+    estante = relationship("Estante")
 
     def __repr__(self):
-        return f"<ProductoUbicacion(id={self.id_ubicacion}, producto_id={self.id_producto}, nivel_id={self.id_nivel}, cantidad={self.cantidad})>"
+        return f"<ProductoUbicacion(id={self.id_ubicacion}, producto_id={self.id_producto}, estante_id={self.id_estante}, cantidad={self.cantidad})>"
 
 class DocumentoMovimiento(Base):
     __tablename__ = "documentos_movimiento"

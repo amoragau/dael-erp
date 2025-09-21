@@ -19,7 +19,6 @@ from routes import sucursales_proveedor
 from routes import bodegas
 from routes import pasillos
 from routes import estantes
-from routes import niveles
 from routes import productos
 from routes import producto_proveedores
 from routes import producto_ubicaciones
@@ -94,7 +93,6 @@ app.include_router(sucursales_proveedor.router, prefix="/api/v1")
 app.include_router(bodegas.router, prefix="/api/v1")
 app.include_router(pasillos.router, prefix="/api/v1")
 app.include_router(estantes.router, prefix="/api/v1")
-app.include_router(niveles.router, prefix="/api/v1")
 app.include_router(productos.router, prefix="/api/v1")
 app.include_router(producto_proveedores.router, prefix="/api/v1")
 app.include_router(producto_ubicaciones.router, prefix="/api/v1")
@@ -150,7 +148,6 @@ def root():
             "bodegas": "/api/v1/bodegas",
             "pasillos": "/api/v1/pasillos",
             "estantes": "/api/v1/estantes",
-            "niveles": "/api/v1/niveles",
             "productos": "/api/v1/productos",
             "producto_proveedores": "/api/v1/producto-proveedores",
             "producto_ubicaciones": "/api/v1/producto-ubicaciones",

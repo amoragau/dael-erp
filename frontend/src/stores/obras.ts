@@ -2,37 +2,48 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApiStore } from './api'
 
+// obras - Proyectos Específicos
 export interface Obra {
   id_obra: number
   codigo_obra: string
   nombre_obra: string
   descripcion?: string
   id_cliente: number
-  direccion_obra?: string
+
+  // Ubicación física
+  direccion?: string
   ciudad?: string
+  estado?: string
   codigo_postal?: string
+  pais?: string
+  coordenadas_gps?: string
 
-  // Responsables
+  // Personal
   supervisor_obra?: string
+  telefono_supervisor?: string
+  email_supervisor?: string
   contacto_obra?: string
-  telefono_obra?: string
+  telefono_contacto?: string
+  email_contacto?: string
 
-  // Fechas del proyecto
+  // Control de fechas
   fecha_inicio_programada?: string
   fecha_fin_programada?: string
   fecha_inicio_real?: string
   fecha_fin_real?: string
+  estado: 'planificacion' | 'ejecucion' | 'suspendida' | 'finalizada' | 'cancelada'
 
   // Control financiero
   valor_contrato?: number
-  moneda: string
+  moneda?: string
+  porcentaje_merma_permitida?: number
 
-  // Control de inventario
+  // Políticas de inventario
   requiere_devolucion_sobrantes: boolean
   dias_limite_devolucion: number
 
-  // Estado
-  estado: string
+  // Control
+  observaciones?: string
   activo: boolean
   fecha_creacion?: string
   fecha_modificacion?: string
@@ -41,7 +52,7 @@ export interface Obra {
 
   // Relaciones
   cliente?: any
-  almacen_obra?: any
+  almacen_obra?: AlmacenObra
 }
 
 export interface ObraCreate {
@@ -49,31 +60,40 @@ export interface ObraCreate {
   nombre_obra: string
   descripcion?: string
   id_cliente: number
-  direccion_obra?: string
+
+  // Ubicación física
+  direccion?: string
   ciudad?: string
+  estado?: string
   codigo_postal?: string
+  pais?: string
+  coordenadas_gps?: string
 
-  // Responsables
+  // Personal
   supervisor_obra?: string
+  telefono_supervisor?: string
+  email_supervisor?: string
   contacto_obra?: string
-  telefono_obra?: string
+  telefono_contacto?: string
+  email_contacto?: string
 
-  // Fechas del proyecto
+  // Control de fechas
   fecha_inicio_programada?: string
   fecha_fin_programada?: string
   fecha_inicio_real?: string
   fecha_fin_real?: string
+  estado: 'planificacion' | 'ejecucion' | 'suspendida' | 'finalizada' | 'cancelada'
 
   // Control financiero
   valor_contrato?: number
-  moneda: string
+  moneda?: string
+  porcentaje_merma_permitida?: number
 
-  // Control de inventario
+  // Políticas de inventario
   requiere_devolucion_sobrantes: boolean
   dias_limite_devolucion: number
 
-  // Estado
-  estado: string
+  observaciones?: string
   activo: boolean
 }
 
@@ -82,86 +102,107 @@ export interface ObraUpdate {
   nombre_obra?: string
   descripcion?: string
   id_cliente?: number
-  direccion_obra?: string
+
+  // Ubicación física
+  direccion?: string
   ciudad?: string
+  estado?: string
   codigo_postal?: string
+  pais?: string
+  coordenadas_gps?: string
 
-  // Responsables
+  // Personal
   supervisor_obra?: string
+  telefono_supervisor?: string
+  email_supervisor?: string
   contacto_obra?: string
-  telefono_obra?: string
+  telefono_contacto?: string
+  email_contacto?: string
 
-  // Fechas del proyecto
+  // Control de fechas
   fecha_inicio_programada?: string
   fecha_fin_programada?: string
   fecha_inicio_real?: string
   fecha_fin_real?: string
+  estado?: 'planificacion' | 'ejecucion' | 'suspendida' | 'finalizada' | 'cancelada'
 
   // Control financiero
   valor_contrato?: number
   moneda?: string
+  porcentaje_merma_permitida?: number
 
-  // Control de inventario
+  // Políticas de inventario
   requiere_devolucion_sobrantes?: boolean
   dias_limite_devolucion?: number
 
-  // Estado
-  estado?: string
+  observaciones?: string
   activo?: boolean
 }
 
-export interface Cliente {
-  id_cliente: number
-  codigo_cliente: string
-  nombre_cliente: string
-  activo: boolean
-}
-
+// almacen_obra - Almacén Único por Obra (Relación 1:1)
 export interface AlmacenObra {
-  id_almacen: number
+  id_almacen_obra: number
   id_obra: number
-  nombre_almacen: string
-  descripcion?: string
-  direccion?: string
-  responsable?: string
-  telefono?: string
-  tiene_seguridad: boolean
+  ubicacion_almacen: string
+  direccion_almacen?: string
+  responsable_almacen?: string
+  telefono_responsable?: string
+  email_responsable?: string
+
+  // Condiciones del almacén
   tiene_techo: boolean
+  tiene_seguridad: boolean
   capacidad_m3?: number
+  condiciones_especiales?: string
+
   observaciones?: string
   activo: boolean
+  fecha_creacion?: string
+  fecha_modificacion?: string
+
+  // Relación
+  obra?: Obra
 }
 
 export interface AlmacenObraCreate {
   id_obra: number
-  nombre_almacen: string
-  descripcion?: string
-  direccion?: string
-  responsable?: string
-  telefono?: string
-  tiene_seguridad: boolean
+  ubicacion_almacen: string
+  direccion_almacen?: string
+  responsable_almacen?: string
+  telefono_responsable?: string
+  email_responsable?: string
+
+  // Condiciones del almacén
   tiene_techo: boolean
+  tiene_seguridad: boolean
   capacidad_m3?: number
+  condiciones_especiales?: string
+
   observaciones?: string
   activo: boolean
 }
 
-// Estados disponibles para obras
-export const ESTADOS_OBRA = [
-  'PLANIFICACION',
-  'EN_EJECUCION',
-  'SUSPENDIDA',
-  'FINALIZADA',
-  'CANCELADA'
-] as const
+export interface AlmacenObraUpdate {
+  ubicacion_almacen?: string
+  direccion_almacen?: string
+  responsable_almacen?: string
+  telefono_responsable?: string
+  email_responsable?: string
 
-export type EstadoObra = typeof ESTADOS_OBRA[number]
+  // Condiciones del almacén
+  tiene_techo?: boolean
+  tiene_seguridad?: boolean
+  capacidad_m3?: number
+  condiciones_especiales?: string
+
+  observaciones?: string
+  activo?: boolean
+}
 
 export const useObraStore = defineStore('obras', () => {
   const apiStore = useApiStore()
 
   const obras = ref<Obra[]>([])
-  const clientes = ref<Cliente[]>([])
   const almacenesObra = ref<AlmacenObra[]>([])
   const isLoading = ref(false)
 
@@ -169,8 +210,8 @@ export const useObraStore = defineStore('obras', () => {
   const obtenerObras = async (params?: {
     skip?: number
     limit?: number
-    estado?: EstadoObra
     activo?: boolean
+    estado?: string
     cliente_id?: number
   }): Promise<Obra[]> => {
     try {
@@ -179,8 +220,8 @@ export const useObraStore = defineStore('obras', () => {
 
       if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString())
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
-      if (params?.estado !== undefined) queryParams.append('estado', params.estado)
       if (params?.activo !== undefined) queryParams.append('activo', params.activo === true ? 'true' : 'false')
+      if (params?.estado) queryParams.append('estado', params.estado)
       if (params?.cliente_id !== undefined) queryParams.append('cliente_id', params.cliente_id.toString())
 
       const url = `/obras?${queryParams.toString()}`
@@ -204,7 +245,8 @@ export const useObraStore = defineStore('obras', () => {
     params?: {
       skip?: number
       limit?: number
-      estado?: EstadoObra
+      activo?: boolean
+      estado?: string
     }
   ): Promise<Obra[]> => {
     try {
@@ -214,7 +256,8 @@ export const useObraStore = defineStore('obras', () => {
 
       if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString())
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
-      if (params?.estado !== undefined) queryParams.append('estado', params.estado)
+      if (params?.activo !== undefined) queryParams.append('activo', params.activo === true ? 'true' : 'false')
+      if (params?.estado) queryParams.append('estado', params.estado)
 
       const response = await apiStore.get(`/obras/search?${queryParams.toString()}`)
       if (!response.success) {
@@ -238,19 +281,6 @@ export const useObraStore = defineStore('obras', () => {
       return response.data
     } catch (error) {
       console.error('Error al obtener obra:', error)
-      throw error
-    }
-  }
-
-  const obtenerObraPorCodigo = async (codigo: string): Promise<Obra> => {
-    try {
-      const response = await apiStore.get(`/obras/codigo/${codigo}`)
-      if (!response.success) {
-        throw new Error(response.error || 'Error al obtener obra por código')
-      }
-      return response.data
-    } catch (error) {
-      console.error('Error al obtener obra por código:', error)
       throw error
     }
   }
@@ -281,114 +311,187 @@ export const useObraStore = defineStore('obras', () => {
     }
   }
 
-  const eliminarObra = async (id: number, permanente: boolean = false): Promise<void> => {
+  const cambiarEstadoObra = async (id: number, nuevoEstado: string, observaciones?: string): Promise<Obra> => {
     try {
-      const params = new URLSearchParams()
-      params.append('permanente', permanente.toString())
-
-      const response = await apiStore.delete(`/obras/${id}?${params.toString()}`)
-      if (!response.success) {
-        throw new Error(response.error || 'Error al eliminar obra')
-      }
-    } catch (error) {
-      console.error('Error al eliminar obra:', error)
-      throw error
-    }
-  }
-
-  const activarObra = async (id: number): Promise<Obra> => {
-    try {
-      const response = await apiStore.patch(`/obras/${id}/activar`)
-      if (!response.success) {
-        throw new Error(response.error || 'Error al activar obra')
-      }
-      return response.data.obra
-    } catch (error) {
-      console.error('Error al activar obra:', error)
-      throw error
-    }
-  }
-
-  const cambiarEstadoObra = async (id: number, estado: EstadoObra): Promise<Obra> => {
-    try {
-      const response = await apiStore.patch(`/obras/${id}/estado`, { estado })
+      const response = await apiStore.patch(`/obras/${id}/estado`, {
+        estado: nuevoEstado,
+        observaciones
+      })
       if (!response.success) {
         throw new Error(response.error || 'Error al cambiar estado de obra')
       }
-      return response.data.obra
+      return response.data
     } catch (error) {
       console.error('Error al cambiar estado de obra:', error)
       throw error
     }
   }
 
-  // CRUD Almacenes de Obra
-  const obtenerAlmacenesPorObra = async (obraId: number): Promise<AlmacenObra[]> => {
+  const iniciarObra = async (id: number): Promise<Obra> => {
     try {
-      isLoading.value = true
-      const response = await apiStore.get(`/almacen-obra/obra/${obraId}`)
+      const response = await apiStore.patch(`/obras/${id}/iniciar`)
       if (!response.success) {
-        throw new Error(response.error || 'Error al obtener almacenes')
+        throw new Error(response.error || 'Error al iniciar obra')
       }
-      almacenesObra.value = response.data
       return response.data
     } catch (error) {
-      console.error('Error al obtener almacenes:', error)
+      console.error('Error al iniciar obra:', error)
       throw error
-    } finally {
-      isLoading.value = false
+    }
+  }
+
+  const finalizarObra = async (id: number, observaciones?: string): Promise<Obra> => {
+    try {
+      const response = await apiStore.patch(`/obras/${id}/finalizar`, { observaciones })
+      if (!response.success) {
+        throw new Error(response.error || 'Error al finalizar obra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al finalizar obra:', error)
+      throw error
+    }
+  }
+
+  const suspenderObra = async (id: number, motivo: string): Promise<Obra> => {
+    try {
+      const response = await apiStore.patch(`/obras/${id}/suspender`, { motivo })
+      if (!response.success) {
+        throw new Error(response.error || 'Error al suspender obra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al suspender obra:', error)
+      throw error
+    }
+  }
+
+  const reanudarObra = async (id: number): Promise<Obra> => {
+    try {
+      const response = await apiStore.patch(`/obras/${id}/reanudar`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al reanudar obra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al reanudar obra:', error)
+      throw error
+    }
+  }
+
+  // CRUD Almacenes Obra
+  const obtenerAlmacenObra = async (obraId: number): Promise<AlmacenObra | null> => {
+    try {
+      const response = await apiStore.get(`/almacenes-obra/obra/${obraId}`)
+      if (!response.success) {
+        if (response.error?.includes('not found')) {
+          return null // No hay almacén para esta obra
+        }
+        throw new Error(response.error || 'Error al obtener almacén de obra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener almacén de obra:', error)
+      throw error
     }
   }
 
   const crearAlmacenObra = async (almacen: AlmacenObraCreate): Promise<AlmacenObra> => {
     try {
-      const response = await apiStore.post('/almacen-obra', almacen)
+      const response = await apiStore.post('/almacenes-obra', almacen)
       if (!response.success) {
-        throw new Error(response.error || 'Error al crear almacén')
+        throw new Error(response.error || 'Error al crear almacén de obra')
       }
       return response.data
     } catch (error) {
-      console.error('Error al crear almacén:', error)
+      console.error('Error al crear almacén de obra:', error)
       throw error
     }
   }
 
-  const actualizarAlmacenObra = async (id: number, almacen: Partial<AlmacenObraCreate>): Promise<AlmacenObra> => {
+  const actualizarAlmacenObra = async (id: number, almacen: AlmacenObraUpdate): Promise<AlmacenObra> => {
     try {
-      const response = await apiStore.put(`/almacen-obra/${id}`, almacen)
+      const response = await apiStore.put(`/almacenes-obra/${id}`, almacen)
       if (!response.success) {
-        throw new Error(response.error || 'Error al actualizar almacén')
+        throw new Error(response.error || 'Error al actualizar almacén de obra')
       }
       return response.data
     } catch (error) {
-      console.error('Error al actualizar almacén:', error)
+      console.error('Error al actualizar almacén de obra:', error)
       throw error
     }
   }
 
   const eliminarAlmacenObra = async (id: number): Promise<void> => {
     try {
-      const response = await apiStore.delete(`/almacen-obra/${id}`)
+      const response = await apiStore.delete(`/almacenes-obra/${id}`)
       if (!response.success) {
-        throw new Error(response.error || 'Error al eliminar almacén')
+        throw new Error(response.error || 'Error al eliminar almacén de obra')
       }
     } catch (error) {
-      console.error('Error al eliminar almacén:', error)
+      console.error('Error al eliminar almacén de obra:', error)
       throw error
     }
   }
 
-  // Métodos para datos relacionados
-  const obtenerClientes = async (): Promise<Cliente[]> => {
+  // Métodos de análisis y reportes
+  const obtenerEstadisticasObra = async (id: number): Promise<{
+    dias_transcurridos: number
+    dias_restantes: number
+    porcentaje_avance_tiempo: number
+    valor_despachos: number
+    valor_devoluciones: number
+    productos_despachados: number
+    productos_devueltos: number
+    porcentaje_merma_actual: number
+  }> => {
     try {
-      const response = await apiStore.get('/clientes?activo=true')
+      const response = await apiStore.get(`/obras/${id}/estadisticas`)
       if (!response.success) {
-        throw new Error(response.error || 'Error al obtener clientes')
+        throw new Error(response.error || 'Error al obtener estadísticas de obra')
       }
-      clientes.value = response.data
       return response.data
     } catch (error) {
-      console.error('Error al obtener clientes:', error)
+      console.error('Error al obtener estadísticas de obra:', error)
+      throw error
+    }
+  }
+
+  const validarPoliticasInventario = async (obraId: number): Promise<{
+    requiere_devolucion: boolean
+    dias_limite: number
+    dias_transcurridos: number
+    vencimiento_devolucion: string
+    productos_pendientes_devolucion: number
+  }> => {
+    try {
+      const response = await apiStore.get(`/obras/${obraId}/inventario/validar`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al validar políticas de inventario')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al validar políticas de inventario:', error)
+      throw error
+    }
+  }
+
+  const obtenerEstadisticasGenerales = async (): Promise<{
+    total_obras: number
+    por_estado: { [key: string]: number }
+    valor_total_contratos: number
+    obras_vencidas: number
+    obras_por_vencer: number
+    almacenes_configurados: number
+  }> => {
+    try {
+      const response = await apiStore.get('/obras/stats/generales')
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener estadísticas generales')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener estadísticas generales:', error)
       throw error
     }
   }
@@ -396,7 +499,6 @@ export const useObraStore = defineStore('obras', () => {
   return {
     // State
     obras,
-    clientes,
     almacenesObra,
     isLoading,
 
@@ -404,20 +506,23 @@ export const useObraStore = defineStore('obras', () => {
     obtenerObras,
     buscarObras,
     obtenerObra,
-    obtenerObraPorCodigo,
     crearObra,
     actualizarObra,
-    eliminarObra,
-    activarObra,
     cambiarEstadoObra,
+    iniciarObra,
+    finalizarObra,
+    suspenderObra,
+    reanudarObra,
 
-    // Methods - Almacenes de Obra
-    obtenerAlmacenesPorObra,
+    // Methods - Almacenes Obra
+    obtenerAlmacenObra,
     crearAlmacenObra,
     actualizarAlmacenObra,
     eliminarAlmacenObra,
 
-    // Methods - Datos relacionados
-    obtenerClientes
+    // Methods - Análisis
+    obtenerEstadisticasObra,
+    validarPoliticasInventario,
+    obtenerEstadisticasGenerales
   }
 })

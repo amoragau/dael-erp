@@ -4,8 +4,8 @@
       <!-- Header -->
       <div class="row items-center justify-between q-mb-md">
         <div>
-          <h4 class="q-my-none">Gestión de Obras</h4>
-          <p class="text-grey-7 q-mb-none">Administra las obras y proyectos del sistema</p>
+          <h4 class="q-my-none">Información de Proyectos y Obras</h4>
+          <p class="text-grey-7 q-mb-none">Gestión integral de obras con control financiero y almacenes de proyecto</p>
         </div>
         <q-btn
           color="primary"
@@ -21,7 +21,7 @@
           <div class="row q-gutter-md items-center">
             <q-input
               v-model="filtros.busqueda"
-              placeholder="Buscar por código, nombre o cliente..."
+              placeholder="Buscar por código, nombre..."
               outlined
               dense
               clearable
@@ -33,7 +33,7 @@
             </q-input>
             <q-select
               v-model="filtros.estado"
-              :options="estadoOptions"
+              :options="estadoObrasOptions"
               label="Estado"
               outlined
               dense
@@ -43,8 +43,8 @@
               style="min-width: 150px"
             />
             <q-select
-              v-model="filtros.cliente"
-              :options="clientesOptions"
+              v-model="filtros.cliente_id"
+              :options="clienteOptions"
               label="Cliente"
               outlined
               dense
@@ -56,13 +56,13 @@
             <q-select
               v-model="filtros.activo"
               :options="activoOptions"
-              label="Activo"
+              label="Estado General"
               outlined
               dense
               clearable
               emit-value
               map-options
-              style="min-width: 120px"
+              style="min-width: 150px"
             />
             <q-btn
               color="primary"
@@ -74,7 +74,7 @@
         </q-card-section>
       </q-card>
 
-      <!-- Obras Table -->
+      <!-- Works Table -->
       <q-table
         :rows="obras"
         :columns="columnsObras"
@@ -89,7 +89,8 @@
           <q-td :props="props">
             <q-badge
               :color="getEstadoColor(props.value)"
-              :label="getEstadoLabel(props.value)"
+              :label="formatEstado(props.value)"
+              text-color="white"
             />
           </q-td>
         </template>
@@ -98,35 +99,48 @@
           <q-td :props="props">
             <q-badge
               :color="props.value ? 'green' : 'red'"
-              :label="props.value ? 'Activo' : 'Inactivo'"
+              :label="props.value ? 'Activa' : 'Inactiva'"
             />
           </q-td>
         </template>
 
         <template v-slot:body-cell-valor_contrato="props">
           <q-td :props="props">
-            {{ formatCurrency(props.value, props.row.moneda) }}
+            <span class="text-weight-medium">
+              {{ formatCurrency(props.value) }}
+            </span>
           </q-td>
         </template>
 
-        <template v-slot:body-cell-fecha_fin_programada="props">
+        <template v-slot:body-cell-almacen="props">
           <q-td :props="props">
-            <span v-if="props.value">
-              {{ formatDate(props.value) }}
-              <q-badge
-                v-if="isObraRetrasada(props.row)"
-                color="red"
-                text-color="white"
-                label="RETRASADA"
-                class="q-ml-sm"
-              />
-            </span>
-            <span v-else class="text-grey-5">-</span>
+            <q-badge
+              v-if="props.row.almacen_obra"
+              color="green"
+              icon="warehouse"
+              label="Configurado"
+            />
+            <q-badge
+              v-else
+              color="orange"
+              icon="warning"
+              label="Sin almacén"
+            />
           </q-td>
         </template>
 
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
+            <q-btn
+              flat
+              round
+              icon="visibility"
+              color="info"
+              size="sm"
+              @click="verDetalleObra(props.row as Obra)"
+            >
+              <q-tooltip>Ver Detalles</q-tooltip>
+            </q-btn>
             <q-btn
               flat
               round
@@ -143,19 +157,10 @@
               icon="warehouse"
               color="info"
               size="sm"
-              @click="verAlmacenes(props.row as Obra)"
+              @click="gestionarAlmacen(props.row as Obra)"
+              :disable="!props.row.activo"
             >
-              <q-tooltip>Ver Almacenes</q-tooltip>
-            </q-btn>
-            <q-btn
-              flat
-              round
-              icon="timeline"
-              color="warning"
-              size="sm"
-              @click="cambiarEstado(props.row as Obra)"
-            >
-              <q-tooltip>Cambiar Estado</q-tooltip>
+              <q-tooltip>Gestionar Almacén</q-tooltip>
             </q-btn>
             <q-btn
               flat
@@ -167,274 +172,409 @@
             >
               <q-tooltip>{{ props.row.activo ? 'Desactivar' : 'Activar' }}</q-tooltip>
             </q-btn>
-            <q-btn
-              flat
-              round
-              icon="delete"
-              color="negative"
-              size="sm"
-              @click="eliminarObra(props.row as Obra)"
-            >
-              <q-tooltip>Eliminar</q-tooltip>
-            </q-btn>
           </q-td>
         </template>
       </q-table>
 
       <!-- Create/Edit Obra Dialog -->
-      <q-dialog v-model="showCreateObraDialog" persistent maximized>
-        <q-card>
-          <q-card-section class="row items-center">
+      <q-dialog v-model="showCreateObraDialog" persistent>
+        <q-card style="min-width: 1200px; max-width: 1400px; max-height: 90vh">
+          <q-card-section class="row items-center q-pb-none">
             <div class="text-h6">{{ editandoObra ? 'Editar' : 'Nueva' }} Obra</div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
-          <q-card-section class="q-pt-none">
+          <q-card-section class="q-pt-none" style="max-height: calc(90vh - 120px);">
             <q-form @submit="guardarObra">
-              <q-tabs v-model="tabActual" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify">
-                <q-tab name="general" label="Información General" />
-                <q-tab name="fechas" label="Fechas y Cronograma" />
-                <q-tab name="financiero" label="Información Financiera" />
-                <q-tab name="inventario" label="Control de Inventario" />
-              </q-tabs>
+              <div class="row" style="height: calc(90vh - 160px);">
+                <div class="col-3">
+                  <q-tabs
+                    v-model="tabActivo"
+                    vertical
+                    class="text-primary full-height"
+                  >
+                    <q-tab name="basica" icon="business" label="Información Básica" />
+                    <q-tab name="ubicacion" icon="location_on" label="Ubicación y Personal" />
+                    <q-tab name="fechas" icon="calendar_today" label="Fechas" />
+                    <q-tab name="financiero" icon="attach_money" label="Financiero" />
+                    <q-tab name="inventario" icon="inventory" label="Inventario" />
+                  </q-tabs>
+                </div>
+                <div class="col-9">
+                  <q-tab-panels
+                    v-model="tabActivo"
+                    animated
+                    class="full-height"
+                    style="overflow-y: auto;"
+                  >
+                    <!-- Panel Información Básica -->
+                    <q-tab-panel name="basica">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="business" class="q-mr-sm" />
+                        Información Básica
+                      </div>
 
-              <q-separator />
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-4">
+                          <q-input
+                            v-model="formObra.codigo_obra"
+                            label="Código *"
+                            outlined
+                            dense
+                            maxlength="20"
+                            :rules="[val => !!val || 'El código es requerido']"
+                            hint="Código único de la obra"
+                          />
+                        </div>
+                        <div class="col-12 col-md-7">
+                          <q-select
+                            v-model="formObra.id_cliente"
+                            :options="clienteOptions"
+                            label="Cliente *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'El cliente es requerido']"
+                          />
+                        </div>
+                      </div>
 
-              <q-tab-panels v-model="tabActual" animated>
-                <!-- Tab General -->
-                <q-tab-panel name="general">
-                  <div class="row q-gutter-md">
-                    <div class="col-12 col-md-3">
-                      <q-input
-                        v-model="formObra.codigo_obra"
-                        label="Código *"
-                        outlined
-                        dense
-                        :rules="[val => !!val || 'El código es requerido']"
-                      />
-                    </div>
-                    <div class="col-12 col-md-8">
-                      <q-input
-                        v-model="formObra.nombre_obra"
-                        label="Nombre de la Obra *"
-                        outlined
-                        dense
-                        :rules="[val => !!val || 'El nombre es requerido']"
-                      />
-                    </div>
-                  </div>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.nombre_obra"
+                            label="Nombre de la Obra *"
+                            outlined
+                            dense
+                            maxlength="200"
+                            :rules="[val => !!val || 'El nombre es requerido']"
+                          />
+                        </div>
+                      </div>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12">
-                      <q-input
-                        v-model="formObra.descripcion"
-                        label="Descripción"
-                        outlined
-                        type="textarea"
-                        rows="3"
-                      />
-                    </div>
-                  </div>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.descripcion"
+                            label="Descripción"
+                            outlined
+                            dense
+                            type="textarea"
+                            rows="3"
+                            hint="Descripción detallada del proyecto"
+                          />
+                        </div>
+                      </div>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12 col-md-6">
-                      <q-select
-                        v-model="formObra.id_cliente"
-                        :options="clientesOptions"
-                        label="Cliente *"
-                        outlined
-                        dense
-                        emit-value
-                        map-options
-                        :rules="[val => !!val || 'El cliente es requerido']"
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-select
-                        v-model="formObra.estado"
-                        :options="estadoOptions"
-                        label="Estado *"
-                        outlined
-                        dense
-                        emit-value
-                        map-options
-                        :rules="[val => !!val || 'El estado es requerido']"
-                      />
-                    </div>
-                  </div>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12 col-md-6">
+                          <q-select
+                            v-model="formObra.estado"
+                            :options="estadoObrasOptions"
+                            label="Estado *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'El estado es requerido']"
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-toggle
+                            v-model="formObra.activo"
+                            label="Obra Activa"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12">
-                      <q-input
-                        v-model="formObra.direccion_obra"
-                        label="Dirección de la Obra"
-                        outlined
-                        dense
-                      />
-                    </div>
-                  </div>
+                    <!-- Panel Ubicación y Personal -->
+                    <q-tab-panel name="ubicacion">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="location_on" class="q-mr-sm" />
+                        Ubicación y Personal
+                      </div>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12 col-md-6">
-                      <q-input
-                        v-model="formObra.ciudad"
-                        label="Ciudad"
-                        outlined
-                        dense
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-input
-                        v-model="formObra.codigo_postal"
-                        label="Código Postal"
-                        outlined
-                        dense
-                      />
-                    </div>
-                  </div>
+                      <!-- Ubicación Física -->
+                      <div class="text-subtitle1 q-mb-sm">Ubicación Física</div>
+                      <q-separator class="q-mb-md" />
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12 col-md-4">
-                      <q-input
-                        v-model="formObra.supervisor_obra"
-                        label="Supervisor de Obra"
-                        outlined
-                        dense
-                      />
-                    </div>
-                    <div class="col-12 col-md-4">
-                      <q-input
-                        v-model="formObra.contacto_obra"
-                        label="Contacto en Obra"
-                        outlined
-                        dense
-                      />
-                    </div>
-                    <div class="col-12 col-md-3">
-                      <q-input
-                        v-model="formObra.telefono_obra"
-                        label="Teléfono de Obra"
-                        outlined
-                        dense
-                      />
-                    </div>
-                  </div>
+                      <div class="row q-gutter-md">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.direccion"
+                            label="Dirección"
+                            outlined
+                            dense
+                          />
+                        </div>
+                      </div>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12 col-md-6">
-                      <q-toggle
-                        v-model="formObra.activo"
-                        label="Activo"
-                      />
-                    </div>
-                  </div>
-                </q-tab-panel>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12 col-md-4">
+                          <q-input
+                            v-model="formObra.ciudad"
+                            label="Ciudad"
+                            outlined
+                            dense
+                          />
+                        </div>
+                        <div class="col-12 col-md-4">
+                          <q-input
+                            v-model="formObra.codigo_postal"
+                            label="Código Postal"
+                            outlined
+                            dense
+                          />
+                        </div>
+                        <div class="col-12 col-md-3">
+                          <q-input
+                            v-model="formObra.pais"
+                            label="País"
+                            outlined
+                            dense
+                          />
+                        </div>
+                      </div>
 
-                <!-- Tab Fechas -->
-                <q-tab-panel name="fechas">
-                  <div class="row q-gutter-md">
-                    <div class="col-12 col-md-6">
-                      <q-input
-                        v-model="formObra.fecha_inicio_programada"
-                        label="Fecha Inicio Programada"
-                        outlined
-                        dense
-                        type="date"
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-input
-                        v-model="formObra.fecha_fin_programada"
-                        label="Fecha Fin Programada"
-                        outlined
-                        dense
-                        type="date"
-                      />
-                    </div>
-                  </div>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.coordenadas_gps"
+                            label="Coordenadas GPS"
+                            outlined
+                            dense
+                            hint="Formato: latitud, longitud (ej: -33.4489, -70.6693)"
+                          />
+                        </div>
+                      </div>
 
-                  <div class="row q-gutter-md q-mt-sm">
-                    <div class="col-12 col-md-6">
-                      <q-input
-                        v-model="formObra.fecha_inicio_real"
-                        label="Fecha Inicio Real"
-                        outlined
-                        dense
-                        type="date"
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-input
-                        v-model="formObra.fecha_fin_real"
-                        label="Fecha Fin Real"
-                        outlined
-                        dense
-                        type="date"
-                      />
-                    </div>
-                  </div>
-                </q-tab-panel>
+                      <!-- Personal de Obra -->
+                      <div class="text-subtitle1 q-mb-sm q-mt-lg">Personal de Obra</div>
+                      <q-separator class="q-mb-md" />
 
-                <!-- Tab Financiero -->
-                <q-tab-panel name="financiero">
-                  <div class="row q-gutter-md">
-                    <div class="col-12 col-md-6">
-                      <q-input
-                        v-model.number="formObra.valor_contrato"
-                        label="Valor del Contrato"
-                        outlined
-                        dense
-                        type="number"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-select
-                        v-model="formObra.moneda"
-                        :options="monedaOptions"
-                        label="Moneda"
-                        outlined
-                        dense
-                        emit-value
-                        map-options
-                      />
-                    </div>
-                  </div>
-                </q-tab-panel>
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            v-model="formObra.supervisor_obra"
+                            label="Supervisor de Obra"
+                            outlined
+                            dense
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-input
+                            v-model="formObra.telefono_supervisor"
+                            label="Teléfono Supervisor"
+                            outlined
+                            dense
+                            mask="(###) ###-####"
+                          />
+                        </div>
+                      </div>
 
-                <!-- Tab Inventario -->
-                <q-tab-panel name="inventario">
-                  <div class="row q-gutter-md">
-                    <div class="col-12 col-md-6">
-                      <q-toggle
-                        v-model="formObra.requiere_devolucion_sobrantes"
-                        label="Requiere Devolución de Sobrantes"
-                      />
-                    </div>
-                    <div class="col-12 col-md-5">
-                      <q-input
-                        v-model.number="formObra.dias_limite_devolucion"
-                        label="Días Límite para Devolución"
-                        outlined
-                        dense
-                        type="number"
-                        min="1"
-                        max="365"
-                      />
-                    </div>
-                  </div>
-                </q-tab-panel>
-              </q-tab-panels>
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.email_supervisor"
+                            label="Email Supervisor"
+                            type="email"
+                            outlined
+                            dense
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            v-model="formObra.contacto_obra"
+                            label="Contacto en Obra"
+                            outlined
+                            dense
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-input
+                            v-model="formObra.telefono_contacto"
+                            label="Teléfono Contacto"
+                            outlined
+                            dense
+                            mask="(###) ###-####"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.email_contacto"
+                            label="Email Contacto"
+                            type="email"
+                            outlined
+                            dense
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Fechas -->
+                    <q-tab-panel name="fechas">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="calendar_today" class="q-mr-sm" />
+                        Fechas del Proyecto
+                      </div>
+
+                      <!-- Fechas Programadas -->
+                      <div class="text-subtitle1 q-mb-sm">Fechas Programadas</div>
+                      <q-separator class="q-mb-md" />
+
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            v-model="formObra.fecha_inicio_programada"
+                            label="Fecha Inicio Programada"
+                            outlined
+                            dense
+                            type="date"
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-input
+                            v-model="formObra.fecha_fin_programada"
+                            label="Fecha Fin Programada"
+                            outlined
+                            dense
+                            type="date"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- Fechas Reales -->
+                      <div class="text-subtitle1 q-mb-sm q-mt-lg">Fechas Reales</div>
+                      <q-separator class="q-mb-md" />
+
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-6">
+                          <q-input
+                            v-model="formObra.fecha_inicio_real"
+                            label="Fecha Inicio Real"
+                            outlined
+                            dense
+                            type="date"
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-input
+                            v-model="formObra.fecha_fin_real"
+                            label="Fecha Fin Real"
+                            outlined
+                            dense
+                            type="date"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Financiero -->
+                    <q-tab-panel name="financiero">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="attach_money" class="q-mr-sm" />
+                        Control Financiero
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-4">
+                          <q-input
+                            v-model.number="formObra.valor_contrato"
+                            label="Valor del Contrato"
+                            outlined
+                            dense
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            prefix="$"
+                          />
+                        </div>
+                        <div class="col-12 col-md-4">
+                          <q-select
+                            v-model="formObra.moneda"
+                            :options="monedaOptions"
+                            label="Moneda"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                          />
+                        </div>
+                        <div class="col-12 col-md-3">
+                          <q-input
+                            v-model.number="formObra.porcentaje_merma_permitida"
+                            label="% Merma Permitida"
+                            outlined
+                            dense
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            suffix="%"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Inventario -->
+                    <q-tab-panel name="inventario">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="inventory" class="q-mr-sm" />
+                        Políticas de Inventario
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-12 col-md-6">
+                          <q-toggle
+                            v-model="formObra.requiere_devolucion_sobrantes"
+                            label="Requiere Devolución de Sobrantes"
+                          />
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <q-input
+                            v-model.number="formObra.dias_limite_devolucion"
+                            label="Días Límite para Devolución"
+                            outlined
+                            dense
+                            type="number"
+                            min="1"
+                            max="365"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-md q-mt-sm">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formObra.observaciones"
+                            label="Observaciones Generales"
+                            outlined
+                            type="textarea"
+                            rows="4"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+                  </q-tab-panels>
+                </div>
+              </div>
             </q-form>
           </q-card-section>
 
-          <q-card-actions align="right">
+          <q-card-actions align="right" class="q-pa-md">
             <q-btn flat label="Cancelar" v-close-popup />
             <q-btn
               color="primary"
-              label="Guardar"
+              label="Guardar Obra"
               @click="guardarObra"
               :loading="isGuardando"
             />
@@ -442,251 +582,274 @@
         </q-card>
       </q-dialog>
 
-      <!-- Almacenes Dialog -->
-      <q-dialog v-model="showAlmacenesDialog" persistent>
-        <q-card style="min-width: 1000px; max-width: 1200px">
+      <!-- Work Detail Dialog -->
+      <q-dialog v-model="showDetalleDialog" persistent>
+        <q-card style="min-width: 800px; max-width: 1000px">
           <q-card-section class="row items-center">
-            <div class="text-h6">Almacenes de {{ obraSeleccionada?.nombre_obra }}</div>
+            <div class="text-h6">Detalles de la Obra</div>
             <q-space />
-            <q-btn
-              color="primary"
-              icon="add"
-              label="Nuevo Almacén"
-              @click="abrirFormularioAlmacen"
-              class="q-mr-sm"
-            />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
-          <q-card-section>
-            <!-- Almacenes Table -->
-            <q-table
-              :rows="almacenesObra"
-              :columns="columnsAlmacenes"
-              :loading="isLoading"
-              row-key="id_almacen"
-              flat
-              bordered
-            >
-              <template v-slot:body-cell-tiene_seguridad="props">
-                <q-td :props="props">
-                  <q-icon
-                    :name="props.value ? 'security' : 'lock_open'"
-                    :color="props.value ? 'green' : 'red'"
-                  />
-                </q-td>
-              </template>
+          <q-card-section v-if="obraDetalle">
+            <div class="row q-col-gutter-md">
+              <!-- Información Básica -->
+              <div class="col-12 col-md-6">
+                <q-list bordered separator>
+                  <q-item-label header>Información del Proyecto</q-item-label>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Código</q-item-label>
+                      <q-item-label>{{ obraDetalle.codigo_obra }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Nombre</q-item-label>
+                      <q-item-label>{{ obraDetalle.nombre_obra }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Cliente</q-item-label>
+                      <q-item-label>{{ obraDetalle.cliente?.nombre_cliente || '-' }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Estado</q-item-label>
+                      <q-item-label>
+                        <q-badge
+                          :color="getEstadoColor(obraDetalle.estado)"
+                          :label="formatEstado(obraDetalle.estado)"
+                          text-color="white"
+                        />
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
 
-              <template v-slot:body-cell-tiene_techo="props">
-                <q-td :props="props">
-                  <q-icon
-                    :name="props.value ? 'roofing' : 'outdoor_grill'"
-                    :color="props.value ? 'blue' : 'orange'"
-                  />
-                </q-td>
-              </template>
+              <!-- Información Financiera -->
+              <div class="col-12 col-md-6">
+                <q-list bordered separator>
+                  <q-item-label header>Control Financiero</q-item-label>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Valor Contrato</q-item-label>
+                      <q-item-label>
+                        {{ formatCurrency(obraDetalle.valor_contrato) }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Moneda</q-item-label>
+                      <q-item-label>{{ obraDetalle.moneda || 'CLP' }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>% Merma Permitida</q-item-label>
+                      <q-item-label>{{ obraDetalle.porcentaje_merma_permitida || 0 }}%</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section>
+                      <q-item-label caption>Almacén</q-item-label>
+                      <q-item-label>
+                        <q-badge
+                          v-if="obraDetalle.almacen_obra"
+                          color="green"
+                          label="Configurado"
+                        />
+                        <q-badge
+                          v-else
+                          color="orange"
+                          label="Sin almacén"
+                        />
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
 
-              <template v-slot:body-cell-activo="props">
-                <q-td :props="props">
-                  <q-badge
-                    :color="props.value ? 'green' : 'red'"
-                    :label="props.value ? 'Activo' : 'Inactivo'"
-                  />
-                </q-td>
-              </template>
-
-              <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                  <q-btn
-                    flat
-                    round
-                    icon="edit"
-                    color="primary"
-                    size="sm"
-                    @click="editarAlmacen(props.row as AlmacenObra)"
-                  >
-                    <q-tooltip>Editar</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    flat
-                    round
-                    icon="delete"
-                    color="negative"
-                    size="sm"
-                    @click="eliminarAlmacen(props.row as AlmacenObra)"
-                  >
-                    <q-tooltip>Eliminar</q-tooltip>
-                  </q-btn>
-                </q-td>
-              </template>
-            </q-table>
+              <!-- Fechas y Ubicación -->
+              <div class="col-12">
+                <q-expansion-item
+                  icon="calendar_today"
+                  label="Fechas y Ubicación"
+                  class="q-mt-md"
+                >
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="row q-col-gutter-md">
+                        <div class="col-12 col-md-6">
+                          <q-list dense>
+                            <q-item v-if="obraDetalle.fecha_inicio_programada">
+                              <q-item-section>
+                                <q-item-label caption>Inicio Programado</q-item-label>
+                                <q-item-label>{{ formatDate(obraDetalle.fecha_inicio_programada) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                            <q-item v-if="obraDetalle.fecha_fin_programada">
+                              <q-item-section>
+                                <q-item-label caption>Fin Programado</q-item-label>
+                                <q-item-label>{{ formatDate(obraDetalle.fecha_fin_programada) }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                            <q-item v-if="obraDetalle.direccion">
+                              <q-item-section>
+                                <q-item-label caption>Dirección</q-item-label>
+                                <q-item-label>{{ obraDetalle.direccion }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </q-list>
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <q-list dense>
+                            <q-item v-if="obraDetalle.supervisor_obra">
+                              <q-item-section>
+                                <q-item-label caption>Supervisor</q-item-label>
+                                <q-item-label>{{ obraDetalle.supervisor_obra }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                            <q-item v-if="obraDetalle.telefono_supervisor">
+                              <q-item-section>
+                                <q-item-label caption>Teléfono Supervisor</q-item-label>
+                                <q-item-label>{{ obraDetalle.telefono_supervisor }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                            <q-item v-if="obraDetalle.ciudad">
+                              <q-item-section>
+                                <q-item-label caption>Ciudad</q-item-label>
+                                <q-item-label>{{ obraDetalle.ciudad }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </q-list>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
+              </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right">
             <q-btn flat label="Cerrar" v-close-popup />
+            <q-btn
+              color="primary"
+              label="Editar"
+              @click="editarDesdeDetalle"
+              v-if="obraDetalle"
+            />
           </q-card-actions>
         </q-card>
       </q-dialog>
 
-      <!-- Create/Edit Almacen Dialog -->
-      <q-dialog v-model="showCreateAlmacenDialog" persistent>
-        <q-card style="min-width: 600px; max-width: 800px">
+      <!-- Warehouse Management Dialog -->
+      <q-dialog v-model="showWarehouseModal" persistent>
+        <q-card style="min-width: 700px; max-width: 90vw">
           <q-card-section class="row items-center">
-            <div class="text-h6">{{ editandoAlmacen ? 'Editar' : 'Nuevo' }} Almacén</div>
+            <div class="text-h6">Gestión de Almacén de Obra</div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
           <q-card-section>
-            <q-form @submit="guardarAlmacen">
+            <q-form @submit="guardarAlmacen" class="q-gutter-md">
+              <q-input
+                v-model="almacenForm.ubicacion_almacen"
+                label="Ubicación del Almacén *"
+                outlined
+                :rules="[val => !!val || 'Campo requerido']"
+              />
+
+              <q-input
+                v-model="almacenForm.direccion_almacen"
+                label="Dirección del Almacén"
+                outlined
+              />
+
+              <h6>Responsable del Almacén</h6>
               <div class="row q-gutter-md">
-                <div class="col-12">
+                <div class="col">
                   <q-input
-                    v-model="formAlmacen.nombre_almacen"
-                    label="Nombre del Almacén *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'El nombre es requerido']"
-                  />
-                </div>
-              </div>
-
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="formAlmacen.descripcion"
-                    label="Descripción"
-                    outlined
-                    type="textarea"
-                    rows="2"
-                  />
-                </div>
-              </div>
-
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="formAlmacen.direccion"
-                    label="Dirección"
-                    outlined
-                    dense
-                  />
-                </div>
-              </div>
-
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12 col-md-6">
-                  <q-input
-                    v-model="formAlmacen.responsable"
+                    v-model="almacenForm.responsable_almacen"
                     label="Responsable"
                     outlined
-                    dense
                   />
                 </div>
-                <div class="col-12 col-md-5">
+                <div class="col">
                   <q-input
-                    v-model="formAlmacen.telefono"
+                    v-model="almacenForm.telefono_responsable"
                     label="Teléfono"
                     outlined
-                    dense
+                    placeholder="+56 9 1234 5678"
                   />
                 </div>
               </div>
 
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12 col-md-6">
+              <q-input
+                v-model="almacenForm.email_responsable"
+                label="Email Responsable"
+                outlined
+                type="email"
+              />
+
+              <h6>Condiciones del Almacén</h6>
+              <div class="row q-gutter-md">
+                <div class="col">
+                  <q-toggle
+                    v-model="almacenForm.tiene_techo"
+                    label="Tiene Techo"
+                  />
+                </div>
+                <div class="col">
+                  <q-toggle
+                    v-model="almacenForm.tiene_seguridad"
+                    label="Tiene Seguridad"
+                  />
+                </div>
+                <div class="col">
                   <q-input
-                    v-model.number="formAlmacen.capacidad_m3"
+                    v-model.number="almacenForm.capacidad_m3"
                     label="Capacidad (m³)"
                     outlined
-                    dense
                     type="number"
-                    step="0.01"
                     min="0"
                   />
                 </div>
               </div>
 
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12 col-md-4">
-                  <q-toggle
-                    v-model="formAlmacen.tiene_seguridad"
-                    label="Tiene Seguridad"
-                  />
-                </div>
-                <div class="col-12 col-md-4">
-                  <q-toggle
-                    v-model="formAlmacen.tiene_techo"
-                    label="Tiene Techo"
-                  />
-                </div>
-                <div class="col-12 col-md-3">
-                  <q-toggle
-                    v-model="formAlmacen.activo"
-                    label="Activo"
-                  />
-                </div>
-              </div>
+              <q-input
+                v-model="almacenForm.condiciones_especiales"
+                label="Condiciones Especiales"
+                outlined
+                type="textarea"
+                rows="3"
+              />
 
-              <div class="row q-gutter-md q-mt-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="formAlmacen.observaciones"
-                    label="Observaciones"
-                    outlined
-                    type="textarea"
-                    rows="2"
-                  />
-                </div>
-              </div>
+              <q-input
+                v-model="almacenForm.observaciones"
+                label="Observaciones"
+                outlined
+                type="textarea"
+                rows="3"
+              />
+
+              <q-card-actions align="right">
+                <q-btn flat label="Cancelar" v-close-popup @click="cancelarAlmacen" />
+                <q-btn
+                  color="primary"
+                  label="Guardar"
+                  type="submit"
+                  :loading="saving"
+                />
+              </q-card-actions>
             </q-form>
           </q-card-section>
-
-          <q-card-actions align="right">
-            <q-btn flat label="Cancelar" v-close-popup />
-            <q-btn
-              color="primary"
-              label="Guardar"
-              @click="guardarAlmacen"
-              :loading="isGuardando"
-            />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-
-      <!-- Change Estado Dialog -->
-      <q-dialog v-model="showCambiarEstadoDialog" persistent>
-        <q-card style="min-width: 400px">
-          <q-card-section class="row items-center">
-            <div class="text-h6">Cambiar Estado de Obra</div>
-            <q-space />
-            <q-btn icon="close" flat round dense v-close-popup />
-          </q-card-section>
-
-          <q-card-section>
-            <p>Obra: <strong>{{ obraSeleccionada?.nombre_obra }}</strong></p>
-            <p>Estado actual: <q-badge :color="getEstadoColor(obraSeleccionada?.estado)" :label="getEstadoLabel(obraSeleccionada?.estado)" /></p>
-
-            <q-select
-              v-model="nuevoEstado"
-              :options="estadoOptions"
-              label="Nuevo Estado"
-              outlined
-              dense
-              emit-value
-              map-options
-            />
-          </q-card-section>
-
-          <q-card-actions align="right">
-            <q-btn flat label="Cancelar" v-close-popup />
-            <q-btn
-              color="primary"
-              label="Cambiar"
-              @click="confirmarCambioEstado"
-              :loading="isGuardando"
-            />
-          </q-card-actions>
         </q-card>
       </q-dialog>
     </div>
@@ -694,58 +857,64 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import {
   useObraStore,
   type Obra,
   type ObraCreate,
+  type ObraUpdate,
   type AlmacenObra,
   type AlmacenObraCreate,
-  type EstadoObra,
-  ESTADOS_OBRA
-} from '../stores/obras'
+  type AlmacenObraUpdate
+} from '@/stores/obras'
+import { useClienteStore, type Cliente } from '@/stores/clientes'
 
+// Composables
 const $q = useQuasar()
 const obraStore = useObraStore()
+const clienteStore = useClienteStore()
 
 // Reactive data
-const obras = ref<Obra[]>([])
-const almacenesObra = ref<AlmacenObra[]>([])
-const isLoading = ref(false)
+const obras = computed(() => obraStore.obras)
+const isLoading = computed(() => obraStore.isLoading)
+const clientesDisponibles = computed(() => clienteStore.clientes.filter(c => c.activo))
 const isGuardando = ref(false)
 const showCreateObraDialog = ref(false)
-const showAlmacenesDialog = ref(false)
-const showCreateAlmacenDialog = ref(false)
-const showCambiarEstadoDialog = ref(false)
+const showWarehouseModal = ref(false)
+const showDetalleDialog = ref(false)
 const editandoObra = ref(false)
-const editandoAlmacen = ref(false)
-const obraSeleccionada = ref<Obra | null>(null)
-const tabActual = ref('general')
-const nuevoEstado = ref<EstadoObra>('PLANIFICACION')
+const editingAlmacen = ref<AlmacenObra | null>(null)
+const currentObraForWarehouse = ref<Obra | null>(null)
+const obraDetalle = ref<Obra | null>(null)
+const saving = ref(false)
+const tabActivo = ref('basica')
 
 // Filters
 const filtros = ref({
   busqueda: '',
-  estado: null as EstadoObra | null,
-  cliente: null as number | null,
+  estado: null as string | null,
+  cliente_id: null as number | null,
   activo: null as boolean | null
 })
 
-const estadoOptions = ESTADOS_OBRA.map(estado => ({
-  label: getEstadoLabel(estado),
-  value: estado
-}))
+const estadoObrasOptions = [
+  { label: 'Planificación', value: 'planificacion' },
+  { label: 'Ejecución', value: 'ejecucion' },
+  { label: 'Suspendida', value: 'suspendida' },
+  { label: 'Finalizada', value: 'finalizada' },
+  { label: 'Cancelada', value: 'cancelada' }
+]
 
 const activoOptions = [
-  { label: 'Activo', value: true },
-  { label: 'Inactivo', value: false }
+  { label: 'Activas', value: true },
+  { label: 'Inactivas', value: false }
 ]
 
 const monedaOptions = [
-  { label: 'Peso Chileno (CLP)', value: 'CLP' },
-  { label: 'Dólar (USD)', value: 'USD' },
-  { label: 'Euro (EUR)', value: 'EUR' }
+  { label: 'CLP - Peso Chileno', value: 'CLP' },
+  { label: 'USD - Dólar Americano', value: 'USD' },
+  { label: 'EUR - Euro', value: 'EUR' }
 ]
 
 // Pagination
@@ -763,47 +932,47 @@ const formObra = ref<ObraCreate & { id_obra?: number }>({
   nombre_obra: '',
   descripcion: '',
   id_cliente: 0,
-  direccion_obra: '',
+  direccion: '',
   ciudad: '',
   codigo_postal: '',
+  pais: 'Chile',
+  coordenadas_gps: '',
   supervisor_obra: '',
+  telefono_supervisor: '',
+  email_supervisor: '',
   contacto_obra: '',
-  telefono_obra: '',
+  telefono_contacto: '',
+  email_contacto: '',
   fecha_inicio_programada: '',
   fecha_fin_programada: '',
   fecha_inicio_real: '',
   fecha_fin_real: '',
-  valor_contrato: undefined,
+  estado: 'planificacion',
+  valor_contrato: 0,
   moneda: 'CLP',
+  porcentaje_merma_permitida: 0,
   requiere_devolucion_sobrantes: true,
   dias_limite_devolucion: 30,
-  estado: 'PLANIFICACION',
-  activo: true
-})
-
-const formAlmacen = ref<AlmacenObraCreate & { id_almacen?: number }>({
-  id_obra: 0,
-  nombre_almacen: '',
-  descripcion: '',
-  direccion: '',
-  responsable: '',
-  telefono: '',
-  tiene_seguridad: false,
-  tiene_techo: true,
-  capacidad_m3: undefined,
   observaciones: '',
   activo: true
 })
 
-// Computed options for selects
-const clientesOptions = computed(() => {
-  return obraStore.clientes.map(cliente => ({
-    label: cliente.nombre_cliente,
-    value: cliente.id_cliente
-  }))
+const almacenForm = ref<AlmacenObraCreate>({
+  id_obra: 0,
+  ubicacion_almacen: '',
+  direccion_almacen: '',
+  responsable_almacen: '',
+  telefono_responsable: '',
+  email_responsable: '',
+  tiene_techo: false,
+  tiene_seguridad: false,
+  capacidad_m3: 0,
+  condiciones_especiales: '',
+  observaciones: '',
+  activo: true
 })
 
-// Table columns for obras
+// Table columns
 const columnsObras = [
   {
     name: 'codigo_obra',
@@ -816,7 +985,7 @@ const columnsObras = [
   {
     name: 'nombre_obra',
     required: true,
-    label: 'Nombre',
+    label: 'Obra',
     align: 'left' as const,
     field: 'nombre_obra',
     sortable: true
@@ -829,18 +998,17 @@ const columnsObras = [
     sortable: true
   },
   {
-    name: 'fecha_fin_programada',
-    label: 'Fecha Fin',
-    align: 'center' as const,
-    field: 'fecha_fin_programada',
-    sortable: true
-  },
-  {
     name: 'valor_contrato',
     label: 'Valor',
     align: 'right' as const,
     field: 'valor_contrato',
     sortable: true
+  },
+  {
+    name: 'almacen',
+    label: 'Almacén',
+    align: 'center' as const,
+    field: 'almacen'
   },
   {
     name: 'activo',
@@ -857,46 +1025,13 @@ const columnsObras = [
   }
 ]
 
-// Table columns for almacenes
-const columnsAlmacenes = [
-  {
-    name: 'nombre_almacen',
-    required: true,
-    label: 'Nombre',
-    align: 'left' as const,
-    field: 'nombre_almacen'
-  },
-  {
-    name: 'responsable',
-    label: 'Responsable',
-    align: 'left' as const,
-    field: 'responsable'
-  },
-  {
-    name: 'tiene_seguridad',
-    label: 'Seguridad',
-    align: 'center' as const,
-    field: 'tiene_seguridad'
-  },
-  {
-    name: 'tiene_techo',
-    label: 'Techo',
-    align: 'center' as const,
-    field: 'tiene_techo'
-  },
-  {
-    name: 'activo',
-    label: 'Estado',
-    align: 'center' as const,
-    field: 'activo'
-  },
-  {
-    name: 'actions',
-    label: 'Acciones',
-    align: 'center' as const,
-    field: 'actions'
-  }
-]
+// Options
+const clienteOptions = computed(() =>
+  clientesDisponibles.value.map(cliente => ({
+    label: cliente.nombre_cliente,
+    value: cliente.id_cliente
+  }))
+)
 
 // Methods
 const onRequestObras = async (props: any) => {
@@ -912,29 +1047,16 @@ const onRequestObras = async (props: any) => {
 
 const cargarObras = async () => {
   try {
-    isLoading.value = true
     const params: any = {
       skip: (paginacion.value.page - 1) * paginacion.value.rowsPerPage,
       limit: paginacion.value.rowsPerPage
     }
 
-    if (filtros.value.estado) params.estado = filtros.value.estado
-    if (filtros.value.activo !== null) params.activo = filtros.value.activo
-    if (filtros.value.cliente) params.cliente_id = filtros.value.cliente
-
-    let response = await obraStore.obtenerObras(params)
-
-    // Filtrar por búsqueda en el frontend
-    if (filtros.value.busqueda && filtros.value.busqueda.trim()) {
-      const busqueda = filtros.value.busqueda.toLowerCase().trim()
-      response = response.filter((obra: any) =>
-        obra.codigo_obra.toLowerCase().includes(busqueda) ||
-        obra.nombre_obra.toLowerCase().includes(busqueda) ||
-        (obra.cliente?.nombre_cliente && obra.cliente.nombre_cliente.toLowerCase().includes(busqueda))
-      )
+    if (filtros.value.activo !== null) {
+      params.activo = filtros.value.activo
     }
 
-    obras.value = response
+    await obraStore.obtenerObras(params)
 
   } catch (error: any) {
     $q.notify({
@@ -942,8 +1064,14 @@ const cargarObras = async () => {
       message: 'Error al cargar obras',
       caption: error.message
     })
-  } finally {
-    isLoading.value = false
+  }
+}
+
+const cargarClientes = async () => {
+  try {
+    await clienteStore.obtenerClientes({ activo: true })
+  } catch (error) {
+    console.error('Error al cargar clientes:', error)
   }
 }
 
@@ -959,14 +1087,61 @@ const abrirFormularioObra = () => {
 
 const editarObra = (obra: Obra) => {
   editandoObra.value = true
-  formObra.value = {
-    ...obra,
-    fecha_inicio_programada: obra.fecha_inicio_programada ? formatDateForInput(obra.fecha_inicio_programada) : '',
-    fecha_fin_programada: obra.fecha_fin_programada ? formatDateForInput(obra.fecha_fin_programada) : '',
-    fecha_inicio_real: obra.fecha_inicio_real ? formatDateForInput(obra.fecha_inicio_real) : '',
-    fecha_fin_real: obra.fecha_fin_real ? formatDateForInput(obra.fecha_fin_real) : ''
-  }
+  formObra.value = { ...obra }
   showCreateObraDialog.value = true
+}
+
+const verDetalleObra = async (obra: Obra) => {
+  try {
+    obraDetalle.value = await obraStore.obtenerObra(obra.id_obra)
+    showDetalleDialog.value = true
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar detalles de la obra',
+      caption: error.message
+    })
+  }
+}
+
+const editarDesdeDetalle = () => {
+  if (obraDetalle.value) {
+    showDetalleDialog.value = false
+    editarObra(obraDetalle.value)
+  }
+}
+
+const gestionarAlmacen = async (obra: Obra) => {
+  currentObraForWarehouse.value = obra
+
+  try {
+    const almacenExistente = await obraStore.obtenerAlmacenObra(obra.id_obra)
+
+    if (almacenExistente) {
+      editingAlmacen.value = almacenExistente
+      Object.assign(almacenForm.value, {
+        ...almacenExistente,
+        direccion_almacen: almacenExistente.direccion_almacen || '',
+        responsable_almacen: almacenExistente.responsable_almacen || '',
+        telefono_responsable: almacenExistente.telefono_responsable || '',
+        email_responsable: almacenExistente.email_responsable || '',
+        capacidad_m3: almacenExistente.capacidad_m3 || 0,
+        condiciones_especiales: almacenExistente.condiciones_especiales || '',
+        observaciones: almacenExistente.observaciones || ''
+      })
+    } else {
+      editingAlmacen.value = null
+      almacenForm.value.id_obra = obra.id_obra
+    }
+
+    showWarehouseModal.value = true
+  } catch (error) {
+    console.error('Error al cargar almacén:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar información del almacén'
+    })
+  }
 }
 
 const guardarObra = async () => {
@@ -1002,6 +1177,58 @@ const guardarObra = async () => {
   }
 }
 
+const guardarAlmacen = async () => {
+  try {
+    saving.value = true
+
+    if (editingAlmacen.value) {
+      const updateData: AlmacenObraUpdate = { ...almacenForm.value }
+      await obraStore.actualizarAlmacenObra(editingAlmacen.value.id_almacen_obra, updateData)
+      $q.notify({
+        type: 'positive',
+        message: 'Almacén actualizado correctamente'
+      })
+    } else {
+      await obraStore.crearAlmacenObra(almacenForm.value)
+      $q.notify({
+        type: 'positive',
+        message: 'Almacén creado correctamente'
+      })
+    }
+
+    showWarehouseModal.value = false
+    await cargarObras()
+  } catch (error: any) {
+    console.error('Error al guardar almacén:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.message || 'Error al guardar el almacén'
+    })
+  } finally {
+    saving.value = false
+  }
+}
+
+const cancelarAlmacen = () => {
+  editingAlmacen.value = null
+  currentObraForWarehouse.value = null
+
+  Object.assign(almacenForm.value, {
+    id_obra: 0,
+    ubicacion_almacen: '',
+    direccion_almacen: '',
+    responsable_almacen: '',
+    telefono_responsable: '',
+    email_responsable: '',
+    tiene_techo: false,
+    tiene_seguridad: false,
+    capacidad_m3: 0,
+    condiciones_especiales: '',
+    observaciones: '',
+    activo: true
+  })
+}
+
 const toggleEstadoObra = async (obra: Obra) => {
   try {
     if (obra.activo) {
@@ -1029,256 +1256,81 @@ const toggleEstadoObra = async (obra: Obra) => {
   }
 }
 
-const eliminarObra = async (obra: Obra) => {
-  $q.dialog({
-    title: 'Confirmar eliminación',
-    message: `¿Está seguro de eliminar la obra "${obra.nombre_obra}"?`,
-    cancel: true,
-    persistent: true
-  }).onOk(async () => {
-    try {
-      await obraStore.eliminarObra(obra.id_obra, true)
-      $q.notify({
-        type: 'positive',
-        message: 'Obra eliminada correctamente'
-      })
-      await cargarObras()
-    } catch (error: any) {
-      $q.notify({
-        type: 'negative',
-        message: 'Error al eliminar obra',
-        caption: error.message
-      })
-    }
-  })
-}
-
-const cambiarEstado = (obra: Obra) => {
-  obraSeleccionada.value = obra
-  nuevoEstado.value = obra.estado as EstadoObra
-  showCambiarEstadoDialog.value = true
-}
-
-const confirmarCambioEstado = async () => {
-  try {
-    if (!obraSeleccionada.value) return
-
-    isGuardando.value = true
-    await obraStore.cambiarEstadoObra(obraSeleccionada.value.id_obra, nuevoEstado.value)
-
-    $q.notify({
-      type: 'positive',
-      message: 'Estado de obra cambiado correctamente'
-    })
-
-    showCambiarEstadoDialog.value = false
-    await cargarObras()
-
-  } catch (error: any) {
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cambiar estado de obra',
-      caption: error.message
-    })
-  } finally {
-    isGuardando.value = false
-  }
-}
-
 const resetFormObra = () => {
   editandoObra.value = false
-  tabActual.value = 'general'
+  tabActivo.value = 'basica'
   formObra.value = {
     codigo_obra: '',
     nombre_obra: '',
     descripcion: '',
     id_cliente: 0,
-    direccion_obra: '',
+    direccion: '',
     ciudad: '',
     codigo_postal: '',
+    pais: 'Chile',
+    coordenadas_gps: '',
     supervisor_obra: '',
+    telefono_supervisor: '',
+    email_supervisor: '',
     contacto_obra: '',
-    telefono_obra: '',
+    telefono_contacto: '',
+    email_contacto: '',
     fecha_inicio_programada: '',
     fecha_fin_programada: '',
     fecha_inicio_real: '',
     fecha_fin_real: '',
-    valor_contrato: undefined,
+    estado: 'planificacion',
+    valor_contrato: 0,
     moneda: 'CLP',
+    porcentaje_merma_permitida: 0,
     requiere_devolucion_sobrantes: true,
     dias_limite_devolucion: 30,
-    estado: 'PLANIFICACION',
-    activo: true
-  }
-}
-
-// Almacenes methods
-const verAlmacenes = async (obra: Obra) => {
-  obraSeleccionada.value = obra
-  await cargarAlmacenes(obra.id_obra)
-  showAlmacenesDialog.value = true
-}
-
-const cargarAlmacenes = async (obraId: number) => {
-  try {
-    isLoading.value = true
-    const response = await obraStore.obtenerAlmacenesPorObra(obraId)
-    almacenesObra.value = response
-  } catch (error: any) {
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cargar almacenes',
-      caption: error.message
-    })
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const abrirFormularioAlmacen = () => {
-  resetFormAlmacen()
-  if (obraSeleccionada.value) {
-    formAlmacen.value.id_obra = obraSeleccionada.value.id_obra
-  }
-  showCreateAlmacenDialog.value = true
-}
-
-const editarAlmacen = (almacen: AlmacenObra) => {
-  editandoAlmacen.value = true
-  formAlmacen.value = { ...almacen }
-  showCreateAlmacenDialog.value = true
-}
-
-const guardarAlmacen = async () => {
-  try {
-    isGuardando.value = true
-
-    if (editandoAlmacen.value && formAlmacen.value.id_almacen) {
-      await obraStore.actualizarAlmacenObra(formAlmacen.value.id_almacen, formAlmacen.value)
-      $q.notify({
-        type: 'positive',
-        message: 'Almacén actualizado correctamente'
-      })
-    } else {
-      await obraStore.crearAlmacenObra(formAlmacen.value)
-      $q.notify({
-        type: 'positive',
-        message: 'Almacén creado correctamente'
-      })
-    }
-
-    showCreateAlmacenDialog.value = false
-    resetFormAlmacen()
-    if (obraSeleccionada.value) {
-      await cargarAlmacenes(obraSeleccionada.value.id_obra)
-    }
-
-  } catch (error: any) {
-    $q.notify({
-      type: 'negative',
-      message: 'Error al guardar almacén',
-      caption: error.message
-    })
-  } finally {
-    isGuardando.value = false
-  }
-}
-
-const eliminarAlmacen = async (almacen: AlmacenObra) => {
-  $q.dialog({
-    title: 'Confirmar eliminación',
-    message: `¿Está seguro de eliminar el almacén "${almacen.nombre_almacen}"?`,
-    cancel: true,
-    persistent: true
-  }).onOk(async () => {
-    try {
-      await obraStore.eliminarAlmacenObra(almacen.id_almacen)
-      $q.notify({
-        type: 'positive',
-        message: 'Almacén eliminado correctamente'
-      })
-      if (obraSeleccionada.value) {
-        await cargarAlmacenes(obraSeleccionada.value.id_obra)
-      }
-    } catch (error: any) {
-      $q.notify({
-        type: 'negative',
-        message: 'Error al eliminar almacén',
-        caption: error.message
-      })
-    }
-  })
-}
-
-const resetFormAlmacen = () => {
-  editandoAlmacen.value = false
-  formAlmacen.value = {
-    id_obra: obraSeleccionada.value?.id_obra || 0,
-    nombre_almacen: '',
-    descripcion: '',
-    direccion: '',
-    responsable: '',
-    telefono: '',
-    tiene_seguridad: false,
-    tiene_techo: true,
-    capacidad_m3: undefined,
     observaciones: '',
     activo: true
   }
 }
 
-// Helper functions
-function getEstadoColor(estado?: string): string {
-  switch (estado) {
-    case 'PLANIFICACION': return 'blue'
-    case 'EN_EJECUCION': return 'green'
-    case 'SUSPENDIDA': return 'orange'
-    case 'FINALIZADA': return 'purple'
-    case 'CANCELADA': return 'red'
-    default: return 'grey'
+// Utility functions
+const formatEstado = (estado: string) => {
+  const estados: Record<string, string> = {
+    planificacion: 'Planificación',
+    ejecucion: 'Ejecución',
+    suspendida: 'Suspendida',
+    finalizada: 'Finalizada',
+    cancelada: 'Cancelada'
   }
+  return estados[estado] || estado
 }
 
-function getEstadoLabel(estado?: string): string {
-  switch (estado) {
-    case 'PLANIFICACION': return 'Planificación'
-    case 'EN_EJECUCION': return 'En Ejecución'
-    case 'SUSPENDIDA': return 'Suspendida'
-    case 'FINALIZADA': return 'Finalizada'
-    case 'CANCELADA': return 'Cancelada'
-    default: return estado || 'Sin Estado'
+const getEstadoColor = (estado: string) => {
+  const colores: Record<string, string> = {
+    planificacion: 'info',
+    ejecucion: 'primary',
+    suspendida: 'warning',
+    finalizada: 'positive',
+    cancelada: 'negative'
   }
+  return colores[estado] || 'info'
 }
 
-const formatCurrency = (value?: number, currency = 'CLP') => {
-  if (!value) return '-'
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: currency
-  }).format(value)
-}
-
-const formatDate = (dateString?: string) => {
-  if (!dateString) return '-'
+const formatDate = (dateString: string) => {
+  if (!dateString) return ''
   return new Date(dateString).toLocaleDateString('es-CL')
 }
 
-const formatDateForInput = (dateString: string) => {
-  return dateString.split('T')[0]
-}
-
-const isObraRetrasada = (obra: Obra): boolean => {
-  if (!obra.fecha_fin_programada || obra.estado === 'FINALIZADA') return false
-  const fechaFin = new Date(obra.fecha_fin_programada)
-  const hoy = new Date()
-  return fechaFin < hoy && obra.estado === 'EN_EJECUCION'
+const formatCurrency = (amount: number | undefined) => {
+  if (!amount) return 'No especificado'
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP'
+  }).format(amount)
 }
 
 // Lifecycle
 onMounted(async () => {
   await Promise.all([
-    obraStore.obtenerClientes(),
-    cargarObras()
+    cargarObras(),
+    cargarClientes()
   ])
 })
 </script>

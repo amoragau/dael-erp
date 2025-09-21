@@ -4,9 +4,9 @@ from typing import List, Optional
 
 # Imports locales
 from database import get_db
-from models import ProductoUbicacion, Producto, Nivel
+from models import ProductoUbicacion, Producto, Estante
 from schemas import ProductoUbicacionCreate, ProductoUbicacionUpdate, ProductoUbicacionResponse, ProductoUbicacionWithRelations
-from crud import producto_ubicacion_crud, producto_crud, nivel_crud
+from crud import producto_ubicacion_crud, producto_crud, estante_crud
 
 # Configuración del router
 router = APIRouter(
@@ -25,7 +25,7 @@ def listar_ubicaciones(
     limit: int = Query(100, ge=1, le=1000, description="Máximo registros a retornar"),
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     producto_id: Optional[int] = Query(None, description="Filtrar por producto"),
-    nivel_id: Optional[int] = Query(None, description="Filtrar por nivel"),
+    estante_id: Optional[int] = Query(None, description="Filtrar por estante"),
     db: Session = Depends(get_db)
 ):
     """
@@ -34,13 +34,13 @@ def listar_ubicaciones(
     - **limit**: Máximo número de registros a retornar
     - **activo**: Filtrar solo ubicaciones activas (true) o inactivas (false)
     - **producto_id**: Filtrar ubicaciones de un producto específico
-    - **nivel_id**: Filtrar ubicaciones en un nivel específico
+    - **estante_id**: Filtrar ubicaciones en un estante específico
     """
     if producto_id:
         return producto_ubicacion_crud.get_ubicaciones_by_producto(db, producto_id=producto_id, activo=activo)
 
-    if nivel_id:
-        return producto_ubicacion_crud.get_ubicaciones_by_nivel(db, nivel_id=nivel_id, activo=activo)
+    if estante_id:
+        return producto_ubicacion_crud.get_ubicaciones_by_estante(db, estante_id=estante_id, activo=activo)
 
     return producto_ubicacion_crud.get_ubicaciones(db, skip=skip, limit=limit, activo=activo)
 
@@ -75,20 +75,20 @@ def obtener_ubicaciones_por_producto(
 
     return query.all()
 
-@router.get("/nivel/{nivel_id}/ubicaciones", response_model=List[ProductoUbicacionWithRelations])
-def obtener_ubicaciones_por_nivel(
-    nivel_id: int,
+@router.get("/estante/{estante_id}/ubicaciones", response_model=List[ProductoUbicacionWithRelations])
+def obtener_ubicaciones_por_estante(
+    estante_id: int,
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     db: Session = Depends(get_db)
 ):
-    """Obtener todas las ubicaciones en un nivel específico"""
-    # Verificar que el nivel existe
-    nivel = nivel_crud.get_nivel(db, nivel_id)
-    if not nivel:
-        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    """Obtener todas las ubicaciones en un estante específico"""
+    # Verificar que el estante existe
+    estante = estante_crud.get_estante(db, estante_id)
+    if not estante:
+        raise HTTPException(status_code=404, detail="Estante no encontrado")
 
     # Obtener con relaciones completas
-    query = db.query(ProductoUbicacion).filter(ProductoUbicacion.id_nivel == nivel_id)
+    query = db.query(ProductoUbicacion).filter(ProductoUbicacion.id_estante == estante_id)
 
     if activo is not None:
         query = query.filter(ProductoUbicacion.activo == activo)
@@ -102,7 +102,7 @@ def crear_ubicacion(
 ):
     """
     Crear nueva ubicación de producto
-    - Requiere que existan el producto y el nivel
+    - Requiere que existan el producto y el estante
     - Valida que la cantidad reservada no sea mayor que la cantidad total
     """
     # Verificar que el producto existe
@@ -110,10 +110,10 @@ def crear_ubicacion(
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    # Verificar que el nivel existe
-    nivel = nivel_crud.get_nivel(db, ubicacion.id_nivel)
-    if not nivel:
-        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    # Verificar que el estante existe
+    estante = estante_crud.get_estante(db, ubicacion.id_estante)
+    if not estante:
+        raise HTTPException(status_code=404, detail="Estante no encontrado")
 
     # Validar que la cantidad reservada no sea mayor que la cantidad total
     if ubicacion.cantidad_reservada > ubicacion.cantidad:
@@ -122,17 +122,17 @@ def crear_ubicacion(
             detail="La cantidad reservada no puede ser mayor que la cantidad total"
         )
 
-    # Verificar si ya existe una ubicación para este producto en este nivel
+    # Verificar si ya existe una ubicación para este producto en este estante
     existing_ubicacion = db.query(ProductoUbicacion).filter(
         ProductoUbicacion.id_producto == ubicacion.id_producto,
-        ProductoUbicacion.id_nivel == ubicacion.id_nivel,
+        ProductoUbicacion.id_estante == ubicacion.id_estante,
         ProductoUbicacion.activo == True
     ).first()
 
     if existing_ubicacion:
         raise HTTPException(
             status_code=400,
-            detail="Ya existe una ubicación activa para este producto en este nivel"
+            detail="Ya existe una ubicación activa para este producto en este estante"
         )
 
     return producto_ubicacion_crud.create_ubicacion(db=db, ubicacion=ubicacion)
@@ -159,10 +159,10 @@ def actualizar_ubicacion(
         if not producto:
             raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    if ubicacion_update.id_nivel:
-        nivel = nivel_crud.get_nivel(db, ubicacion_update.id_nivel)
-        if not nivel:
-            raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    if ubicacion_update.id_estante:
+        estante = estante_crud.get_estante(db, ubicacion_update.id_estante)
+        if not estante:
+            raise HTTPException(status_code=404, detail="Estante no encontrado")
 
     # Validar cantidades
     cantidad_total = ubicacion_update.cantidad if ubicacion_update.cantidad is not None else db_ubicacion.cantidad
@@ -301,7 +301,7 @@ def estadisticas_por_bodega(
         func.count(ProductoUbicacion.id_ubicacion).label('total_ubicaciones'),
         func.sum(ProductoUbicacion.cantidad).label('cantidad_total'),
         func.count(func.nullif(ProductoUbicacion.cantidad, 0)).label('ubicaciones_ocupadas')
-    ).select_from(Bodega).join(Pasillo).join(Estante).join(Nivel).outerjoin(ProductoUbicacion).group_by(
+    ).select_from(Bodega).join(Pasillo).join(Estante).join(Estante).outerjoin(ProductoUbicacion).group_by(
         Bodega.id_bodega, Bodega.codigo_bodega, Bodega.nombre_bodega
     ).filter(
         Bodega.activo == True,

@@ -348,37 +348,7 @@ class EstanteResponse(EstanteBase):
         from_attributes = True
 
 class EstanteWithPasillo(EstanteResponse):
-    pasillo: Optional[PasilloWithBodega] = None
-
-# ========================================
-# SCHEMAS PARA NIVELES
-# ========================================
-
-class NivelBase(BaseModel):
-    id_estante: int
-    numero_nivel: int = Field(..., ge=1)
-    altura_cm: Optional[Decimal] = Field(None, ge=0)
-    capacidad_peso_kg: Optional[Decimal] = Field(None, ge=0)
-    activo: bool = True
-
-class NivelCreate(NivelBase):
-    pass
-
-class NivelUpdate(BaseModel):
-    id_estante: Optional[int] = None
-    numero_nivel: Optional[int] = Field(None, ge=1)
-    altura_cm: Optional[Decimal] = Field(None, ge=0)
-    capacidad_peso_kg: Optional[Decimal] = Field(None, ge=0)
-    activo: Optional[bool] = None
-
-class NivelResponse(NivelBase):
-    id_nivel: int
-
-    class Config:
-        from_attributes = True
-
-class NivelWithEstante(NivelResponse):
-    estante: Optional[EstanteWithPasillo] = None
+    estante: Optional[PasilloResponse] = None
 
 # ========================================
 # SCHEMAS PARA PRODUCTOS
@@ -563,7 +533,7 @@ class ProductoProveedorWithRelations(ProductoProveedorResponse):
 
 class ProductoUbicacionBase(BaseModel):
     id_producto: int
-    id_nivel: int
+    id_estante: int
     cantidad: int = Field(..., ge=0)
     cantidad_reservada: int = Field(default=0, ge=0)
     posicion_especifica: Optional[str] = Field(None, max_length=20)
@@ -576,7 +546,7 @@ class ProductoUbicacionCreate(ProductoUbicacionBase):
 
 class ProductoUbicacionUpdate(BaseModel):
     id_producto: Optional[int] = None
-    id_nivel: Optional[int] = None
+    id_estante: Optional[int] = None
     cantidad: Optional[int] = Field(None, ge=0)
     cantidad_reservada: Optional[int] = Field(None, ge=0)
     posicion_especifica: Optional[str] = Field(None, max_length=20)
@@ -592,7 +562,7 @@ class ProductoUbicacionResponse(ProductoUbicacionBase):
 
 class ProductoUbicacionWithRelations(ProductoUbicacionResponse):
     producto: Optional[ProductoResponse] = None
-    nivel: Optional[NivelWithEstante] = None
+    estante: Optional[EstanteWithPasillo] = None
 
 # Enum para afecta stock
 class AfectaStockEnum(str, Enum):

@@ -7,14 +7,51 @@ export interface Proveedor {
   codigo_proveedor: string
   nombre_proveedor: string
   razon_social?: string
-  rfc?: string
+
+  // Datos fiscales
+  rut?: string
+  giro_comercial?: string
+  direccion_fiscal?: string
+  ciudad_fiscal?: string
+  estado_fiscal?: string
+  codigo_postal_fiscal?: string
+  pais_fiscal?: string
+
+  // Información de contacto
   direccion?: string
   telefono?: string
   email?: string
-  contacto?: string
-  telefono_contacto?: string
-  email_contacto?: string
+  sitio_web?: string
+
+  // Contacto principal
+  contacto_principal?: string
+  telefono_contacto_principal?: string
+  email_contacto_principal?: string
+  puesto_contacto?: string
+
+  // Condiciones comerciales
+  dias_credito: number
+  limite_credito?: number
+  descuento_comercial?: number
+  descuento_pronto_pago?: number
+  moneda_preferida?: string
+  forma_pago_preferida?: string
+  metodo_pago_preferido?: string
+
+  // Información de entrega
+  direccion_entrega?: string
+  ciudad_entrega?: string
+  estado_entrega?: string
+  codigo_postal_entrega?: string
+  pais_entrega?: string
+  instrucciones_entrega?: string
+  horario_entrega?: string
+  contacto_recepcion?: string
+  telefono_recepcion?: string
+
+  // Información adicional
   observaciones?: string
+  clasificacion?: string
   activo: boolean
   fecha_creacion?: string
   fecha_actualizacion?: string
@@ -81,14 +118,51 @@ export interface ProveedorCreate {
   codigo_proveedor: string
   nombre_proveedor: string
   razon_social?: string
-  rfc?: string
+
+  // Datos fiscales
+  rut?: string
+  giro_comercial?: string
+  direccion_fiscal?: string
+  ciudad_fiscal?: string
+  estado_fiscal?: string
+  codigo_postal_fiscal?: string
+  pais_fiscal?: string
+
+  // Información de contacto
   direccion?: string
   telefono?: string
   email?: string
-  contacto?: string
-  telefono_contacto?: string
-  email_contacto?: string
+  sitio_web?: string
+
+  // Contacto principal
+  contacto_principal?: string
+  telefono_contacto_principal?: string
+  email_contacto_principal?: string
+  puesto_contacto?: string
+
+  // Condiciones comerciales
+  dias_credito: number
+  limite_credito?: number
+  descuento_comercial?: number
+  descuento_pronto_pago?: number
+  moneda_preferida?: string
+  forma_pago_preferida?: string
+  metodo_pago_preferido?: string
+
+  // Información de entrega
+  direccion_entrega?: string
+  ciudad_entrega?: string
+  estado_entrega?: string
+  codigo_postal_entrega?: string
+  pais_entrega?: string
+  instrucciones_entrega?: string
+  horario_entrega?: string
+  contacto_recepcion?: string
+  telefono_recepcion?: string
+
+  // Información adicional
   observaciones?: string
+  clasificacion?: string
   activo: boolean
 }
 
@@ -96,14 +170,51 @@ export interface ProveedorUpdate {
   codigo_proveedor?: string
   nombre_proveedor?: string
   razon_social?: string
-  rfc?: string
+
+  // Datos fiscales
+  rut?: string
+  giro_comercial?: string
+  direccion_fiscal?: string
+  ciudad_fiscal?: string
+  estado_fiscal?: string
+  codigo_postal_fiscal?: string
+  pais_fiscal?: string
+
+  // Información de contacto
   direccion?: string
   telefono?: string
   email?: string
-  contacto?: string
-  telefono_contacto?: string
-  email_contacto?: string
+  sitio_web?: string
+
+  // Contacto principal
+  contacto_principal?: string
+  telefono_contacto_principal?: string
+  email_contacto_principal?: string
+  puesto_contacto?: string
+
+  // Condiciones comerciales
+  dias_credito?: number
+  limite_credito?: number
+  descuento_comercial?: number
+  descuento_pronto_pago?: number
+  moneda_preferida?: string
+  forma_pago_preferida?: string
+  metodo_pago_preferido?: string
+
+  // Información de entrega
+  direccion_entrega?: string
+  ciudad_entrega?: string
+  estado_entrega?: string
+  codigo_postal_entrega?: string
+  pais_entrega?: string
+  instrucciones_entrega?: string
+  horario_entrega?: string
+  contacto_recepcion?: string
+  telefono_recepcion?: string
+
+  // Información adicional
   observaciones?: string
+  clasificacion?: string
   activo?: boolean
 }
 
@@ -374,6 +485,44 @@ export const useProveedorStore = defineStore('proveedores', () => {
     }
   }
 
+  // Métodos para estadísticas comerciales
+  const obtenerEstadisticasComerciales = async (): Promise<{
+    total_proveedores: number
+    activos: number
+    inactivos: number
+    con_credito: number
+    sin_credito: number
+    limite_credito_promedio: number
+  }> => {
+    try {
+      const response = await apiStore.get('/proveedores/stats/comerciales')
+      if (!response.success) {
+        throw new Error(response.error || 'Error al obtener estadísticas comerciales')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener estadísticas comerciales:', error)
+      throw error
+    }
+  }
+
+  const validarCondicionesComerciales = async (proveedorId: number): Promise<{
+    credito_disponible: number
+    dias_credito_restantes: number
+    estado_credito: 'disponible' | 'agotado' | 'vencido'
+  }> => {
+    try {
+      const response = await apiStore.get(`/proveedores/${proveedorId}/credito/validar`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al validar condiciones comerciales')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al validar condiciones comerciales:', error)
+      throw error
+    }
+  }
+
   return {
     // State
     proveedores,
@@ -398,6 +547,10 @@ export const useProveedorStore = defineStore('proveedores', () => {
     actualizarSucursal,
     eliminarSucursal,
     activarSucursal,
-    establecerSucursalPrincipal
+    establecerSucursalPrincipal,
+
+    // Methods - Estadísticas comerciales
+    obtenerEstadisticasComerciales,
+    validarCondicionesComerciales
   }
 })

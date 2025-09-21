@@ -98,32 +98,33 @@
           label="Inventario"
           default-opened
         >
+          <q-item clickable :inset-level="1" :to="{ name: 'movimientos' }">
+            <q-item-section avatar>
+              <q-icon name="warehouse" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Movimientos</q-item-label>
+            </q-item-section>
+          </q-item>
+
           <q-item clickable :inset-level="1" :to="{ name: 'productos' }">
             <q-item-section avatar>
-              <q-icon name="category" />
+              <q-icon name="archive" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Productos</q-item-label>
             </q-item-section>
           </q-item>
 
-          <q-item clickable :inset-level="1" :to="{ name: 'categorias' }">
+          <q-item clickable :inset-level="1" :to="{ name: 'tipos-producto' }">
             <q-item-section avatar>
-              <q-icon name="label" />
+              <q-icon name="category" />
             </q-item-section>
             <q-item-section>
-              <q-item-label>Categorías</q-item-label>
+              <q-item-label>Tipos de produtos</q-item-label>
             </q-item-section>
           </q-item>
 
-          <q-item clickable :inset-level="1" :to="{ name: 'bodegas' }">
-            <q-item-section avatar>
-              <q-icon name="warehouse" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Bodegas</q-item-label>
-            </q-item-section>
-          </q-item>
         </q-expansion-item>
 
         <q-expansion-item
@@ -144,21 +145,48 @@
           icon="settings"
           label="Configuraciones"
         >
+          <q-item clickable :inset-level="1" :to="{ name: 'bodegas' }">
+            <q-item-section avatar>
+              <q-icon name="warehouse" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Bodegas</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'categorias' }">
+            <q-item-section avatar>
+              <q-icon name="label" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Categorías</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'clientes' }">
+            <q-item-section avatar>
+              <q-icon name="people_outline" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Clientes</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'marcas' }">
+            <q-item-section avatar>
+              <q-icon name="museum" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Marcas</q-item-label>
+            </q-item-section>
+          </q-item>
+
           <q-item clickable :inset-level="1" :to="{ name: 'proveedores' }">
             <q-item-section avatar>
               <q-icon name="business" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Proveedores</q-item-label>
-            </q-item-section>
-          </q-item>
-
-          <q-item clickable :inset-level="1">
-            <q-item-section avatar>
-              <q-icon name="people" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Clientes</q-item-label>
             </q-item-section>
           </q-item>
 
@@ -174,7 +202,7 @@
 
           <q-item clickable :to="{ name: 'users' }" exact>
             <q-item-section avatar>
-              <q-icon name="people" />
+              <q-icon name="assignment_ind" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Usuarios</q-item-label>

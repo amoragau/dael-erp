@@ -73,9 +73,41 @@ const router = createRouter({
       }
     },
     {
+      path: '/clientes',
+      name: 'clientes',
+      component: () => import('../views/ClientesView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
       path: '/obras',
       name: 'obras',
       component: () => import('../views/ObrasView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/tipos-producto',
+      name: 'tipos-producto',
+      component: () => import('../views/TiposProductoView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/marcas',
+      name: 'marcas',
+      component: () => import('../views/MarcasView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/movimientos',
+      name: 'movimientos',
+      component: () => import('../views/MovimientosView.vue'),
       meta: {
         requiresAuth: true
       }
