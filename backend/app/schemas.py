@@ -31,9 +31,9 @@ class UnidadMedidaResponse(UnidadMedidaBase):
 
 
 class AfectaStock(str, Enum):
-    AUMENTA = "aumenta"
-    DISMINUYE = "disminuye"
-    NO_AFECTA = "no_afecta"
+    AUMENTA = "AUMENTA"
+    DISMINUYE = "DISMINUYE"
+    NO_AFECTA = "NO_AFECTA"
 
 # Schema base
 class TipoMovimientoBase(BaseModel):
@@ -51,7 +51,7 @@ class TipoMovimientoCreate(TipoMovimientoBase):
 class TipoMovimientoUpdate(BaseModel):
     codigo_tipo: Optional[str] = None
     nombre_tipo: Optional[str] = None
-    afecta_stock: AfectaStock
+    afecta_stock: Optional[AfectaStock] = None
     requiere_autorizacion: Optional[bool] = None
     activo: Optional[bool] = None
 
@@ -564,11 +564,6 @@ class ProductoUbicacionWithRelations(ProductoUbicacionResponse):
     producto: Optional[ProductoResponse] = None
     estante: Optional[EstanteWithPasillo] = None
 
-# Enum para afecta stock
-class AfectaStockEnum(str, Enum):
-    AUMENTA = "AUMENTA"
-    DISMINUYE = "DISMINUYE"
-    NO_AFECTA = "NO_AFECTA"
 
 # Enum para estados de movimiento
 class EstadoMovimientoEnum(str, Enum):
@@ -2982,3 +2977,490 @@ class VistaOrdenesDetalleCompletoFilters(BaseModel):
     fecha_entrega_desde: Optional[date] = None
     fecha_entrega_hasta: Optional[date] = None
     cantidad_pendiente_mayor_que: Optional[Decimal] = None
+
+
+# ========================================
+# SCHEMAS PARA WORKFLOW DE ÓRDENES DE COMPRA
+# ========================================
+
+# Enums para el workflow
+class TipoDocumentoCompra(str, Enum):
+    FACTURA = "FACTURA"
+    FACTURA_EXENTA = "FACTURA_EXENTA"
+    BOLETA = "BOLETA"
+    NOTA_CREDITO = "NOTA_CREDITO"
+    NOTA_DEBITO = "NOTA_DEBITO"
+    GUIA_DESPACHO = "GUIA_DESPACHO"
+    OTRO = "OTRO"
+
+class EstadoDocumentoCompra(str, Enum):
+    PENDIENTE = "PENDIENTE"
+    VALIDADO = "VALIDADO"
+    DISPONIBLE_BODEGA = "DISPONIBLE_BODEGA"
+    INGRESADO_BODEGA = "INGRESADO_BODEGA"
+    ANULADO = "ANULADO"
+
+class TipoArchivoDocumento(str, Enum):
+    XML = "XML"
+    PDF = "PDF"
+    IMAGEN = "IMAGEN"
+    OTRO = "OTRO"
+
+class EstadoDocumento(str, Enum):
+    PENDIENTE = "PENDIENTE"
+    PROCESADO = "PROCESADO"
+    ERROR = "ERROR"
+    VALIDADO = "VALIDADO"
+    CONCILIADO = "CONCILIADO"
+
+class TipoConciliacion(str, Enum):
+    AUTOMATICA = "AUTOMATICA"
+    MANUAL = "MANUAL"
+    PARCIAL = "PARCIAL"
+
+class EstadoConciliacion(str, Enum):
+    PENDIENTE = "PENDIENTE"
+    CONCILIADA = "CONCILIADA"
+    CON_DIFERENCIAS = "CON_DIFERENCIAS"
+    RECHAZADA = "RECHAZADA"
+
+class EstadoProductoConciliacion(str, Enum):
+    COINCIDE = "COINCIDE"
+    DIFERENCIA_CANTIDAD = "DIFERENCIA_CANTIDAD"
+    DIFERENCIA_PRECIO = "DIFERENCIA_PRECIO"
+    DIFERENCIA_TOTAL = "DIFERENCIA_TOTAL"
+    NO_ENCONTRADO = "NO_ENCONTRADO"
+
+class AccionConciliacion(str, Enum):
+    ACEPTAR = "ACEPTAR"
+    RECHAZAR = "RECHAZAR"
+    AJUSTAR = "AJUSTAR"
+    PENDIENTE = "PENDIENTE"
+
+class TipoAjuste(str, Enum):
+    CANTIDAD = "CANTIDAD"
+    PRECIO = "PRECIO"
+    NUEVO_PRODUCTO = "NUEVO_PRODUCTO"
+    ELIMINACION = "ELIMINACION"
+
+class MetodoPago(str, Enum):
+    TRANSFERENCIA = "TRANSFERENCIA"
+    CHEQUE = "CHEQUE"
+    EFECTIVO = "EFECTIVO"
+    TARJETA = "TARJETA"
+    OTRO = "OTRO"
+
+class EstadoPago(str, Enum):
+    PENDIENTE = "PENDIENTE"
+    PROCESADO = "PROCESADO"
+    CONFIRMADO = "CONFIRMADO"
+    CANCELADO = "CANCELADO"
+
+# ========================================
+# SCHEMAS PARA DOCUMENTO ORDEN COMPRA
+# ========================================
+
+# ========================================
+# SCHEMAS PARA DOCUMENTOS DE COMPRA
+# ========================================
+
+class DocumentoCompraDetalleBase(BaseModel):
+    id_producto: Optional[int] = None
+    codigo_producto: Optional[str] = None
+    descripcion: str
+    cantidad: Decimal
+    id_unidad_medida: Optional[int] = None
+    precio_unitario: Decimal
+    descuento_linea: Decimal = 0
+    subtotal_linea: Decimal
+    impuesto_linea: Decimal = 0
+    total_linea: Decimal
+    numero_linea: int = 1
+
+class DocumentoCompraDetalleCreate(DocumentoCompraDetalleBase):
+    pass
+
+class DocumentoCompraDetalleUpdate(BaseModel):
+    id_producto: Optional[int] = None
+    codigo_producto: Optional[str] = None
+    descripcion: Optional[str] = None
+    cantidad: Optional[Decimal] = None
+    id_unidad_medida: Optional[int] = None
+    precio_unitario: Optional[Decimal] = None
+    descuento_linea: Optional[Decimal] = None
+    subtotal_linea: Optional[Decimal] = None
+    impuesto_linea: Optional[Decimal] = None
+    total_linea: Optional[Decimal] = None
+    cantidad_recibida: Optional[Decimal] = None
+    diferencia_cantidad: Optional[Decimal] = None
+    motivo_diferencia: Optional[str] = None
+
+class DocumentoCompraDetalleResponse(DocumentoCompraDetalleBase):
+    id_detalle: int
+    id_documento: int
+    cantidad_recibida: Optional[Decimal] = None
+    diferencia_cantidad: Optional[Decimal] = None
+    motivo_diferencia: Optional[str] = None
+    activo: bool
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+class DocumentoCompraArchivoBase(BaseModel):
+    nombre_archivo: str
+    ruta_archivo: str
+    tipo_archivo: TipoArchivoDocumento
+    tamaño_archivo: Optional[int] = None
+    mime_type: Optional[str] = None
+    hash_archivo: Optional[str] = None
+
+class DocumentoCompraArchivoCreate(DocumentoCompraArchivoBase):
+    pass
+
+class DocumentoCompraArchivoResponse(DocumentoCompraArchivoBase):
+    id_archivo: int
+    id_documento: int
+    activo: bool
+    fecha_subida: datetime
+    usuario_subida: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class DocumentoCompraBase(BaseModel):
+    id_orden_compra: Optional[int] = None
+    tipo_documento: TipoDocumentoCompra
+    numero_documento: str
+    fecha_documento: date
+    serie: Optional[str] = None
+    folio: Optional[str] = None
+    uuid_fiscal: Optional[str] = None
+    rut_emisor: Optional[str] = None
+    rut_receptor: Optional[str] = None
+    subtotal: Decimal = 0
+    impuestos: Decimal = 0
+    descuentos: Decimal = 0
+    total: Decimal = 0
+    moneda: str = "CLP"
+    tipo_cambio: Decimal = 1.0000
+    contenido_xml: Optional[str] = None
+    estado: EstadoDocumentoCompra = EstadoDocumentoCompra.PENDIENTE
+    disponible_bodega: bool = False
+    fecha_ingreso_bodega: Optional[datetime] = None
+    usuario_ingreso_bodega: Optional[int] = None
+    errores_procesamiento: Optional[str] = None
+    observaciones: Optional[str] = None
+
+class DocumentoCompraCreate(DocumentoCompraBase):
+    detalles: List[DocumentoCompraDetalleCreate] = []
+
+class DocumentoCompraUpdate(BaseModel):
+    id_orden_compra: Optional[int] = None
+    tipo_documento: Optional[TipoDocumentoCompra] = None
+    numero_documento: Optional[str] = None
+    fecha_documento: Optional[date] = None
+    serie: Optional[str] = None
+    folio: Optional[str] = None
+    uuid_fiscal: Optional[str] = None
+    rut_emisor: Optional[str] = None
+    rut_receptor: Optional[str] = None
+    subtotal: Optional[Decimal] = None
+    impuestos: Optional[Decimal] = None
+    descuentos: Optional[Decimal] = None
+    total: Optional[Decimal] = None
+    moneda: Optional[str] = None
+    tipo_cambio: Optional[Decimal] = None
+    contenido_xml: Optional[str] = None
+    estado: Optional[EstadoDocumentoCompra] = None
+    disponible_bodega: Optional[bool] = None
+    errores_procesamiento: Optional[str] = None
+    observaciones: Optional[str] = None
+
+class DocumentoCompraResponse(DocumentoCompraBase):
+    id_documento: int
+    activo: bool
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+    usuario_creacion: Optional[int] = None
+    usuario_modificacion: Optional[int] = None
+    detalles: List[DocumentoCompraDetalleResponse] = []
+    archivos: List[DocumentoCompraArchivoResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA CONCILIACIÓN
+# ========================================
+
+class ConciliacionOcFacturasBase(BaseModel):
+    id_orden_compra: int
+    id_documento_factura: int
+    tipo_conciliacion: TipoConciliacion
+    fecha_conciliacion: datetime
+    id_usuario_concilia: int
+    productos_conciliados: int = 0
+    productos_con_diferencias: int = 0
+    diferencia_total: Decimal = 0
+    porcentaje_coincidencia: Decimal = 0
+    estado: EstadoConciliacion = EstadoConciliacion.PENDIENTE
+    observaciones: Optional[str] = None
+    aprobado_por: Optional[int] = None
+    fecha_aprobacion: Optional[datetime] = None
+
+class ConciliacionOcFacturasCreate(ConciliacionOcFacturasBase):
+    pass
+
+class ConciliacionOcFacturasUpdate(BaseModel):
+    tipo_conciliacion: Optional[TipoConciliacion] = None
+    productos_conciliados: Optional[int] = None
+    productos_con_diferencias: Optional[int] = None
+    diferencia_total: Optional[Decimal] = None
+    porcentaje_coincidencia: Optional[Decimal] = None
+    estado: Optional[EstadoConciliacion] = None
+    observaciones: Optional[str] = None
+    aprobado_por: Optional[int] = None
+    fecha_aprobacion: Optional[datetime] = None
+
+class ConciliacionOcFacturasResponse(ConciliacionOcFacturasBase):
+    id_conciliacion: int
+    activo: bool
+    fecha_creacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA DETALLE DE CONCILIACIÓN
+# ========================================
+
+class ConciliacionDetalleBase(BaseModel):
+    id_conciliacion: int
+    id_producto: int
+    cantidad_oc: Decimal
+    precio_unitario_oc: Decimal
+    importe_oc: Decimal
+    cantidad_factura: Decimal
+    precio_unitario_factura: Decimal
+    importe_factura: Decimal
+    descripcion_factura: Optional[str] = None
+    estado_producto: EstadoProductoConciliacion
+    observaciones: Optional[str] = None
+    accion_tomada: AccionConciliacion = AccionConciliacion.PENDIENTE
+
+class ConciliacionDetalleCreate(ConciliacionDetalleBase):
+    pass
+
+class ConciliacionDetalleUpdate(BaseModel):
+    cantidad_oc: Optional[Decimal] = None
+    precio_unitario_oc: Optional[Decimal] = None
+    importe_oc: Optional[Decimal] = None
+    cantidad_factura: Optional[Decimal] = None
+    precio_unitario_factura: Optional[Decimal] = None
+    importe_factura: Optional[Decimal] = None
+    descripcion_factura: Optional[str] = None
+    estado_producto: Optional[EstadoProductoConciliacion] = None
+    observaciones: Optional[str] = None
+    accion_tomada: Optional[AccionConciliacion] = None
+
+class ConciliacionDetalleResponse(ConciliacionDetalleBase):
+    id_detalle_conciliacion: int
+    fecha_creacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA AJUSTES DE CONCILIACIÓN
+# ========================================
+
+class AjustesConciliacionBase(BaseModel):
+    id_conciliacion: int
+    id_producto: int
+    tipo_ajuste: TipoAjuste
+    cantidad_anterior: Decimal = 0
+    precio_anterior: Decimal = 0
+    cantidad_nueva: Decimal = 0
+    precio_nuevo: Decimal = 0
+    motivo_ajuste: str
+    autorizado_por: int
+    fecha_autorizacion: datetime
+    procesado: bool = False
+    fecha_procesamiento: Optional[datetime] = None
+    id_movimiento_inventario: Optional[int] = None
+
+class AjustesConciliacionCreate(AjustesConciliacionBase):
+    pass
+
+class AjustesConciliacionUpdate(BaseModel):
+    tipo_ajuste: Optional[TipoAjuste] = None
+    cantidad_anterior: Optional[Decimal] = None
+    precio_anterior: Optional[Decimal] = None
+    cantidad_nueva: Optional[Decimal] = None
+    precio_nuevo: Optional[Decimal] = None
+    motivo_ajuste: Optional[str] = None
+    procesado: Optional[bool] = None
+    fecha_procesamiento: Optional[datetime] = None
+    id_movimiento_inventario: Optional[int] = None
+
+class AjustesConciliacionResponse(AjustesConciliacionBase):
+    id_ajuste: int
+    fecha_creacion: datetime
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA HISTORIAL DE ESTADOS
+# ========================================
+
+class HistorialEstadosOcBase(BaseModel):
+    id_orden_compra: int
+    id_estado_anterior: Optional[int] = None
+    id_estado_nuevo: int
+    fecha_cambio: datetime
+    id_usuario: int
+    observaciones: Optional[str] = None
+
+class HistorialEstadosOcCreate(HistorialEstadosOcBase):
+    pass
+
+class HistorialEstadosOcResponse(HistorialEstadosOcBase):
+    id_historial: int
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA PAGOS
+# ========================================
+
+class PagosOrdenesCompraBase(BaseModel):
+    id_orden_compra: int
+    numero_pago: str
+    fecha_pago: date
+    monto_pago: Decimal
+    moneda: str = "MXN"
+    tipo_cambio: Decimal = 1.0000
+    metodo_pago: MetodoPago
+    referencia_pago: Optional[str] = None
+    numero_cheque: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta_origen: Optional[str] = None
+    cuenta_destino: Optional[str] = None
+    descuentos: Decimal = 0
+    retenciones: Decimal = 0
+    iva_retenido: Decimal = 0
+    isr_retenido: Decimal = 0
+    estado: EstadoPago = EstadoPago.PENDIENTE
+    autorizado_por: int
+    fecha_autorizacion: datetime
+    observaciones: Optional[str] = None
+
+class PagosOrdenesCompraCreate(PagosOrdenesCompraBase):
+    pass
+
+class PagosOrdenesCompraUpdate(BaseModel):
+    numero_pago: Optional[str] = None
+    fecha_pago: Optional[date] = None
+    monto_pago: Optional[Decimal] = None
+    moneda: Optional[str] = None
+    tipo_cambio: Optional[Decimal] = None
+    metodo_pago: Optional[MetodoPago] = None
+    referencia_pago: Optional[str] = None
+    numero_cheque: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta_origen: Optional[str] = None
+    cuenta_destino: Optional[str] = None
+    descuentos: Optional[Decimal] = None
+    retenciones: Optional[Decimal] = None
+    iva_retenido: Optional[Decimal] = None
+    isr_retenido: Optional[Decimal] = None
+    estado: Optional[EstadoPago] = None
+    observaciones: Optional[str] = None
+
+class PagosOrdenesCompraResponse(PagosOrdenesCompraBase):
+    id_pago: int
+    activo: bool
+    fecha_creacion: datetime
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ========================================
+# SCHEMAS PARA WORKFLOW COMPLETO
+# ========================================
+
+class WorkflowOrdenCompraResponse(BaseModel):
+    id_orden_compra: int
+    numero_orden: str
+    nombre_proveedor: str
+    nombre_estado: str
+    codigo_estado: str
+
+    # Paso 1: Orden de Compra
+    fecha_orden: date
+    monto_orden: Decimal
+
+    # Paso 2: Recepción de Mercancía
+    fecha_recepcion: Optional[date] = None
+    recepcion_completa: Optional[bool] = None
+
+    # Paso 3: Recepción de Factura
+    fecha_factura: Optional[date] = None
+    monto_factura: Optional[Decimal] = None
+    estado_factura: Optional[str] = None
+
+    # Paso 4: Conciliación
+    fecha_conciliacion: Optional[datetime] = None
+    estado_conciliacion: Optional[str] = None
+    porcentaje_coincidencia: Optional[Decimal] = None
+
+    # Paso 5: Pago
+    fecha_pago: Optional[date] = None
+    monto_pago: Optional[Decimal] = None
+    estado_pago: Optional[str] = None
+
+    # Indicadores de progreso
+    paso_1_completado: int
+    paso_2_completado: int
+    paso_3_completado: int
+    paso_4_completado: int
+    paso_5_completado: int
+
+    class Config:
+        from_attributes = True
+
+class OrdenPendientePorPasoResponse(BaseModel):
+    paso: str
+    cantidad_pendiente: int
+    estados_incluidos: str
+
+    class Config:
+        from_attributes = True
+
+# ========================================
+# SCHEMAS PARA UPLOAD DE ARCHIVOS XML/PDF
+# ========================================
+
+class UploadDocumentoResponse(BaseModel):
+    mensaje: str
+    id_documento: int
+    archivo_procesado: str
+    errores: Optional[List[str]] = None
+
+class ProcesarXMLRequest(BaseModel):
+    id_documento: int
+    validar_sat: bool = True
+    auto_conciliar: bool = True
+
+class ProcesarXMLResponse(BaseModel):
+    exito: bool
+    mensaje: str
+    datos_extraidos: Optional[Dict] = None
+    errores: Optional[List[str]] = None
+

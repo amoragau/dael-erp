@@ -2260,6 +2260,7 @@ class OrdenCompra(Base):
     usuario_aprobador = relationship("Usuarios", foreign_keys=[id_usuario_aprobador])
     estado = relationship("EstadoOrdenCompra")
     detalles = relationship("OrdenCompraDetalle", back_populates="orden_compra", cascade="all, delete-orphan")
+    documentos_compra = relationship("DocumentoCompra", back_populates="orden_compra")
 
     def __repr__(self):
         return f"<OrdenCompra(numero='{self.numero_orden}', proveedor_id={self.id_proveedor}, total={self.total})>"
@@ -2421,3 +2422,140 @@ class VistaOrdenesDetalleCompleto(Base):
 
     def __repr__(self):
         return f"<VistaOrdenesDetalleCompleto(orden='{self.numero_orden}', producto='{self.sku}')>"
+
+
+# ========================================
+# MODELOS PARA WORKFLOW DE ÓRDENES DE COMPRA - NUEVOS
+# ========================================
+
+class DocumentoCompra(Base):
+    __tablename__ = "documentos_compra"
+
+    id_documento = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relación opcional con orden de compra
+    id_orden_compra = Column(Integer, ForeignKey("ordenes_compra.id_orden_compra"), nullable=True, index=True)
+
+    # Información básica del documento
+    tipo_documento = Column(Enum('FACTURA', 'FACTURA_EXENTA', 'BOLETA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO', 'OTRO'), nullable=False, index=True)
+    numero_documento = Column(String(100), nullable=False, index=True)
+    fecha_documento = Column(Date, nullable=False, index=True)
+
+    # Información fiscal chilena
+    serie = Column(String(20), nullable=True)
+    folio = Column(String(50), nullable=True)
+    uuid_fiscal = Column(String(100), nullable=True, unique=True, index=True)
+    rut_emisor = Column(String(12), nullable=True, index=True)
+    rut_receptor = Column(String(12), nullable=True)
+
+    # Montos
+    subtotal = Column(DECIMAL(15,2), nullable=False, default=0)
+    impuestos = Column(DECIMAL(15,2), nullable=False, default=0)
+    descuentos = Column(DECIMAL(15,2), nullable=False, default=0)
+    total = Column(DECIMAL(15,2), nullable=False, default=0)
+    moneda = Column(String(3), default='CLP')
+    tipo_cambio = Column(DECIMAL(10,4), default=1.0000)
+
+    # XML (para documentos electrónicos)
+    contenido_xml = Column(Text, nullable=True)
+
+    # Estado y control
+    estado = Column(Enum('PENDIENTE', 'VALIDADO', 'DISPONIBLE_BODEGA', 'INGRESADO_BODEGA', 'ANULADO'), default='PENDIENTE', index=True)
+    disponible_bodega = Column(Boolean, default=False, index=True)
+    fecha_ingreso_bodega = Column(DateTime, nullable=True)
+    usuario_ingreso_bodega = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+
+    # Observaciones y errores
+    observaciones = Column(Text, nullable=True)
+    errores_procesamiento = Column(Text, nullable=True)
+
+    # Control de auditoría
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    usuario_creacion = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    usuario_modificacion = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+
+    # Relationships
+    orden_compra = relationship("OrdenCompra", back_populates="documentos_compra")
+    detalles = relationship("DocumentoCompraDetalle", back_populates="documento", cascade="all, delete-orphan")
+    archivos = relationship("DocumentoCompraArchivo", back_populates="documento", cascade="all, delete-orphan")
+    usuario_creador = relationship("Usuarios", foreign_keys=[usuario_creacion])
+    usuario_modificador = relationship("Usuarios", foreign_keys=[usuario_modificacion])
+    usuario_bodeguero = relationship("Usuarios", foreign_keys=[usuario_ingreso_bodega])
+
+    def __repr__(self):
+        return f"<DocumentoCompra(id={self.id_documento}, tipo='{self.tipo_documento}', numero='{self.numero_documento}')>"
+
+
+class DocumentoCompraDetalle(Base):
+    __tablename__ = "documentos_compra_detalle"
+
+    id_detalle = Column(Integer, primary_key=True, autoincrement=True)
+    id_documento = Column(Integer, ForeignKey("documentos_compra.id_documento"), nullable=False, index=True)
+
+    # Información del producto/servicio
+    id_producto = Column(Integer, ForeignKey("productos.id_producto"), nullable=True, index=True)
+    codigo_producto = Column(String(100), nullable=True, index=True)
+    descripcion = Column(Text, nullable=False)
+
+    # Cantidades y medidas
+    cantidad = Column(DECIMAL(15,4), nullable=False)
+    id_unidad_medida = Column(Integer, ForeignKey("unidades_medida.id_unidad"), nullable=True)
+
+    # Precios
+    precio_unitario = Column(DECIMAL(15,4), nullable=False)
+    descuento_linea = Column(DECIMAL(15,4), default=0)
+    subtotal_linea = Column(DECIMAL(15,4), nullable=False)
+    impuesto_linea = Column(DECIMAL(15,4), default=0)
+    total_linea = Column(DECIMAL(15,4), nullable=False)
+
+    # Control de bodega
+    cantidad_recibida = Column(DECIMAL(15,4), nullable=True)
+    diferencia_cantidad = Column(DECIMAL(15,4), nullable=True)
+    motivo_diferencia = Column(Text, nullable=True)
+
+    # Orden en el documento
+    numero_linea = Column(Integer, nullable=False, default=1, index=True)
+
+    # Control
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, default=func.current_timestamp())
+    fecha_modificacion = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    documento = relationship("DocumentoCompra", back_populates="detalles")
+    producto = relationship("Producto")
+    unidad_medida = relationship("UnidadMedida")
+
+    def __repr__(self):
+        return f"<DocumentoCompraDetalle(id={self.id_detalle}, documento={self.id_documento}, linea={self.numero_linea})>"
+
+
+class DocumentoCompraArchivo(Base):
+    __tablename__ = "documentos_compra_archivos"
+
+    id_archivo = Column(Integer, primary_key=True, autoincrement=True)
+    id_documento = Column(Integer, ForeignKey("documentos_compra.id_documento"), nullable=False, index=True)
+
+    # Información del archivo
+    nombre_archivo = Column(String(255), nullable=False)
+    ruta_archivo = Column(String(500), nullable=False)
+    tipo_archivo = Column(Enum('XML', 'PDF', 'IMAGEN', 'OTRO'), nullable=False, index=True)
+    tamaño_archivo = Column(Integer, nullable=True)
+    mime_type = Column(String(100), nullable=True)
+    hash_archivo = Column(String(64), nullable=True, index=True)
+
+    # Control
+    activo = Column(Boolean, default=True)
+    fecha_subida = Column(TIMESTAMP, default=func.current_timestamp())
+    usuario_subida = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+
+    # Relationships
+    documento = relationship("DocumentoCompra", back_populates="archivos")
+    usuario = relationship("Usuarios")
+
+    def __repr__(self):
+        return f"<DocumentoCompraArchivo(id={self.id_archivo}, documento={self.id_documento}, tipo='{self.tipo_archivo}')>"
+
+

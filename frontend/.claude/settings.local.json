@@ -17,7 +17,10 @@
       "Bash(curl:*)",
       "Bash(source:*)",
       "Bash(pip install:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Read(//mnt/c/Users/ana_m/wokspace/dael/erp-dael/database/**)",
+      "Read(//mnt/c/Users/ana_m/wokspace/dael/erp-dael/**)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

@@ -132,6 +132,37 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
+  const uploadFile = async (url: string, formData: FormData): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post(url, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return {
+        success: true,
+        data: response.data
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  const downloadFile = async (url: string): Promise<Blob> => {
+    try {
+      const response = await apiClient.get(url, {
+        responseType: 'blob'
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Error downloading file:', error)
+      throw error
+    }
+  }
+
   return {
     apiClient,
     testConnection,
@@ -139,6 +170,8 @@ export const useApiStore = defineStore('api', () => {
     post,
     put,
     patch,
-    delete: del
+    delete: del,
+    uploadFile,
+    downloadFile
   }
 })

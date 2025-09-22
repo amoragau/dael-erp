@@ -6914,6 +6914,277 @@ class VistaOrdenesDetalleCompletoCRUD:
         return query.count()
 
 
+# ========================================
+# CRUD DOCUMENTOS DE COMPRA
+# ========================================
+
+def get_documentos_compra(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    activo: Optional[bool] = None,
+    estado: Optional[str] = None,
+    tipo_documento: Optional[str] = None
+) -> List[models.DocumentoCompra]:
+    """Obtener documentos de compra con filtros"""
+    query = db.query(models.DocumentoCompra)
+
+    if activo is not None:
+        query = query.filter(models.DocumentoCompra.activo == activo)
+    if estado:
+        query = query.filter(models.DocumentoCompra.estado == estado)
+    if tipo_documento:
+        query = query.filter(models.DocumentoCompra.tipo_documento == tipo_documento)
+
+    return query.order_by(models.DocumentoCompra.fecha_documento.desc()).offset(skip).limit(limit).all()
+
+def get_documento_compra(db: Session, documento_id: int) -> Optional[models.DocumentoCompra]:
+    """Obtener documento por ID"""
+    return db.query(models.DocumentoCompra).filter(models.DocumentoCompra.id_documento == documento_id).first()
+
+def create_documento_compra(db: Session, documento: schemas.DocumentoCompraCreate) -> models.DocumentoCompra:
+    """Crear nuevo documento de compra"""
+    # Extraer detalles del documento
+    detalles_data = documento.detalles
+    documento_data = documento.dict(exclude={"detalles"})
+
+    # Crear documento principal
+    db_documento = models.DocumentoCompra(**documento_data)
+    db.add(db_documento)
+    db.flush()  # Para obtener el ID
+
+    # Crear detalles
+    for detalle_data in detalles_data:
+        detalle_dict = detalle_data.dict() if hasattr(detalle_data, 'dict') else detalle_data
+        db_detalle = models.DocumentoCompraDetalle(
+            id_documento=db_documento.id_documento,
+            **detalle_dict
+        )
+        db.add(db_detalle)
+
+    db.commit()
+    db.refresh(db_documento)
+    return db_documento
+
+def update_documento_compra(
+    db: Session,
+    documento_id: int,
+    documento: schemas.DocumentoCompraUpdate
+) -> Optional[models.DocumentoCompra]:
+    """Actualizar documento de compra"""
+    db_documento = get_documento_compra(db, documento_id)
+    if not db_documento:
+        return None
+
+    update_data = documento.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_documento, field, value)
+
+    db.commit()
+    db.refresh(db_documento)
+    return db_documento
+
+def delete_documento_compra(db: Session, documento_id: int):
+    """Eliminar documento (soft delete)"""
+    db_documento = get_documento_compra(db, documento_id)
+    if db_documento:
+        db_documento.activo = False
+        db.commit()
+
+def delete_documento_compra_permanent(db: Session, documento_id: int):
+    """Eliminar documento permanentemente"""
+    db_documento = get_documento_compra(db, documento_id)
+    if db_documento:
+        db.delete(db_documento)
+        db.commit()
+
+def activate_documento_compra(db: Session, documento_id: int) -> Optional[models.DocumentoCompra]:
+    """Activar documento"""
+    db_documento = get_documento_compra(db, documento_id)
+    if db_documento:
+        db_documento.activo = True
+        db.commit()
+        db.refresh(db_documento)
+        return db_documento
+    return None
+
+def marcar_disponible_bodega(db: Session, documento_id: int) -> Optional[models.DocumentoCompra]:
+    """Marcar documento como disponible para bodega"""
+    db_documento = get_documento_compra(db, documento_id)
+    if db_documento:
+        db_documento.disponible_bodega = True
+        db_documento.estado = "DISPONIBLE_BODEGA"
+        db.commit()
+        db.refresh(db_documento)
+        return db_documento
+    return None
+
+def ingresar_bodega(db: Session, documento_id: int, usuario_bodeguero_id: int) -> Optional[models.DocumentoCompra]:
+    """Marcar documento como ingresado a bodega"""
+    db_documento = get_documento_compra(db, documento_id)
+    if db_documento:
+        db_documento.estado = "INGRESADO_BODEGA"
+        db_documento.fecha_ingreso_bodega = datetime.now()
+        db_documento.usuario_ingreso_bodega = usuario_bodeguero_id
+        db.commit()
+        db.refresh(db_documento)
+        return db_documento
+    return None
+
+def search_documentos_compra(
+    db: Session,
+    search_term: str,
+    skip: int = 0,
+    limit: int = 100,
+    activo: Optional[bool] = None
+) -> List[models.DocumentoCompra]:
+    """Buscar documentos por múltiples campos"""
+    query = db.query(models.DocumentoCompra)
+
+    # Búsqueda en múltiples campos
+    search_filter = or_(
+        models.DocumentoCompra.numero_documento.like(f"%{search_term}%"),
+        models.DocumentoCompra.rut_emisor.like(f"%{search_term}%"),
+        models.DocumentoCompra.uuid_fiscal.like(f"%{search_term}%"),
+        models.DocumentoCompra.observaciones.like(f"%{search_term}%")
+    )
+    query = query.filter(search_filter)
+
+    if activo is not None:
+        query = query.filter(models.DocumentoCompra.activo == activo)
+
+    return query.order_by(models.DocumentoCompra.fecha_documento.desc()).offset(skip).limit(limit).all()
+
+# ========================================
+# CRUD DETALLES DE DOCUMENTOS
+# ========================================
+
+def get_documento_detalles(db: Session, documento_id: int) -> List[models.DocumentoCompraDetalle]:
+    """Obtener detalles de un documento"""
+    return db.query(models.DocumentoCompraDetalle).filter(
+        models.DocumentoCompraDetalle.id_documento == documento_id,
+        models.DocumentoCompraDetalle.activo == True
+    ).order_by(models.DocumentoCompraDetalle.numero_linea).all()
+
+def get_documento_detalle(db: Session, detalle_id: int) -> Optional[models.DocumentoCompraDetalle]:
+    """Obtener detalle por ID"""
+    return db.query(models.DocumentoCompraDetalle).filter(
+        models.DocumentoCompraDetalle.id_detalle == detalle_id
+    ).first()
+
+def create_documento_detalle(
+    db: Session,
+    documento_id: int,
+    detalle: schemas.DocumentoCompraDetalleCreate
+) -> models.DocumentoCompraDetalle:
+    """Crear detalle de documento"""
+    db_detalle = models.DocumentoCompraDetalle(
+        id_documento=documento_id,
+        **detalle.dict()
+    )
+    db.add(db_detalle)
+    db.commit()
+    db.refresh(db_detalle)
+    return db_detalle
+
+def update_documento_detalle(
+    db: Session,
+    detalle_id: int,
+    detalle: schemas.DocumentoCompraDetalleUpdate
+) -> Optional[models.DocumentoCompraDetalle]:
+    """Actualizar detalle de documento"""
+    db_detalle = get_documento_detalle(db, detalle_id)
+    if not db_detalle:
+        return None
+
+    update_data = detalle.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_detalle, field, value)
+
+    db.commit()
+    db.refresh(db_detalle)
+    return db_detalle
+
+def delete_documento_detalle(db: Session, detalle_id: int):
+    """Eliminar detalle"""
+    db_detalle = get_documento_detalle(db, detalle_id)
+    if db_detalle:
+        db_detalle.activo = False
+        db.commit()
+
+# ========================================
+# CRUD ARCHIVOS DE DOCUMENTOS
+# ========================================
+
+def get_documento_archivos(db: Session, documento_id: int) -> List[models.DocumentoCompraArchivo]:
+    """Obtener archivos de un documento"""
+    return db.query(models.DocumentoCompraArchivo).filter(
+        models.DocumentoCompraArchivo.id_documento == documento_id,
+        models.DocumentoCompraArchivo.activo == True
+    ).all()
+
+# ========================================
+# FUNCIONES ESPECIALES
+# ========================================
+
+def get_documentos_by_orden_compra(db: Session, orden_compra_id: int) -> List[models.DocumentoCompra]:
+    """Obtener documentos asociados a una orden de compra"""
+    return db.query(models.DocumentoCompra).filter(
+        models.DocumentoCompra.id_orden_compra == orden_compra_id,
+        models.DocumentoCompra.activo == True
+    ).all()
+
+def create_documento_desde_orden_compra(
+    db: Session,
+    orden_compra_id: int,
+    tipo_documento: str
+) -> Optional[models.DocumentoCompra]:
+    """Crear documento prellenado desde orden de compra"""
+    # Obtener la orden de compra
+    orden_compra = db.query(models.OrdenCompra).filter(
+        models.OrdenCompra.id_orden_compra == orden_compra_id
+    ).first()
+
+    if not orden_compra:
+        return None
+
+    # Crear documento base
+    db_documento = models.DocumentoCompra(
+        id_orden_compra=orden_compra_id,
+        tipo_documento=tipo_documento,
+        numero_documento="",  # Se debe llenar manualmente
+        fecha_documento=date.today(),
+        subtotal=orden_compra.subtotal,
+        impuestos=orden_compra.impuestos,
+        descuentos=orden_compra.descuentos,
+        total=orden_compra.total,
+        moneda=orden_compra.moneda,
+        tipo_cambio=orden_compra.tipo_cambio
+    )
+
+    db.add(db_documento)
+    db.flush()
+
+    # Crear detalles desde la orden de compra
+    for detalle_oc in orden_compra.detalles:
+        db_detalle = models.DocumentoCompraDetalle(
+            id_documento=db_documento.id_documento,
+            id_producto=detalle_oc.id_producto,
+            codigo_producto=detalle_oc.codigo_producto_proveedor,
+            descripcion=detalle_oc.producto.nombre if detalle_oc.producto else "",
+            cantidad=detalle_oc.cantidad_solicitada,
+            precio_unitario=detalle_oc.precio_unitario,
+            descuento_linea=detalle_oc.descuento_importe,
+            subtotal_linea=detalle_oc.precio_neto * detalle_oc.cantidad_solicitada,
+            total_linea=detalle_oc.importe_total,
+            numero_linea=detalle_oc.numero_linea
+        )
+        db.add(db_detalle)
+
+    db.commit()
+    db.refresh(db_documento)
+    return db_documento
+
 # Instancias globales
 vista_ordenes_compra_resumen_crud = VistaOrdenesCompraResumenCRUD()
 vista_ordenes_detalle_completo_crud = VistaOrdenesDetalleCompletoCRUD()

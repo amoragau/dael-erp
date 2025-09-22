@@ -52,6 +52,7 @@ from routes import estados_orden_compra
 from routes import ordenes_compra
 from routes import recepciones_mercancia
 from routes import vistas_ordenes_compra
+from routes import documentos_compra
 
 # Cargar variables de entorno
 load_dotenv()
@@ -127,6 +128,9 @@ app.include_router(ordenes_compra.router, prefix="/api/v1/ordenes-compra", tags=
 app.include_router(recepciones_mercancia.router, prefix="/api/v1/recepciones-mercancia", tags=["Recepciones de Mercancía"])
 app.include_router(vistas_ordenes_compra.router, prefix="/api/v1/vistas-ordenes-compra", tags=["Vistas Órdenes de Compra"])
 
+# Nuevas rutas de documentos de compra
+app.include_router(documentos_compra.router, prefix="/api/v1", tags=["Documentos de Compra"])
+
 @app.get("/")
 def root():
     return {
@@ -176,7 +180,12 @@ def root():
             "inventario_consolidado": "/api/v1/inventario-consolidado",
             "obras_inventario": "/api/v1/obras-inventario",
             "devoluciones_pendientes": "/api/v1/devoluciones-pendientes",
-            "productos_abc": "/api/v1/productos-abc"
+            "productos_abc": "/api/v1/productos-abc",
+            "documentos_orden_compra": "/api/v1/documentos-orden-compra",
+            "conciliacion_oc_facturas": "/api/v1/conciliacion-oc-facturas",
+            "pagos_ordenes_compra": "/api/v1/pagos-ordenes-compra",
+            "workflow_dashboard": "/api/v1/workflow-dashboard",
+            "xml_processor": "/api/v1/xml-processor"
         }
     }
 

@@ -93,6 +93,32 @@
           </q-item-section>
         </q-item>
 
+
+        <q-expansion-item
+          icon="shopping_cart"
+          label="Compras"
+          default-opened
+        >
+          <q-item clickable :inset-level="1" :to="{ name: 'documentos' }">
+            <q-item-section avatar>
+              <q-icon name="receipt" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Documento de compra</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'ordenes-compra' }">
+            <q-item-section avatar>
+              <q-icon name="local_mall" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Ordenes de Compra</q-item-label>
+            </q-item-section>
+          </q-item>
+
+        </q-expansion-item>
+          
         <q-expansion-item
           icon="inventory"
           label="Inventario"

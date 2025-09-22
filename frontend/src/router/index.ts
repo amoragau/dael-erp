@@ -113,6 +113,22 @@ const router = createRouter({
       }
     },
     {
+      path: '/ordenes-compra',
+      name: 'ordenes-compra',
+      component: () => import('../views/OrdenesCompraView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/documentos',
+      name: 'documentos',
+      component: () => import('../views/DocumentosView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')
