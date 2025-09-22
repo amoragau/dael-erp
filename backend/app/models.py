@@ -2433,6 +2433,9 @@ class DocumentoCompra(Base):
 
     id_documento = Column(Integer, primary_key=True, autoincrement=True)
 
+    # Proveedor (OBLIGATORIO)
+    id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False, index=True)
+
     # Relación opcional con orden de compra
     id_orden_compra = Column(Integer, ForeignKey("ordenes_compra.id_orden_compra"), nullable=True, index=True)
 
@@ -2443,7 +2446,7 @@ class DocumentoCompra(Base):
 
     # Información fiscal chilena
     serie = Column(String(20), nullable=True)
-    folio = Column(String(50), nullable=True)
+    folio = Column(String(50), nullable=False)
     uuid_fiscal = Column(String(100), nullable=True, unique=True, index=True)
     rut_emisor = Column(String(12), nullable=True, index=True)
     rut_receptor = Column(String(12), nullable=True)

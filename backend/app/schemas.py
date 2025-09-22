@@ -3130,12 +3130,13 @@ class DocumentoCompraArchivoResponse(DocumentoCompraArchivoBase):
         from_attributes = True
 
 class DocumentoCompraBase(BaseModel):
+    id_proveedor: int
     id_orden_compra: Optional[int] = None
     tipo_documento: TipoDocumentoCompra
     numero_documento: str
     fecha_documento: date
     serie: Optional[str] = None
-    folio: Optional[str] = None
+    folio: str
     uuid_fiscal: Optional[str] = None
     rut_emisor: Optional[str] = None
     rut_receptor: Optional[str] = None
@@ -3157,6 +3158,7 @@ class DocumentoCompraCreate(DocumentoCompraBase):
     detalles: List[DocumentoCompraDetalleCreate] = []
 
 class DocumentoCompraUpdate(BaseModel):
+    id_proveedor: Optional[int] = None
     id_orden_compra: Optional[int] = None
     tipo_documento: Optional[TipoDocumentoCompra] = None
     numero_documento: Optional[str] = None

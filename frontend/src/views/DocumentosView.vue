@@ -190,6 +190,32 @@
                   <h6 class="q-ma-none q-mb-md">Información Básica</h6>
                 </div>
 
+                <div class="col-12">
+                  <q-select
+                    v-model="formularioDocumento.id_proveedor"
+                    :options="proveedoresOptions"
+                    label="Proveedor *"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    use-input
+                    input-debounce="300"
+                    @filter="filtrarProveedores"
+                    :rules="[val => !!val || 'Proveedor es requerido']"
+                    hint="Busca y selecciona el proveedor emisor del documento"
+                  >
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.razon_social }}</q-item-label>
+                          <q-item-label caption>RUT: {{ scope.opt.rut }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+
                 <div class="col-md-6 col-sm-12 col-xs-12">
                   <q-select
                     v-model="formularioDocumento.tipo_documento"
@@ -237,10 +263,11 @@
                 <div class="col-md-6 col-sm-12 col-xs-12">
                   <q-input
                     v-model="formularioDocumento.folio"
-                    label="Folio"
+                    label="Folio *"
                     outlined
                     dense
-                    hint="Opcional"
+                    :rules="[val => !!val || 'Folio es requerido']"
+                    hint="Número de folio del documento"
                   />
                 </div>
               </div>
@@ -863,6 +890,7 @@ const paginacion = ref({
 
 // Formulario de documento
 const formularioDocumentoInicial: Partial<DocumentoCompra> = {
+  id_proveedor: null,
   id_orden_compra: null,
   tipo_documento: null,
   numero_documento: '',
@@ -916,6 +944,33 @@ const documentosFiltrados = computed(() => {
 })
 
 const ordenesCompraOptions = ref([])
+const proveedoresOptions = ref([])
+
+const filtrarProveedores = async (val: string, update: Function) => {
+  if (val.length < 2) {
+    update(() => {
+      proveedoresOptions.value = []
+    })
+    return
+  }
+
+  try {
+    const proveedores = await documentoStore.buscarProveedores(val)
+    update(() => {
+      proveedoresOptions.value = proveedores.map(proveedor => ({
+        label: `${proveedor.razon_social} - ${proveedor.rut}`,
+        value: proveedor.id_proveedor,
+        rut: proveedor.rut,
+        razon_social: proveedor.razon_social
+      }))
+    })
+  } catch (error) {
+    console.error('Error buscando proveedores:', error)
+    update(() => {
+      proveedoresOptions.value = []
+    })
+  }
+}
 
 const filtrarOrdenesCompra = async (val: string, update: Function) => {
   if (val.length < 2) {
@@ -962,9 +1017,11 @@ const estadosOptions = [
 ]
 
 const formularioDocumentoValido = computed(() => {
-  return formularioDocumento.tipo_documento &&
+  return formularioDocumento.id_proveedor &&
+         formularioDocumento.tipo_documento &&
          formularioDocumento.numero_documento &&
          formularioDocumento.fecha_documento &&
+         formularioDocumento.folio &&
          formularioDocumento.subtotal >= 0 &&
          formularioDocumento.total > 0 &&
          formularioDocumento.moneda &&
@@ -998,6 +1055,13 @@ const columnsDocumentos = [
     label: 'Número',
     align: 'left',
     field: 'numero_documento',
+    sortable: true
+  },
+  {
+    name: 'proveedor',
+    label: 'Proveedor',
+    align: 'left',
+    field: 'proveedor',
     sortable: true
   },
   {
@@ -1226,6 +1290,7 @@ const editarDocumento = (documento: DocumentoCompra) => {
   documentoSeleccionado.value = documento
 
   Object.assign(formularioDocumento, {
+    id_proveedor: documento.id_proveedor,
     id_orden_compra: documento.id_orden_compra || null,
     tipo_documento: documento.tipo_documento,
     numero_documento: documento.numero_documento,

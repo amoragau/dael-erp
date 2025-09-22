@@ -40,12 +40,13 @@ export interface DocumentoCompraArchivo {
 
 export interface DocumentoCompra {
   id_documento?: number
+  id_proveedor: number
   id_orden_compra?: number
   tipo_documento: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento: string
   fecha_documento: string
   serie?: string
-  folio?: string
+  folio: string
   uuid_fiscal?: string
   rut_emisor?: string
   rut_receptor?: string
@@ -72,12 +73,13 @@ export interface DocumentoCompra {
 }
 
 export interface DocumentoCreate {
+  id_proveedor: number
   id_orden_compra?: number
   tipo_documento: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento: string
   fecha_documento: string
   serie?: string
-  folio?: string
+  folio: string
   uuid_fiscal?: string
   rut_emisor?: string
   rut_receptor?: string
@@ -94,6 +96,7 @@ export interface DocumentoCreate {
 }
 
 export interface DocumentoUpdate {
+  id_proveedor?: number
   id_orden_compra?: number
   tipo_documento?: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento?: string
@@ -274,6 +277,20 @@ export const useDocumentoStore = defineStore('documentos', () => {
     }
   }
 
+  // Búsqueda de proveedores (para el selector)
+  const buscarProveedores = async (searchTerm: string) => {
+    try {
+      const response = await apiStore.get(`/proveedores/search?q=${encodeURIComponent(searchTerm)}&limit=20`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al buscar proveedores')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al buscar proveedores:', error)
+      throw error
+    }
+  }
+
   return {
     // State
     documentos,
@@ -289,6 +306,7 @@ export const useDocumentoStore = defineStore('documentos', () => {
 
     // Methods - Búsqueda
     buscarDocumentos,
-    buscarOrdenesCompra
+    buscarOrdenesCompra,
+    buscarProveedores
   }
 })

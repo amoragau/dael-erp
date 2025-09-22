@@ -32,17 +32,20 @@ ALTER TABLE ordenes_compra
 CREATE TABLE IF NOT EXISTS documentos_compra (
     id_documento INT AUTO_INCREMENT PRIMARY KEY,
 
+    -- Proveedor (OBLIGATORIO)
+    id_proveedor INT NOT NULL COMMENT 'Proveedor emisor del documento',
+
     -- Relación opcional con orden de compra
     id_orden_compra INT NULL COMMENT 'Orden de compra asociada (opcional)',
 
-    -- Información básica del documento
+    -- Información básica del documento (OBLIGATORIOS)
     tipo_documento ENUM('FACTURA', 'FACTURA_EXENTA', 'BOLETA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO', 'OTRO') NOT NULL,
     numero_documento VARCHAR(100) NOT NULL,
     fecha_documento DATE NOT NULL,
 
     -- Información fiscal chilena
     serie VARCHAR(20) NULL COMMENT 'Serie del documento',
-    folio VARCHAR(50) NULL COMMENT 'Folio del documento',
+    folio VARCHAR(50) NOT NULL COMMENT 'Folio del documento (OBLIGATORIO)',
     uuid_fiscal VARCHAR(100) NULL COMMENT 'Timbre electrónico único',
     rut_emisor VARCHAR(12) NULL COMMENT 'RUT del emisor',
     rut_receptor VARCHAR(12) NULL COMMENT 'RUT del receptor',
@@ -76,6 +79,7 @@ CREATE TABLE IF NOT EXISTS documentos_compra (
     usuario_modificacion INT NULL,
 
     -- Índices
+    INDEX idx_proveedor (id_proveedor),
     INDEX idx_orden_compra (id_orden_compra),
     INDEX idx_tipo_documento (tipo_documento),
     INDEX idx_numero_documento (numero_documento),
@@ -86,6 +90,7 @@ CREATE TABLE IF NOT EXISTS documentos_compra (
     INDEX idx_rut_emisor (rut_emisor),
 
     -- Claves foráneas
+    FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON DELETE RESTRICT,
     FOREIGN KEY (id_orden_compra) REFERENCES ordenes_compra(id_orden_compra) ON DELETE SET NULL,
     FOREIGN KEY (usuario_creacion) REFERENCES usuarios(id_usuario),
     FOREIGN KEY (usuario_modificacion) REFERENCES usuarios(id_usuario),
@@ -187,14 +192,15 @@ CREATE TABLE IF NOT EXISTS documentos_compra_archivos (
 CREATE OR REPLACE VIEW vista_documentos_compra AS
 SELECT
     d.*,
+    p.razon_social as proveedor,
+    p.rut as rut_proveedor,
     oc.numero_orden,
     oc.estado as estado_oc,
-    p.razon_social as proveedor,
     (SELECT COUNT(*) FROM documentos_compra_detalle dd WHERE dd.id_documento = d.id_documento AND dd.activo = TRUE) as total_lineas,
     (SELECT COUNT(*) FROM documentos_compra_archivos da WHERE da.id_documento = d.id_documento AND da.activo = TRUE) as total_archivos
 FROM documentos_compra d
+INNER JOIN proveedores p ON d.id_proveedor = p.id_proveedor
 LEFT JOIN ordenes_compra oc ON d.id_orden_compra = oc.id_orden_compra
-LEFT JOIN proveedores p ON oc.id_proveedor = p.id_proveedor
 WHERE d.activo = TRUE;
 
 -- Vista de detalle completo
