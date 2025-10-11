@@ -9,6 +9,12 @@
         </div>
         <div class="q-gutter-sm">
           <q-btn
+            color="secondary"
+            icon="upload_file"
+            label="Importar XML"
+            @click="abrirDialogoImportarXML"
+          />
+          <q-btn
             color="primary"
             icon="add"
             label="Nuevo Documento"
@@ -167,418 +173,445 @@
       </q-table>
 
       <!-- Dialog para crear/editar documento -->
-      <q-dialog
-        v-model="mostrarFormularioDocumento"
-        persistent
-        maximized
-        transition-show="slide-up"
-        transition-hide="slide-down"
-      >
-        <q-card class="dialog-card">
-          <q-toolbar class="bg-primary text-white">
-            <q-toolbar-title>
-              {{ modoEdicion ? 'Editar Documento' : 'Nuevo Documento de Compra' }}
-            </q-toolbar-title>
-            <q-btn flat round dense icon="close" @click="cerrarFormularioDocumento" />
-          </q-toolbar>
+      <q-dialog v-model="mostrarFormularioDocumento" persistent>
+        <q-card style="min-width: 1200px; max-width: 1400px; max-height: 90vh">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">{{ modoEdicion ? 'Editar' : 'Nuevo' }} Documento de Compra</div>
+            <q-space />
+            <q-btn icon="close" flat round dense @click="cerrarFormularioDocumento" />
+          </q-card-section>
 
-          <q-card-section class="q-pa-md">
-            <q-form @submit="guardarDocumento" class="q-gutter-md">
-              <!-- Información básica -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <h6 class="q-ma-none q-mb-md">Información Básica</h6>
-                </div>
-
-                <div class="col-12">
-                  <q-select
-                    v-model="formularioDocumento.id_proveedor"
-                    :options="proveedoresOptions"
-                    label="Proveedor *"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                    use-input
-                    input-debounce="300"
-                    @filter="filtrarProveedores"
-                    :rules="[val => !!val || 'Proveedor es requerido']"
-                    hint="Busca y selecciona el proveedor emisor del documento"
+          <q-card-section class="q-pt-none" style="max-height: calc(90vh - 120px);">
+            <q-form @submit="guardarDocumento">
+              <div class="row" style="height: calc(90vh - 160px);">
+                <div class="col-3">
+                  <q-tabs
+                    v-model="tabActivoDocumento"
+                    vertical
+                    class="text-primary full-height"
                   >
-                    <template v-slot:option="scope">
-                      <q-item v-bind="scope.itemProps">
-                        <q-item-section>
-                          <q-item-label>{{ scope.opt.razon_social }}</q-item-label>
-                          <q-item-label caption>RUT: {{ scope.opt.rut }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
+                    <q-tab name="basica" icon="info" label="Información Básica" />
+                    <q-tab name="pago" icon="payment" label="Formas de Pago" />
+                    <q-tab name="montos" icon="attach_money" label="Montos" />
+                    <q-tab name="detalles" icon="list" label="Detalles del Documento" />
+                    <q-tab name="adicional" icon="description" label="Información Adicional" />
+                  </q-tabs>
                 </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-select
-                    v-model="formularioDocumento.tipo_documento"
-                    :options="tiposDocumentoOptions"
-                    label="Tipo de Documento *"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                    :rules="[val => !!val || 'Tipo de documento es requerido']"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.numero_documento"
-                    label="Número de Documento *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'Número de documento es requerido']"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.fecha_documento"
-                    type="date"
-                    label="Fecha de Documento *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'Fecha de documento es requerida']"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.serie"
-                    label="Serie"
-                    outlined
-                    dense
-                    hint="Opcional"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.folio"
-                    label="Folio *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'Folio es requerido']"
-                    hint="Número de folio del documento"
-                  />
-                </div>
-              </div>
-
-              <!-- Relación con Orden de Compra -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <q-separator class="q-my-md" />
-                  <h6 class="q-ma-none q-mb-md">Relación con Orden de Compra (Opcional)</h6>
-                </div>
-
-                <div class="col-12">
-                  <q-select
-                    v-model="formularioDocumento.id_orden_compra"
-                    :options="ordenesCompraOptions"
-                    label="Orden de Compra"
-                    outlined
-                    dense
-                    clearable
-                    emit-value
-                    map-options
-                    use-input
-                    input-debounce="300"
-                    @filter="filtrarOrdenesCompra"
-                    hint="Opcional: Selecciona una orden de compra para pre-llenar datos"
+                <div class="col-9">
+                  <q-tab-panels
+                    v-model="tabActivoDocumento"
+                    animated
+                    class="full-height"
+                    style="overflow-y: auto;"
                   >
-                    <template v-slot:option="scope">
-                      <q-item v-bind="scope.itemProps">
-                        <q-item-section>
-                          <q-item-label>{{ scope.opt.label }}</q-item-label>
-                          <q-item-label caption>{{ scope.opt.proveedor }} - {{ formatCurrency(scope.opt.total) }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
-                </div>
-              </div>
+                    <!-- Panel Información Básica -->
+                    <q-tab-panel name="basica">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="info" class="q-mr-sm" />
+                        Información Básica
+                      </div>
 
-              <!-- Información fiscal -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <q-separator class="q-my-md" />
-                  <h6 class="q-ma-none q-mb-md">Información Fiscal</h6>
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.uuid_fiscal"
-                    label="UUID Fiscal"
-                    outlined
-                    dense
-                    hint="Timbre electrónico único"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.rut_emisor"
-                    label="RUT Emisor"
-                    outlined
-                    dense
-                    mask="##.###.###-#"
-                    hint="RUT del emisor"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.rut_receptor"
-                    label="RUT Receptor"
-                    outlined
-                    dense
-                    mask="##.###.###-#"
-                    hint="RUT del receptor"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formularioDocumento.contenido_xml"
-                    label="Contenido XML"
-                    type="textarea"
-                    outlined
-                    rows="3"
-                    hint="Opcional: XML del documento electrónico"
-                  />
-                </div>
-              </div>
-
-              <!-- Montos -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <q-separator class="q-my-md" />
-                  <h6 class="q-ma-none q-mb-md">Montos</h6>
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model.number="formularioDocumento.subtotal"
-                    type="number"
-                    label="Subtotal *"
-                    outlined
-                    dense
-                    step="0.01"
-                    min="0"
-                    prefix="$"
-                    :rules="[val => val >= 0 || 'El subtotal debe ser mayor o igual a 0']"
-                    @input="calcularTotal"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model.number="formularioDocumento.impuestos"
-                    type="number"
-                    label="Impuestos"
-                    outlined
-                    dense
-                    step="0.01"
-                    min="0"
-                    prefix="$"
-                    @input="calcularTotal"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model.number="formularioDocumento.descuentos"
-                    type="number"
-                    label="Descuentos"
-                    outlined
-                    dense
-                    step="0.01"
-                    min="0"
-                    prefix="$"
-                    @input="calcularTotal"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model.number="formularioDocumento.total"
-                    type="number"
-                    label="Total *"
-                    outlined
-                    dense
-                    step="0.01"
-                    min="0"
-                    prefix="$"
-                    :rules="[val => val > 0 || 'El total debe ser mayor a 0']"
-                    readonly
-                    class="bg-grey-1"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-select
-                    v-model="formularioDocumento.moneda"
-                    :options="monedasOptions"
-                    label="Moneda *"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                    :rules="[val => !!val || 'Moneda es requerida']"
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model.number="formularioDocumento.tipo_cambio"
-                    type="number"
-                    label="Tipo de Cambio"
-                    outlined
-                    dense
-                    step="0.0001"
-                    min="0"
-                    hint="1 para moneda nacional"
-                  />
-                </div>
-              </div>
-
-              <!-- Detalles del Documento -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <q-separator class="q-my-md" />
-                  <div class="row items-center justify-between">
-                    <h6 class="q-ma-none">Detalles del Documento *</h6>
-                    <q-btn
-                      color="primary"
-                      icon="add"
-                      label="Agregar Línea"
-                      @click="agregarDetalle"
-                      dense
-                      outline
-                    />
-                  </div>
-                </div>
-
-                <div class="col-12" v-if="!formularioDocumento.detalles || formularioDocumento.detalles.length === 0">
-                  <q-banner class="bg-orange-1 text-orange-8">
-                    <template v-slot:avatar>
-                      <q-icon name="warning" color="orange" />
-                    </template>
-                    El documento debe tener al menos una línea de detalle
-                  </q-banner>
-                </div>
-
-                <div class="col-12" v-for="(detalle, index) in (formularioDocumento.detalles || [])" :key="index">
-                  <q-card flat bordered>
-                    <q-card-section>
-                      <div class="row q-gutter-md items-center">
-                        <div class="col-md-4 col-sm-12 col-xs-12">
-                          <q-input
-                            v-model="detalle.descripcion"
-                            label="Descripción *"
+                      <div class="row q-gutter-md">
+                        <div class="col-md-8 col-sm-12 col-xs-12">
+                          <q-select
+                            v-model="formularioDocumento.id_proveedor"
+                            :options="proveedoresOptions"
+                            label="Proveedor *"
                             outlined
                             dense
-                            :rules="[val => !!val || 'Descripción es requerida']"
+                            emit-value
+                            map-options
+                            use-input
+                            input-debounce="300"
+                            @filter="filtrarProveedores"
+                            :rules="[val => !!val || 'Proveedor es requerido']"
+                            hint="Busca y selecciona el proveedor emisor del documento"
+                            clearable
+                            option-value="value"
+                            option-label="label"
+                          >
+                            <template v-slot:no-option>
+                              <q-item>
+                                <q-item-section class="text-grey">
+                                  Escriba para buscar proveedores
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                            <template v-slot:option="scope">
+                              <q-item v-bind="scope.itemProps">
+                                <q-item-section>
+                                  <q-item-label>{{ scope.opt.razon_social }}</q-item-label>
+                                  <q-item-label caption>RUT: {{ scope.opt.rfc }}</q-item-label>
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                          </q-select>
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-select
+                            v-model="formularioDocumento.tipo_documento"
+                            :options="tiposDocumentoOptions"
+                            label="Tipo de Documento *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'Tipo de documento es requerido']"
                           />
                         </div>
 
-                        <div class="col-md-2 col-sm-6 col-xs-12">
+                        <div class="col-md-6 col-sm-12 col-xs-12">
                           <q-input
-                            v-model.number="detalle.cantidad"
-                            type="number"
-                            label="Cantidad *"
+                            v-model="formularioDocumento.numero_documento"
+                            label="Número de Documento *"
                             outlined
                             dense
-                            step="0.01"
+                            :rules="[val => !!val || 'Número de documento es requerido']"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formularioDocumento.fecha_documento"
+                            type="date"
+                            label="Fecha de Documento *"
+                            outlined
+                            dense
+                            :rules="[val => !!val || 'Fecha de documento es requerida']"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- Relación con Orden de Compra -->
+                      <q-separator class="q-my-md" />
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="assignment" class="q-mr-sm" />
+                        Relación con Orden de Compra (Opcional)
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-8 col-sm-12 col-xs-12">
+                          <q-select
+                            v-model="formularioDocumento.id_orden_compra"
+                            :options="ordenesCompraOptions"
+                            label="Orden de Compra"
+                            outlined
+                            dense
+                            clearable
+                            emit-value
+                            map-options
+                            use-input
+                            input-debounce="300"
+                            @filter="filtrarOrdenesCompra"
+                            hint="Opcional: Selecciona una orden de compra para pre-llenar datos"
+                          >
+                            <template v-slot:option="scope">
+                              <q-item v-bind="scope.itemProps">
+                                <q-item-section>
+                                  <q-item-label>{{ scope.opt.label }}</q-item-label>
+                                  <q-item-label caption>{{ scope.opt.proveedor }} - {{ formatCurrency(scope.opt.total) }}</q-item-label>
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                          </q-select>
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+
+                    <!-- Panel Formas de Pago -->
+                    <q-tab-panel name="pago">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="payment" class="q-mr-sm" />
+                        Formas de Pago
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-select
+                            v-model="formularioDocumento.forma_pago"
+                            :options="formasPagoOptions"
+                            label="Forma de Pago *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'Forma de pago es requerida']"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model.number="formularioDocumento.plazo_pago"
+                            type="number"
+                            label="Plazo de Pago (días)"
+                            outlined
+                            dense
                             min="0"
-                            :rules="[val => val > 0 || 'Cantidad debe ser mayor a 0']"
-                            @input="calcularLineaTotal(index)"
+                            hint="Días para el pago del documento"
                           />
                         </div>
 
-                        <div class="col-md-2 col-sm-6 col-xs-12">
+                        <div class="col-md-6 col-sm-12 col-xs-12">
                           <q-input
-                            v-model.number="detalle.precio_unitario"
+                            v-model="formularioDocumento.fecha_vencimiento"
+                            type="date"
+                            label="Fecha de Vencimiento"
+                            outlined
+                            dense
+                            hint="Fecha límite para el pago"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formularioDocumento.referencia_pago"
+                            label="Referencia de Pago"
+                            outlined
+                            dense
+                            hint="Número de cheque, transferencia, etc."
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Montos -->
+                    <q-tab-panel name="montos">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="attach_money" class="q-mr-sm" />
+                        Montos
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model.number="formularioDocumento.subtotal"
                             type="number"
-                            label="Precio Unit. *"
+                            label="Subtotal *"
                             outlined
                             dense
                             step="0.01"
                             min="0"
                             prefix="$"
-                            :rules="[val => val >= 0 || 'Precio debe ser mayor o igual a 0']"
-                            @input="calcularLineaTotal(index)"
+                            :rules="[val => val >= 0 || 'El subtotal debe ser mayor o igual a 0']"
+                            @input="calcularTotal"
                           />
                         </div>
 
-                        <div class="col-md-2 col-sm-6 col-xs-12">
+                        <div class="col-md-3 col-sm-6 col-xs-12">
                           <q-input
-                            v-model.number="detalle.descuento_linea"
+                            v-model.number="formularioDocumento.impuestos"
                             type="number"
-                            label="Descuento"
+                            label="Impuestos"
                             outlined
                             dense
                             step="0.01"
                             min="0"
                             prefix="$"
-                            @input="calcularLineaTotal(index)"
+                            @input="calcularTotal"
                           />
                         </div>
 
-                        <div class="col-md-2 col-sm-6 col-xs-12">
+                        <div class="col-md-3 col-sm-6 col-xs-12">
                           <q-input
-                            v-model.number="detalle.total_linea"
+                            v-model.number="formularioDocumento.descuentos"
                             type="number"
-                            label="Total Línea"
+                            label="Descuentos"
                             outlined
                             dense
+                            step="0.01"
+                            min="0"
                             prefix="$"
+                            @input="calcularTotal"
+                          />
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model.number="formularioDocumento.total"
+                            type="number"
+                            label="Total *"
+                            outlined
+                            dense
+                            step="0.01"
+                            min="0"
+                            prefix="$"
+                            :rules="[val => val > 0 || 'El total debe ser mayor a 0']"
                             readonly
                             class="bg-grey-1"
                           />
                         </div>
 
-                        <div class="col-auto">
-                          <q-btn
-                            color="red"
-                            icon="delete"
-                            @click="eliminarDetalle(index)"
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-select
+                            v-model="formularioDocumento.moneda"
+                            :options="monedasOptions"
+                            label="Moneda *"
+                            outlined
                             dense
-                            round
-                          >
-                            <q-tooltip>Eliminar línea</q-tooltip>
-                          </q-btn>
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'Moneda es requerida']"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model.number="formularioDocumento.tipo_cambio"
+                            type="number"
+                            label="Tipo de Cambio"
+                            outlined
+                            dense
+                            step="0.0001"
+                            min="0"
+                            hint="1 para moneda nacional"
+                          />
                         </div>
                       </div>
-                    </q-card-section>
-                  </q-card>
-                </div>
-              </div>
+                    </q-tab-panel>
 
-              <!-- Observaciones -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <q-separator class="q-my-md" />
-                  <h6 class="q-ma-none q-mb-md">Información Adicional</h6>
-                </div>
+                    <!-- Panel Detalles del Documento -->
+                    <q-tab-panel name="detalles">
+                      <div class="row items-center q-mb-md">
+                        <div class="text-h6 q-mr-auto">
+                          <q-icon name="list" class="q-mr-sm" />
+                          Detalles del Documento *
+                        </div>
+                        <q-btn
+                          color="primary"
+                          icon="add"
+                          label="Agregar Línea"
+                          @click="agregarDetalle"
+                          dense
+                          outline
+                          class="q-ml-md"
+                        />
+                      </div>
 
-                <div class="col-12">
-                  <q-input
-                    v-model="formularioDocumento.observaciones"
-                    label="Observaciones"
-                    type="textarea"
-                    outlined
-                    rows="3"
-                    hint="Información adicional del documento"
-                  />
+                      <div class="col-12" v-if="!formularioDocumento.detalles || formularioDocumento.detalles.length === 0">
+                        <q-banner class="bg-orange-1 text-orange-8">
+                          <template v-slot:avatar>
+                            <q-icon name="warning" color="orange" />
+                          </template>
+                          El documento debe tener al menos una línea de detalle
+                        </q-banner>
+                      </div>
+
+                      <div class="col-12" v-for="(detalle, index) in (formularioDocumento.detalles || [])" :key="index">
+                        <q-card flat bordered>
+                          <q-card-section>
+                            <div class="row q-gutter-sm items-start" style="align-items: flex-start;">
+                              <div class="col-4">
+                                <q-input
+                                  v-model="detalle.descripcion"
+                                  label="Descripción *"
+                                  outlined
+                                  dense
+                                  hide-bottom-space
+                                  :rules="[val => !!val || 'Descripción es requerida']"
+                                />
+                        </div>
+
+                              <div class="col-1">
+                                <q-input
+                                  v-model.number="detalle.cantidad"
+                                  type="number"
+                                  label="Cantidad *"
+                                  outlined
+                                  dense
+                                  hide-bottom-space
+                                  step="0.01"
+                                  min="0"
+                                  :rules="[val => val > 0 || 'Cantidad debe ser mayor a 0']"
+                                  @input="calcularLineaTotal(index)"
+                                />
+                        </div>
+
+                              <div class="col-2">
+                                <q-input
+                                  v-model.number="detalle.precio_unitario"
+                                  type="number"
+                                  label="Precio Unit. *"
+                                  outlined
+                                  dense
+                                  hide-bottom-space
+                                  step="0.01"
+                                  min="0"
+                                  prefix="$"
+                                  :rules="[val => val >= 0 || 'Precio debe ser mayor o igual a 0']"
+                                  @input="calcularLineaTotal(index)"
+                                />
+                              </div>
+
+                              <div class="col-2">
+                                <q-input
+                                  v-model.number="detalle.descuento_linea"
+                                  type="number"
+                                  label="Descuento"
+                                  outlined
+                                  dense
+                                  hide-bottom-space
+                                  step="0.01"
+                                  min="0"
+                                  prefix="$"
+                                  @input="calcularLineaTotal(index)"
+                                />
+                              </div>
+
+                              <div class="col-2">
+                                <q-input
+                                  v-model.number="detalle.total_linea"
+                                  type="number"
+                                  label="Total Línea"
+                                  outlined
+                                  dense
+                                  hide-bottom-space
+                                  prefix="$"
+                                  readonly
+                                  class="bg-grey-1"
+                                />
+                              </div>
+
+                              <div class="col-auto" style="display: flex; align-items: center; height: 40px;">
+                                <q-btn
+                                  color="red"
+                                  icon="delete"
+                                  @click="eliminarDetalle(index)"
+                                  dense
+                                  round
+                                  size="md"
+                                >
+                                  <q-tooltip>Eliminar línea</q-tooltip>
+                                </q-btn>
+                              </div>
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Información Adicional -->
+                    <q-tab-panel name="adicional">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="description" class="q-mr-sm" />
+                        Información Adicional
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-12">
+                          <q-input
+                            v-model="formularioDocumento.observaciones"
+                            label="Observaciones"
+                            type="textarea"
+                            outlined
+                            rows="3"
+                            hint="Información adicional del documento"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+                  </q-tab-panels>
                 </div>
               </div>
 
@@ -852,6 +885,232 @@
         </q-card>
       </q-dialog>
 
+      <!-- Dialog para importar XML -->
+      <q-dialog v-model="mostrarDialogoImportarXML" persistent>
+        <q-card style="min-width: 600px; max-width: 800px">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">Importar Documento desde XML</div>
+            <q-space />
+            <q-btn icon="close" flat round dense @click="cerrarDialogoImportarXML" />
+          </q-card-section>
+
+          <q-card-section>
+            <div class="text-body1 q-mb-md">
+              Seleccione un archivo XML válido para importar automáticamente un documento de compra.
+              El sistema extraerá la información fiscal y los datos del documento.
+            </div>
+
+            <q-stepper
+              v-model="pasoImportacion"
+              color="primary"
+              animated
+            >
+              <q-step
+                :name="1"
+                title="Seleccionar Archivo"
+                icon="upload_file"
+                :done="pasoImportacion > 1"
+              >
+                <div class="q-gutter-md">
+                  <q-file
+                    v-model="archivoXML"
+                    label="Archivo XML"
+                    outlined
+                    accept=".xml"
+                    max-file-size="5242880"
+                    @rejected="onArchivoRechazado"
+                    @update:model-value="onArchivoSeleccionado"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="attach_file" />
+                    </template>
+                    <template v-slot:hint>
+                      Archivo XML válido (máximo 5MB)
+                    </template>
+                  </q-file>
+
+                  <div v-if="archivoXML" class="q-mt-md">
+                    <q-card flat bordered class="bg-grey-1">
+                      <q-card-section>
+                        <div class="text-subtitle2">Archivo seleccionado:</div>
+                        <div class="text-body2">{{ archivoXML.name }}</div>
+                        <div class="text-caption">Tamaño: {{ formatFileSize(archivoXML.size) }}</div>
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </q-step>
+
+              <q-step
+                :name="2"
+                title="Procesamiento"
+                icon="settings"
+                :done="pasoImportacion > 2"
+              >
+                <div v-if="procesandoXML" class="text-center q-pa-lg">
+                  <q-spinner color="primary" size="3em" />
+                  <div class="q-mt-md">Procesando archivo XML...</div>
+                </div>
+
+                <div v-else-if="errorProcesamiento" class="q-pa-md">
+                  <q-banner class="bg-negative text-white">
+                    <template v-slot:avatar>
+                      <q-icon name="error" />
+                    </template>
+                    {{ errorProcesamiento }}
+                  </q-banner>
+                </div>
+
+                <div v-else-if="datosExtraidos" class="q-gutter-md">
+                  <div class="text-subtitle1 q-mb-md">Datos extraídos del XML:</div>
+
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="row q-gutter-md">
+                        <div class="col-6">
+                          <q-field label="Tipo Documento" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.tipo_documento }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-5">
+                          <q-field label="Número" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.numero_documento }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-6">
+                          <q-field label="RUT Emisor" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.rut_emisor }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-5">
+                          <q-field label="Fecha" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ formatDate(datosExtraidos.fecha_documento) }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-6">
+                          <q-field label="Total" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline text-weight-bold text-primary" tabindex="-1">
+                                {{ formatCurrency(datosExtraidos.total) }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-5">
+                          <q-field label="UUID Fiscal" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline text-caption" tabindex="-1">
+                                {{ datosExtraidos.uuid_fiscal }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+
+                  <q-card flat bordered>
+                    <q-card-section>
+                      <div class="text-subtitle2 q-mb-sm">Configuración de Importación:</div>
+                      <div class="q-gutter-md">
+                        <q-select
+                          v-model="configuracionImportacion.id_proveedor"
+                          :options="proveedoresEncontrados"
+                          label="Seleccionar Proveedor"
+                          outlined
+                          dense
+                          emit-value
+                          map-options
+                          hint="Proveedor encontrado por RUT o crear nuevo"
+                        />
+                        <q-toggle
+                          v-model="configuracionImportacion.validar_automaticamente"
+                          label="Validar automáticamente después de importar"
+                        />
+                        <q-toggle
+                          v-model="configuracionImportacion.importar_detalles"
+                          label="Importar líneas de detalle del documento"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </q-step>
+
+              <q-step
+                :name="3"
+                title="Confirmación"
+                icon="check"
+              >
+                <div v-if="importandoDocumento" class="text-center q-pa-lg">
+                  <q-spinner color="primary" size="3em" />
+                  <div class="q-mt-md">Importando documento al sistema...</div>
+                </div>
+
+                <div v-else class="q-pa-md">
+                  <q-banner class="bg-positive text-white q-mb-md">
+                    <template v-slot:avatar>
+                      <q-icon name="check_circle" />
+                    </template>
+                    Documento importado exitosamente
+                  </q-banner>
+
+                  <div class="text-body1">
+                    El documento ha sido importado y está disponible en la lista de documentos.
+                  </div>
+                </div>
+              </q-step>
+            </q-stepper>
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn
+              flat
+              label="Cancelar"
+              @click="cerrarDialogoImportarXML"
+              :disable="procesandoXML || importandoDocumento"
+            />
+            <q-btn
+              v-if="pasoImportacion === 1"
+              color="primary"
+              label="Procesar XML"
+              @click="procesarArchivoXML"
+              :disable="!archivoXML"
+              :loading="procesandoXML"
+            />
+            <q-btn
+              v-if="pasoImportacion === 2 && datosExtraidos && !errorProcesamiento"
+              color="positive"
+              label="Importar Documento"
+              @click="importarDocumento"
+              :loading="importandoDocumento"
+            />
+            <q-btn
+              v-if="pasoImportacion === 3"
+              color="primary"
+              label="Finalizar"
+              @click="cerrarDialogoImportarXML"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
     </div>
   </q-page>
 </template>
@@ -870,6 +1129,22 @@ const mostrarDetalle = ref(false)
 const documentoSeleccionado = ref<DocumentoCompra | null>(null)
 const modoEdicion = ref(false)
 const guardandoDocumento = ref(false)
+const tabActivoDocumento = ref('basica')
+
+// Estado para importación XML
+const mostrarDialogoImportarXML = ref(false)
+const archivoXML = ref<File | null>(null)
+const pasoImportacion = ref(1)
+const procesandoXML = ref(false)
+const importandoDocumento = ref(false)
+const errorProcesamiento = ref('')
+const datosExtraidos = ref<any>(null)
+const proveedoresEncontrados = ref([])
+const configuracionImportacion = ref({
+  id_proveedor: null,
+  validar_automaticamente: true,
+  importar_detalles: true
+})
 
 // Filtros
 const filtros = reactive({
@@ -895,18 +1170,16 @@ const formularioDocumentoInicial: Partial<DocumentoCompra> = {
   tipo_documento: null,
   numero_documento: '',
   fecha_documento: '',
-  serie: '',
-  folio: '',
-  uuid_fiscal: '',
-  rut_emisor: '',
-  rut_receptor: '',
+  forma_pago: null,
+  plazo_pago: 0,
+  fecha_vencimiento: '',
+  referencia_pago: '',
   subtotal: 0,
   impuestos: 0,
   descuentos: 0,
   total: 0,
   moneda: 'CLP',
   tipo_cambio: 1,
-  contenido_xml: '',
   observaciones: '',
   activo: true,
   detalles: [] as DocumentoCompraDetalle[]
@@ -957,12 +1230,20 @@ const filtrarProveedores = async (val: string, update: Function) => {
   try {
     const proveedores = await documentoStore.buscarProveedores(val)
     update(() => {
-      proveedoresOptions.value = proveedores.map(proveedor => ({
-        label: `${proveedor.razon_social} - ${proveedor.rut}`,
-        value: proveedor.id_proveedor,
-        rut: proveedor.rut,
-        razon_social: proveedor.razon_social
-      }))
+      proveedoresOptions.value = proveedores.map(proveedor => {
+        const rfc = proveedor.rfc || proveedor.rut_proveedor || proveedor.rut || 'Sin RUT'
+        return {
+          label: `${proveedor.razon_social} - ${rfc}`,
+          value: proveedor.id_proveedor,
+          rut: rfc,
+          rfc: rfc,
+          razon_social: proveedor.razon_social,
+          email: proveedor.email,
+          telefono: proveedor.telefono,
+          // Agregar datos completos del proveedor para referencia
+          proveedor: proveedor
+        }
+      })
     })
   } catch (error) {
     console.error('Error buscando proveedores:', error)
@@ -1021,7 +1302,7 @@ const formularioDocumentoValido = computed(() => {
          formularioDocumento.tipo_documento &&
          formularioDocumento.numero_documento &&
          formularioDocumento.fecha_documento &&
-         formularioDocumento.folio &&
+         formularioDocumento.forma_pago &&
          formularioDocumento.subtotal >= 0 &&
          formularioDocumento.total > 0 &&
          formularioDocumento.moneda &&
@@ -1039,6 +1320,16 @@ const monedasOptions = [
   { label: 'Dólar Americano (USD)', value: 'USD' },
   { label: 'Euro (EUR)', value: 'EUR' },
   { label: 'Unidad de Fomento (UF)', value: 'UF' }
+]
+
+const formasPagoOptions = [
+  { label: 'Contado', value: 'CONTADO' },
+  { label: 'Crédito', value: 'CREDITO' },
+  { label: 'Cheque', value: 'CHEQUE' },
+  { label: 'Transferencia', value: 'TRANSFERENCIA' },
+  { label: 'Tarjeta de Crédito', value: 'TARJETA_CREDITO' },
+  { label: 'Tarjeta de Débito', value: 'TARJETA_DEBITO' },
+  { label: 'Otro', value: 'OTRO' }
 ]
 
 // Columnas de la tabla
@@ -1295,18 +1586,16 @@ const editarDocumento = (documento: DocumentoCompra) => {
     tipo_documento: documento.tipo_documento,
     numero_documento: documento.numero_documento,
     fecha_documento: documento.fecha_documento,
-    serie: documento.serie || '',
-    folio: documento.folio || '',
-    uuid_fiscal: documento.uuid_fiscal || '',
-    rut_emisor: documento.rut_emisor || '',
-    rut_receptor: documento.rut_receptor || '',
+    forma_pago: documento.forma_pago || null,
+    plazo_pago: documento.plazo_pago || 0,
+    fecha_vencimiento: documento.fecha_vencimiento || '',
+    referencia_pago: documento.referencia_pago || '',
     subtotal: documento.subtotal || 0,
     impuestos: documento.impuestos || 0,
     descuentos: documento.descuentos || 0,
     total: documento.total || 0,
     moneda: documento.moneda || 'CLP',
     tipo_cambio: documento.tipo_cambio || 1,
-    contenido_xml: documento.contenido_xml || '',
     observaciones: documento.observaciones || '',
     activo: documento.activo,
     detalles: documento.detalles || []
@@ -1391,6 +1680,170 @@ const getEstadoColor = (estado: string): string => {
     'ANULADO': 'red'
   }
   return colores[estado] || 'grey'
+}
+
+// Funciones para importación XML
+const abrirDialogoImportarXML = () => {
+  resetImportacionXML()
+  mostrarDialogoImportarXML.value = true
+}
+
+const cerrarDialogoImportarXML = () => {
+  mostrarDialogoImportarXML.value = false
+  resetImportacionXML()
+}
+
+const resetImportacionXML = () => {
+  archivoXML.value = null
+  pasoImportacion.value = 1
+  procesandoXML.value = false
+  importandoDocumento.value = false
+  errorProcesamiento.value = ''
+  datosExtraidos.value = null
+  proveedoresEncontrados.value = []
+  configuracionImportacion.value = {
+    id_proveedor: null,
+    validar_automaticamente: true,
+    importar_detalles: true
+  }
+}
+
+const onArchivoSeleccionado = (archivo: File | null) => {
+  if (archivo) {
+    // Resetear estado de procesamiento
+    errorProcesamiento.value = ''
+    datosExtraidos.value = null
+  }
+}
+
+const onArchivoRechazado = (rejectedEntries: any[]) => {
+  $q.notify({
+    type: 'negative',
+    message: `Archivo no válido: ${rejectedEntries[0].failedPropValidation}`,
+    caption: 'Seleccione un archivo XML válido menor a 5MB'
+  })
+}
+
+const procesarArchivoXML = async () => {
+  if (!archivoXML.value) return
+
+  try {
+    procesandoXML.value = true
+    errorProcesamiento.value = ''
+
+    // Crear FormData para enviar el archivo
+    const formData = new FormData()
+    formData.append('archivo_xml', archivoXML.value)
+
+    // Llamar al store para procesar el XML
+    const resultado = await documentoStore.procesarArchivoXML(formData)
+
+    if (resultado.success) {
+      datosExtraidos.value = resultado.datos
+
+      // Buscar proveedores por RUT
+      if (resultado.datos.rut_emisor) {
+        await buscarProveedoresPorRUT(resultado.datos.rut_emisor)
+      }
+
+      pasoImportacion.value = 2
+
+      $q.notify({
+        type: 'positive',
+        message: 'Archivo XML procesado exitosamente',
+        caption: 'Se extrajeron los datos del documento'
+      })
+    } else {
+      errorProcesamiento.value = resultado.error || 'Error procesando el archivo XML'
+    }
+  } catch (error: any) {
+    console.error('Error procesando XML:', error)
+    errorProcesamiento.value = error.message || 'Error inesperado procesando el archivo'
+  } finally {
+    procesandoXML.value = false
+  }
+}
+
+const buscarProveedoresPorRUT = async (rut: string) => {
+  try {
+    const proveedores = await documentoStore.buscarProveedoresPorRUT(rut)
+
+    proveedoresEncontrados.value = proveedores.map(proveedor => {
+      const proveedorRfc = proveedor.rfc || proveedor.rut_proveedor || proveedor.rut || 'Sin RUT'
+      return {
+        label: `${proveedor.razon_social} - ${proveedorRfc}`,
+        value: proveedor.id_proveedor,
+        rut: proveedorRfc,
+        rfc: proveedorRfc,
+        razon_social: proveedor.razon_social,
+        email: proveedor.email,
+        telefono: proveedor.telefono,
+        proveedor: proveedor
+      }
+    })
+
+    // Si encontramos un proveedor exacto, seleccionarlo automáticamente
+    if (proveedores.length === 1) {
+      configuracionImportacion.value.id_proveedor = proveedores[0].id_proveedor
+    }
+
+    // Si no hay proveedores, agregar opción para crear nuevo
+    if (proveedores.length === 0) {
+      proveedoresEncontrados.value.push({
+        label: `Crear nuevo proveedor - ${rut}`,
+        value: 'nuevo',
+        rut: rut,
+        rfc: rut,
+        razon_social: datosExtraidos.value.nombre_emisor || 'Nuevo Proveedor'
+      })
+    }
+  } catch (error) {
+    console.error('Error buscando proveedores:', error)
+  }
+}
+
+const importarDocumento = async () => {
+  if (!datosExtraidos.value) return
+
+  try {
+    importandoDocumento.value = true
+
+    // Preparar datos para importación
+    const datosImportacion = {
+      ...datosExtraidos.value,
+      id_proveedor: configuracionImportacion.value.id_proveedor,
+      validar_automaticamente: configuracionImportacion.value.validar_automaticamente,
+      importar_detalles: configuracionImportacion.value.importar_detalles,
+      archivo_xml_original: archivoXML.value?.name
+    }
+
+    // Llamar al store para importar el documento
+    const resultado = await documentoStore.importarDocumentoDesdeXML(datosImportacion)
+
+    if (resultado.success) {
+      pasoImportacion.value = 3
+
+      $q.notify({
+        type: 'positive',
+        message: 'Documento importado exitosamente',
+        caption: `Documento ${resultado.documento.numero_documento} creado`
+      })
+
+      // Recargar la lista de documentos
+      await cargarDatos()
+    } else {
+      throw new Error(resultado.error || 'Error importando el documento')
+    }
+  } catch (error: any) {
+    console.error('Error importando documento:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al importar el documento',
+      caption: error.message
+    })
+  } finally {
+    importandoDocumento.value = false
+  }
 }
 
 

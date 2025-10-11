@@ -121,11 +121,61 @@ const router = createRouter({
       }
     },
     {
+      path: '/aprobaciones',
+      name: 'aprobaciones',
+      component: () => import('../views/AprobacionesView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresApprovalPermission: true
+      }
+    },
+    {
       path: '/documentos',
       name: 'documentos',
       component: () => import('../views/DocumentosView.vue'),
       meta: {
         requiresAuth: true
+      }
+    },
+    {
+      path: '/stock-bodega',
+      name: 'stock-bodega',
+      component: () => import('../views/StockBodegaView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/ajustes-inventario',
+      name: 'ajustes-inventario',
+      component: () => import('../views/AjustesInventarioView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/traspasos',
+      name: 'traspasos',
+      component: () => import('../views/TraspasosView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/configuracion-alertas',
+      name: 'configuracion-alertas',
+      component: () => import('../views/ConfiguracionAlertasView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/configuracion-sistema',
+      name: 'configuracion-sistema',
+      component: () => import('../views/ConfiguracionSistemaView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresAdmin: true
       }
     },
     {
@@ -163,6 +213,19 @@ router.beforeEach(async (to, from, next) => {
       // Redirect to dashboard if user is not admin
       next({ name: 'dashboard' })
       return
+    }
+
+    // Check if route requires approval permission
+    if (to.meta.requiresApprovalPermission) {
+      // TODO: Implementar sistema completo de permisos
+      // Por ahora, solo permitir a administradores y usuarios con rol específico
+      const canApprove = authStore.user?.id_rol === 1 || // Admin
+                        authStore.user?.id_rol === 2    // Manager/Supervisor
+
+      if (!canApprove) {
+        next({ name: 'dashboard' })
+        return
+      }
     }
   }
 

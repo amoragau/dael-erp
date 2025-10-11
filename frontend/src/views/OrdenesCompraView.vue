@@ -196,331 +196,747 @@
       </q-table>
 
       <!-- Dialog para formulario de orden de compra -->
-      <q-dialog
-        v-model="mostrarFormulario"
-        persistent
-        maximized
-        transition-show="slide-up"
-        transition-hide="slide-down"
-      >
-        <q-card class="dialog-card">
-          <q-toolbar class="bg-primary text-white">
-            <q-toolbar-title>
-              {{ modoEdicion ? 'Editar Orden de Compra' : 'Nueva Orden de Compra' }}
-            </q-toolbar-title>
-            <q-btn flat round dense icon="close" @click="cerrarFormulario" />
-          </q-toolbar>
+      <q-dialog v-model="mostrarFormulario" persistent>
+        <q-card style="min-width: 1200px; max-width: 1400px; max-height: 90vh">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">{{ modoEdicion ? 'Editar' : 'Nueva' }} Orden de Compra</div>
+            <q-space />
+            <q-btn icon="close" flat round dense @click="cerrarFormulario" />
+          </q-card-section>
 
-          <q-card-section class="q-pa-md scroll" style="max-height: calc(100vh - 100px)">
-            <q-form @submit="guardarOrdenCompra" class="q-gutter-md">
-              <!-- Información general -->
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <h6 class="q-ma-none q-mb-md">Información General</h6>
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model="formulario.numero_orden"
-                    label="Número de Orden"
-                    outlined
-                    dense
-                    readonly
-                    hint="Se genera automáticamente"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-select
-                    v-model="formulario.id_proveedor"
-                    :options="proveedoresFiltrados"
-                    label="Proveedor *"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                    use-input
-                    clearable
-                    input-debounce="300"
-                    :rules="[val => !!val || 'Proveedor es requerido']"
-                    @update:model-value="onProveedorChange"
-                    @filter="filtrarProveedores"
-                    @clear="limpiarFiltroProveedores"
-                    option-value="value"
-                    option-label="label"
+          <q-card-section class="q-pt-none" style="max-height: calc(90vh - 120px);">
+            <q-form @submit="guardarOrdenCompra">
+              <div class="row" style="height: calc(90vh - 160px);">
+                <div class="col-3">
+                  <q-tabs
+                    v-model="tabActivoOrden"
+                    vertical
+                    class="text-primary full-height"
                   >
-                    <template v-slot:no-option>
-                      <q-item>
-                        <q-item-section class="text-grey">
-                          {{ busquedaProveedor ? 'No se encontraron proveedores' : 'Escriba para buscar proveedores' }}
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                    <template v-slot:option="scope">
-                      <q-item v-bind="scope.itemProps">
-                        <q-item-section>
-                          <q-item-label>{{ scope.opt.label }}</q-item-label>
-                          <q-item-label caption v-if="scope.opt.rut">{{ scope.opt.rut }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
+                    <q-tab name="general" icon="info" label="Información General" />
+                    <q-tab name="condiciones" icon="assignment" label="Condiciones" />
+                    <q-tab name="productos" icon="inventory" label="Productos" />
+                    <q-tab name="resumen" icon="summarize" label="Resumen" />
+                  </q-tabs>
                 </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model="formulario.fecha_orden"
-                    type="date"
-                    label="Fecha de Orden *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'Fecha de orden es requerida']"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model="formulario.fecha_requerida"
-                    type="date"
-                    label="Fecha Requerida *"
-                    outlined
-                    dense
-                    :rules="[val => !!val || 'Fecha requerida es requerida']"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model="formulario.fecha_prometida"
-                    type="date"
-                    label="Fecha Prometida"
-                    outlined
-                    dense
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-select
-                    v-model="formulario.moneda"
-                    :options="monedasOptions"
-                    label="Moneda"
-                    outlined
-                    dense
-                    emit-value
-                    map-options
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model.number="formulario.tipo_cambio"
-                    type="number"
-                    label="Tipo de Cambio"
-                    outlined
-                    dense
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-
-                <div class="col-md-3 col-sm-6 col-xs-12">
-                  <q-input
-                    v-model="formulario.contacto_proveedor"
-                    label="Contacto Proveedor"
-                    outlined
-                    dense
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formulario.condiciones_pago"
-                    label="Condiciones de Pago"
-                    outlined
-                    dense
-                  />
-                </div>
-
-                <div class="col-md-6 col-sm-12 col-xs-12">
-                  <q-input
-                    v-model="formulario.terminos_entrega"
-                    label="Términos de Entrega"
-                    outlined
-                    dense
-                  />
-                </div>
-
-                <div class="col-12">
-                  <q-input
-                    v-model="formulario.lugar_entrega"
-                    label="Lugar de Entrega"
-                    outlined
-                    dense
-                  />
-                </div>
-
-                <div class="col-12">
-                  <q-input
-                    v-model="formulario.observaciones"
-                    label="Observaciones"
-                    type="textarea"
-                    outlined
-                    rows="3"
-                  />
-                </div>
-              </div>
-
-              <!-- Detalles de productos -->
-              <q-separator class="q-my-lg" />
-
-              <div class="row q-gutter-md">
-                <div class="col-12">
-                  <div class="row items-center justify-between">
-                    <h6 class="q-ma-none">Detalle de Productos</h6>
-                    <q-btn
-                      color="primary"
-                      icon="add"
-                      label="Agregar Producto"
-                      @click="abrirSelectorProducto"
-                      size="sm"
-                    />
-                  </div>
-                </div>
-
-                <div class="col-12" v-if="formulario.detalles.length > 0">
-                  <q-table
-                    :rows="formulario.detalles"
-                    :columns="columnsDetalles"
-                    row-key="numero_linea"
-                    flat
-                    bordered
-                    separator="cell"
-                    dense
+                <div class="col-9">
+                  <q-tab-panels
+                    v-model="tabActivoOrden"
+                    animated
+                    class="full-height"
+                    style="overflow-y: auto;"
                   >
-                    <template v-slot:body-cell-producto="props">
-                      <q-td :props="props">
-                        <div>
-                          <div class="text-weight-bold">{{ props.row.producto?.sku }}</div>
-                          <div class="text-caption">{{ props.row.producto?.nombre_producto }}</div>
+                    <!-- Panel Información General -->
+                    <q-tab-panel name="general">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="info" class="q-mr-sm" />
+                        Información General
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model="formulario.numero_orden"
+                            label="Número de Orden"
+                            outlined
+                            dense
+                            readonly
+                            hint="Se genera automáticamente"
+                          />
                         </div>
-                      </q-td>
-                    </template>
 
-                    <template v-slot:body-cell-cantidad_solicitada="props">
-                      <q-td :props="props">
-                        <q-input
-                          v-model.number="props.row.cantidad_solicitada"
-                          type="number"
-                          dense
-                          min="0.01"
-                          step="0.01"
-                          @update:model-value="calcularTotalLinea(props.row)"
-                        />
-                      </q-td>
-                    </template>
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.id_proveedor"
+                            :options="proveedoresFiltrados"
+                            label="Proveedor *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            use-input
+                            clearable
+                            input-debounce="300"
+                            :rules="[val => !!val || 'Proveedor es requerido']"
+                            @update:model-value="onProveedorChange"
+                            @filter="filtrarProveedores"
+                            @clear="limpiarFiltroProveedores"
+                            option-value="value"
+                            option-label="label"
+                          >
+                            <template v-slot:no-option>
+                              <q-item>
+                                <q-item-section class="text-grey">
+                                  {{ busquedaProveedor ? 'No se encontraron proveedores' : 'Escriba para buscar proveedores' }}
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                            <template v-slot:option="scope">
+                              <q-item v-bind="scope.itemProps">
+                                <q-item-section>
+                                  <q-item-label>{{ scope.opt.razon_social }}</q-item-label>
+                                  <q-item-label caption>RUT: {{ scope.opt.rfc }}</q-item-label>
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                          </q-select>
+                        </div>
 
-                    <template v-slot:body-cell-precio_unitario="props">
-                      <q-td :props="props">
-                        <q-input
-                          v-model.number="props.row.precio_unitario"
-                          type="number"
-                          dense
-                          min="0.01"
-                          step="0.01"
-                          @update:model-value="calcularTotalLinea(props.row)"
-                        />
-                      </q-td>
-                    </template>
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model="formulario.fecha_orden"
+                            type="date"
+                            label="Fecha de Orden *"
+                            outlined
+                            dense
+                            :rules="[val => !!val || 'Fecha de orden es requerida']"
+                          />
+                        </div>
 
-                    <template v-slot:body-cell-descuento_porcentaje="props">
-                      <q-td :props="props">
-                        <q-input
-                          v-model.number="props.row.descuento_porcentaje"
-                          type="number"
-                          dense
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          @update:model-value="calcularTotalLinea(props.row)"
-                        />
-                      </q-td>
-                    </template>
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model="formulario.fecha_requerida"
+                            type="date"
+                            label="Fecha Requerida *"
+                            outlined
+                            dense
+                            :rules="[val => !!val || 'Fecha requerida es requerida']"
+                          />
+                        </div>
 
-                    <template v-slot:body-cell-impuesto_porcentaje="props">
-                      <q-td :props="props">
-                        <q-input
-                          v-model.number="props.row.impuesto_porcentaje"
-                          type="number"
-                          dense
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          @update:model-value="calcularTotalLinea(props.row)"
-                        />
-                      </q-td>
-                    </template>
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model="formulario.fecha_prometida"
+                            type="date"
+                            label="Fecha Prometida"
+                            outlined
+                            dense
+                          />
+                        </div>
 
-                    <template v-slot:body-cell-total_linea="props">
-                      <q-td :props="props">
-                        <span class="text-weight-bold">
-                          {{ formatCurrency(props.row.total_linea) }}
-                        </span>
-                      </q-td>
-                    </template>
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.moneda"
+                            :options="monedasOptions"
+                            label="Moneda *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            :rules="[val => !!val || 'Moneda es requerida']"
+                          />
+                        </div>
 
-                    <template v-slot:body-cell-acciones="props">
-                      <q-td :props="props">
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model.number="formulario.tipo_cambio"
+                            type="number"
+                            label="Tipo de Cambio"
+                            outlined
+                            dense
+                            step="0.0001"
+                            min="0"
+                            hint="1 para moneda nacional"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formulario.observaciones"
+                            label="Observaciones"
+                            type="textarea"
+                            outlined
+                            dense
+                            rows="3"
+                            hint="Observaciones generales de la orden"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Condiciones -->
+                    <q-tab-panel name="condiciones">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="assignment" class="q-mr-sm" />
+                        Condiciones de Pago y Entrega
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formulario.condiciones_pago"
+                            label="Condiciones de Pago"
+                            outlined
+                            dense
+                            hint="Ej: 30 días fecha factura, Contado, etc."
+                          />
+                        </div>
+
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formulario.lugar_entrega"
+                            label="Lugar de Entrega"
+                            outlined
+                            dense
+                            hint="Dirección completa de entrega"
+                          />
+                        </div>
+
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-input
+                            v-model="formulario.contacto_proveedor"
+                            label="Contacto del Proveedor"
+                            outlined
+                            dense
+                            hint="Persona de contacto en el proveedor"
+                          />
+                        </div>
+
+                        <div class="col-12">
+                          <q-separator class="q-my-md" />
+                          <div class="text-h6 q-mb-md">
+                            <q-icon name="local_shipping" class="q-mr-sm" />
+                            Información de Envío
+                          </div>
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 col-xs-12">
+                          <q-input
+                            v-model.number="formulario.plazo_entrega"
+                            type="number"
+                            label="Plazo de Entrega (días)"
+                            outlined
+                            dense
+                            min="1"
+                            hint="Días hábiles para la entrega"
+                          />
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.prioridad"
+                            :options="prioridadOptions"
+                            label="Prioridad"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                          />
+                        </div>
+
+                        <div class="col-md-4 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.metodo_envio"
+                            :options="metodosEnvioOptions"
+                            label="Método de Envío"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                          />
+                        </div>
+
+                        <div class="col-12">
+                          <q-input
+                            v-model="formulario.terminos_condiciones"
+                            label="Términos y Condiciones Específicos"
+                            type="textarea"
+                            outlined
+                            dense
+                            rows="4"
+                            hint="Condiciones particulares para esta orden"
+                          />
+                        </div>
+                      </div>
+                    </q-tab-panel>
+
+                    <!-- Panel Productos -->
+                    <q-tab-panel name="productos">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="inventory" class="q-mr-sm" />
+                        Productos
+                      </div>
+
+                      <!-- Botón para agregar productos -->
+                      <div class="row q-mb-md">
                         <q-btn
-                          size="sm"
-                          color="red"
-                          icon="delete"
-                          @click="eliminarDetalle(props.rowIndex)"
-                          dense
-                          round
-                        >
-                          <q-tooltip>Eliminar</q-tooltip>
-                        </q-btn>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </div>
+                          color="primary"
+                          icon="add"
+                          label="Agregar Producto"
+                          @click="abrirSelectorProducto"
+                        />
+                      </div>
 
-                <div class="col-12" v-else>
-                  <q-card flat bordered class="text-center q-pa-lg">
-                    <q-icon name="shopping_cart" size="3rem" color="grey-5" />
-                    <div class="text-h6 text-grey-7 q-mt-md">No hay productos agregados</div>
-                    <div class="text-grey-6">Haz clic en "Agregar Producto" para comenzar</div>
-                  </q-card>
-                </div>
-              </div>
+                      <!-- Tabla de productos -->
+                      <q-table
+                        :rows="formulario.detalles"
+                        :columns="columnsDetalles"
+                        row-key="numero_linea"
+                        flat
+                        bordered
+                        :hide-bottom="formulario.detalles.length === 0"
+                      >
+                        <template v-slot:body-cell-producto="props">
+                          <q-td :props="props">
+                            <div>
+                              <div class="text-weight-bold">{{ props.row.producto?.sku }}</div>
+                              <div class="text-caption">{{ props.row.producto?.nombre_producto }}</div>
+                            </div>
+                          </q-td>
+                        </template>
 
-              <!-- Totales -->
-              <q-separator class="q-my-lg" />
+                        <template v-slot:body-cell-cantidad_solicitada="props">
+                          <q-td :props="props">
+                            <q-input
+                              v-model.number="props.row.cantidad_solicitada"
+                              type="number"
+                              min="1"
+                              step="1"
+                              dense
+                              outlined
+                              style="min-width: 80px"
+                              @update:model-value="calcularTotalLinea(props.row)"
+                              hide-bottom-space
+                            />
+                          </q-td>
+                        </template>
 
-              <div class="row justify-end">
-                <div class="col-md-4 col-sm-6 col-xs-12">
-                  <q-card flat bordered>
-                    <q-card-section>
-                      <div class="text-h6 q-mb-md">Resumen</div>
-                      <div class="row justify-between q-mb-sm">
-                        <span>Subtotal:</span>
-                        <span class="text-weight-bold">{{ formatCurrency(totales.subtotal) }}</span>
+                        <template v-slot:body-cell-precio_unitario="props">
+                          <q-td :props="props">
+                            <q-input
+                              v-model.number="props.row.precio_unitario"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              dense
+                              outlined
+                              style="min-width: 100px"
+                              @update:model-value="calcularTotalLinea(props.row)"
+                              hide-bottom-space
+                            />
+                          </q-td>
+                        </template>
+
+                        <template v-slot:body-cell-descuento_porcentaje="props">
+                          <q-td :props="props">
+                            <q-input
+                              v-model.number="props.row.descuento_porcentaje"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              dense
+                              outlined
+                              style="min-width: 80px"
+                              @update:model-value="calcularTotalLinea(props.row)"
+                              hide-bottom-space
+                            />
+                          </q-td>
+                        </template>
+
+                        <template v-slot:body-cell-impuesto_porcentaje="props">
+                          <q-td :props="props">
+                            <q-input
+                              v-model.number="props.row.impuesto_porcentaje"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              dense
+                              outlined
+                              style="min-width: 80px"
+                              @update:model-value="calcularTotalLinea(props.row)"
+                              hide-bottom-space
+                            />
+                          </q-td>
+                        </template>
+
+                        <template v-slot:body-cell-total_linea="props">
+                          <q-td :props="props">
+                            <span class="text-weight-bold">
+                              {{ formatCurrency(props.row.total_linea || 0) }}
+                            </span>
+                          </q-td>
+                        </template>
+
+                        <template v-slot:body-cell-acciones="props">
+                          <q-td :props="props">
+                            <div class="row items-center justify-center q-gutter-xs">
+                              <q-btn
+                                size="sm"
+                                color="red"
+                                icon="delete"
+                                @click="eliminarDetalle(props.rowIndex)"
+                                dense
+                                round
+                                style="height: 32px; width: 32px;"
+                              >
+                                <q-tooltip>Eliminar</q-tooltip>
+                              </q-btn>
+                            </div>
+                          </q-td>
+                        </template>
+
+                        <template v-slot:no-data>
+                          <div class="full-width row flex-center q-gutter-sm">
+                            <q-icon size="2em" name="inventory" />
+                            <span>
+                              No hay productos agregados. Haga clic en "Agregar Producto" para comenzar.
+                            </span>
+                          </div>
+                        </template>
+                      </q-table>
+
+                      <!-- Información adicional de productos -->
+                      <div class="row q-mt-md" v-if="formulario.detalles.length > 0">
+                        <div class="col-12">
+                          <q-expansion-item
+                            icon="info"
+                            label="Especificaciones y Observaciones"
+                            dense
+                          >
+                            <div class="q-pa-md">
+                              <div class="row q-gutter-md">
+                                <div class="col-12">
+                                  <q-input
+                                    v-model="especificacionesGenerales"
+                                    label="Especificaciones Generales"
+                                    type="textarea"
+                                    outlined
+                                    dense
+                                    rows="3"
+                                    hint="Aplicar a todos los productos"
+                                  />
+                                </div>
+                                <div class="col-12">
+                                  <q-input
+                                    v-model="observacionesGenerales"
+                                    label="Observaciones Generales"
+                                    type="textarea"
+                                    outlined
+                                    dense
+                                    rows="3"
+                                    hint="Notas adicionales para todos los productos"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </q-expansion-item>
+                        </div>
                       </div>
-                      <div class="row justify-between q-mb-sm">
-                        <span>Descuentos:</span>
-                        <span class="text-weight-bold text-red">-{{ formatCurrency(totales.descuentos) }}</span>
+                    </q-tab-panel>
+
+                    <!-- Panel Resumen -->
+                    <q-tab-panel name="resumen">
+                      <div class="text-h6 q-mb-md">
+                        <q-icon name="summarize" class="q-mr-sm" />
+                        Resumen de la Orden
                       </div>
-                      <div class="row justify-between q-mb-sm">
-                        <span>Impuestos:</span>
-                        <span class="text-weight-bold">{{ formatCurrency(totales.impuestos) }}</span>
+
+                      <div class="row q-gutter-md">
+                        <!-- Información general -->
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-card flat bordered>
+                            <q-card-section>
+                              <div class="text-h6 q-mb-md">
+                                <q-icon name="info" class="q-mr-sm" />
+                                Información General
+                              </div>
+
+                              <div class="row q-gutter-sm">
+                                <div class="col-12">
+                                  <q-field label="Proveedor" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        <div>{{ proveedorSeleccionado?.label || 'No seleccionado' }}</div>
+                                        <div class="text-caption text-grey-6" v-if="proveedorSeleccionado?.rfc">
+                                          RUT: {{ proveedorSeleccionado.rfc }}
+                                        </div>
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Fecha de Orden" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formatDate(formulario.fecha_orden) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Fecha Requerida" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formatDate(formulario.fecha_requerida) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Moneda" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formulario.moneda }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Tipo de Cambio" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formulario.tipo_cambio }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+                              </div>
+                            </q-card-section>
+                          </q-card>
+                        </div>
+
+                        <!-- Totales -->
+                        <div class="col-md-6 col-sm-12 col-xs-12">
+                          <q-card flat bordered>
+                            <q-card-section>
+                              <div class="text-h6 q-mb-md">
+                                <q-icon name="calculate" class="q-mr-sm" />
+                                Totales
+                              </div>
+
+                              <div class="row q-gutter-sm">
+                                <div class="col-6">
+                                  <q-field label="Subtotal" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline text-right" tabindex="-1">
+                                        {{ formatCurrency(totales.subtotal) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Descuentos" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline text-right text-red" tabindex="-1">
+                                        {{ formatCurrency(totales.descuentos) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Impuestos (IVA)" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline text-right" tabindex="-1">
+                                        {{ formatCurrency(totales.impuestos) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-6">
+                                  <q-field label="Total General" stack-label outlined readonly dense class="bg-primary text-white">
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline text-right text-weight-bold text-white" tabindex="-1">
+                                        {{ formatCurrency(totales.total) }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-12">
+                                  <q-field label="Cantidad de Items" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline text-center" tabindex="-1">
+                                        {{ formulario.detalles.length }} productos
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+                              </div>
+                            </q-card-section>
+                          </q-card>
+                        </div>
+
+                        <!-- Resumen de productos -->
+                        <div class="col-12" v-if="formulario.detalles.length > 0">
+                          <q-card flat bordered>
+                            <q-card-section>
+                              <div class="text-h6 q-mb-md">
+                                <q-icon name="inventory" class="q-mr-sm" />
+                                Resumen de Productos
+                              </div>
+
+                              <q-table
+                                :rows="formulario.detalles"
+                                :columns="columnsResumen"
+                                row-key="numero_linea"
+                                flat
+                                bordered
+                                dense
+                                :hide-bottom="true"
+                              >
+                                <template v-slot:body-cell-producto="props">
+                                  <q-td :props="props">
+                                    <div>
+                                      <div class="text-weight-bold">{{ props.row.producto?.sku }}</div>
+                                      <div class="text-caption">{{ props.row.producto?.nombre_producto }}</div>
+                                    </div>
+                                  </q-td>
+                                </template>
+
+                                <template v-slot:body-cell-precio_unitario="props">
+                                  <q-td :props="props">
+                                    {{ formatCurrency(props.row.precio_unitario || 0) }}
+                                  </q-td>
+                                </template>
+
+                                <template v-slot:body-cell-total_linea="props">
+                                  <q-td :props="props">
+                                    <span class="text-weight-bold">
+                                      {{ formatCurrency(props.row.total_linea || 0) }}
+                                    </span>
+                                  </q-td>
+                                </template>
+                              </q-table>
+                            </q-card-section>
+                          </q-card>
+                        </div>
+
+                        <!-- Condiciones -->
+                        <div class="col-12">
+                          <q-card flat bordered>
+                            <q-card-section>
+                              <div class="text-h6 q-mb-md">
+                                <q-icon name="assignment" class="q-mr-sm" />
+                                Condiciones y Observaciones
+                              </div>
+
+                              <div class="row q-gutter-md">
+                                <div class="col-md-4 col-sm-6 col-xs-12">
+                                  <q-field label="Condiciones de Pago" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formulario.condiciones_pago || 'No especificado' }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+
+                                <div class="col-md-4 col-sm-6 col-xs-12">
+                                  <q-field label="Lugar de Entrega" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formulario.lugar_entrega || 'No especificado' }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+
+                                <div class="col-12" v-if="formulario.observaciones">
+                                  <q-field label="Observaciones" stack-label outlined readonly dense>
+                                    <template v-slot:control>
+                                      <div class="self-center full-width no-outline" tabindex="-1">
+                                        {{ formulario.observaciones }}
+                                      </div>
+                                    </template>
+                                  </q-field>
+                                </div>
+                              </div>
+                            </q-card-section>
+                          </q-card>
+                        </div>
+
+                        <!-- Validación -->
+                        <div class="col-12">
+                          <q-card flat bordered :class="formularioValido ? 'bg-green-1' : 'bg-red-1'">
+                            <q-card-section>
+                              <div class="text-h6 q-mb-md">
+                                <q-icon
+                                  :name="formularioValido ? 'check_circle' : 'error'"
+                                  :color="formularioValido ? 'green' : 'red'"
+                                  class="q-mr-sm"
+                                />
+                                Estado de Validación
+                              </div>
+
+                              <div class="row">
+                                <div class="col-12">
+                                  <q-list dense>
+                                    <q-item>
+                                      <q-item-section avatar>
+                                        <q-icon
+                                          :name="formulario.id_proveedor ? 'check_circle' : 'error'"
+                                          :color="formulario.id_proveedor ? 'green' : 'red'"
+                                        />
+                                      </q-item-section>
+                                      <q-item-section>
+                                        <q-item-label>Proveedor seleccionado</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+
+                                    <q-item>
+                                      <q-item-section avatar>
+                                        <q-icon
+                                          :name="formulario.fecha_orden ? 'check_circle' : 'error'"
+                                          :color="formulario.fecha_orden ? 'green' : 'red'"
+                                        />
+                                      </q-item-section>
+                                      <q-item-section>
+                                        <q-item-label>Fecha de orden definida</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+
+                                    <q-item>
+                                      <q-item-section avatar>
+                                        <q-icon
+                                          :name="formulario.fecha_requerida ? 'check_circle' : 'error'"
+                                          :color="formulario.fecha_requerida ? 'green' : 'red'"
+                                        />
+                                      </q-item-section>
+                                      <q-item-section>
+                                        <q-item-label>Fecha requerida definida</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+
+                                    <q-item>
+                                      <q-item-section avatar>
+                                        <q-icon
+                                          :name="formulario.detalles.length > 0 ? 'check_circle' : 'error'"
+                                          :color="formulario.detalles.length > 0 ? 'green' : 'red'"
+                                        />
+                                      </q-item-section>
+                                      <q-item-section>
+                                        <q-item-label>Al menos un producto agregado</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+                                  </q-list>
+                                </div>
+                              </div>
+
+                              <div class="row q-mt-md" v-if="!formularioValido">
+                                <div class="col-12">
+                                  <q-banner inline-actions class="text-white bg-red">
+                                    <q-icon name="warning" />
+                                    La orden no puede ser guardada hasta completar todos los campos requeridos.
+                                  </q-banner>
+                                </div>
+                              </div>
+                            </q-card-section>
+                          </q-card>
+                        </div>
                       </div>
-                      <q-separator class="q-my-sm" />
-                      <div class="row justify-between">
-                        <span class="text-h6">Total:</span>
-                        <span class="text-h6 text-weight-bold text-primary">{{ formatCurrency(totales.total) }}</span>
-                      </div>
-                    </q-card-section>
-                  </q-card>
+                    </q-tab-panel>
+                  </q-tab-panels>
                 </div>
               </div>
 
@@ -533,13 +949,7 @@
                   @click="cerrarFormulario"
                 />
                 <q-btn
-                  label="Guardar Borrador"
-                  color="orange"
-                  @click="guardarBorrador"
-                  :loading="guardando"
-                />
-                <q-btn
-                  label="Guardar y Aprobar"
+                  label="Crear Orden"
                   color="primary"
                   type="submit"
                   :loading="guardando"
@@ -805,12 +1215,17 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useQuasar } from 'quasar'
 import { useOrdenCompraStore, type OrdenCompra, type OrdenCompraCreate, type OrdenCompraDetalle, type OrdenCompraDetalleCreate } from '@/stores/ordenesCompra'
+import { useLogStore } from '@/stores/logs'
+import { useAuthStore } from '@/stores/auth'
 
 const $q = useQuasar()
 const ordenCompraStore = useOrdenCompraStore()
+const logStore = useLogStore()
+const authStore = useAuthStore()
 
 // Estado reactivo
 const mostrarFormulario = ref(false)
+const tabActivoOrden = ref('general')
 const mostrarSelectorProducto = ref(false)
 const mostrarDetalle = ref(false)
 const modoEdicion = ref(false)
@@ -820,6 +1235,8 @@ const busquedaProducto = ref('')
 const busquedaProveedor = ref('')
 const productoSeleccionado = ref([])
 const ordenSeleccionada = ref<OrdenCompra | null>(null)
+const especificacionesGenerales = ref('')
+const observacionesGenerales = ref('')
 
 // Filtros
 const filtros = reactive({
@@ -846,7 +1263,7 @@ const formularioInicial = {
   fecha_orden: new Date().toISOString().split('T')[0],
   fecha_requerida: '',
   fecha_prometida: '',
-  estado: 'BORRADOR',
+  estado: 'CREADA',
   subtotal: 0,
   impuestos: 0,
   descuentos: 0,
@@ -854,9 +1271,12 @@ const formularioInicial = {
   moneda: 'CLP',
   tipo_cambio: 1,
   condiciones_pago: '',
-  terminos_entrega: '',
   lugar_entrega: '',
   contacto_proveedor: '',
+  plazo_entrega: null,
+  prioridad: 'NORMAL',
+  metodo_envio: '',
+  terminos_condiciones: '',
   observaciones: '',
   activo: true,
   detalles: [] as OrdenCompraDetalleCreate[]
@@ -888,13 +1308,20 @@ const ordenesCompraFiltradas = computed(() => {
 })
 
 const proveedoresOptions = computed(() =>
-  ordenCompraStore.proveedores.map(proveedor => ({
-    label: proveedor.razon_social,
-    value: proveedor.id_proveedor,
-    rut: proveedor.rut_proveedor,
-    email: proveedor.email,
-    telefono: proveedor.telefono
-  }))
+  ordenCompraStore.proveedores.map(proveedor => {
+    const rfc = proveedor.rfc || proveedor.rut_proveedor || proveedor.rut || 'Sin RUT'
+    return {
+      label: `${proveedor.razon_social} - ${rfc}`,
+      value: proveedor.id_proveedor,
+      rut: rfc,
+      rfc: rfc,
+      razon_social: proveedor.razon_social,
+      email: proveedor.email,
+      telefono: proveedor.telefono,
+      // Agregar datos completos del proveedor para referencia
+      proveedor: proveedor
+    }
+  })
 )
 
 const proveedoresFiltrados = ref(proveedoresOptions.value)
@@ -910,6 +1337,22 @@ const monedasOptions = [
   { label: 'Peso Chileno (CLP)', value: 'CLP' },
   { label: 'Dólar Americano (USD)', value: 'USD' },
   { label: 'Euro (EUR)', value: 'EUR' }
+]
+
+const prioridadOptions = [
+  { label: 'Baja', value: 'BAJA' },
+  { label: 'Normal', value: 'NORMAL' },
+  { label: 'Alta', value: 'ALTA' },
+  { label: 'Urgente', value: 'URGENTE' }
+]
+
+const metodosEnvioOptions = [
+  { label: 'Retiro en tienda', value: 'RETIRO_TIENDA' },
+  { label: 'Despacho domicilio', value: 'DESPACHO_DOMICILIO' },
+  { label: 'Transporte propio', value: 'TRANSPORTE_PROPIO' },
+  { label: 'Courier', value: 'COURIER' },
+  { label: 'Flete terrestre', value: 'FLETE_TERRESTRE' },
+  { label: 'Otro', value: 'OTRO' }
 ]
 
 const productosDisponibles = computed(() => ordenCompraStore.productos)
@@ -933,6 +1376,11 @@ const formularioValido = computed(() => {
          formulario.fecha_orden &&
          formulario.fecha_requerida &&
          formulario.detalles.length > 0
+})
+
+const proveedorSeleccionado = computed(() => {
+  if (!formulario.id_proveedor) return null
+  return proveedoresOptions.value.find(p => p.value === formulario.id_proveedor)
 })
 
 // Columnas de la tabla principal
@@ -1099,6 +1547,52 @@ const columnsDetallesVer = [
   }
 ]
 
+// Columnas para resumen
+const columnsResumen = [
+  {
+    name: 'numero_linea',
+    label: 'Línea',
+    align: 'center',
+    field: 'numero_linea'
+  },
+  {
+    name: 'producto',
+    label: 'Producto',
+    align: 'left',
+    field: 'producto'
+  },
+  {
+    name: 'cantidad_solicitada',
+    label: 'Cantidad',
+    align: 'center',
+    field: 'cantidad_solicitada'
+  },
+  {
+    name: 'precio_unitario',
+    label: 'Precio Unit.',
+    align: 'right',
+    field: 'precio_unitario'
+  },
+  {
+    name: 'descuento_porcentaje',
+    label: 'Desc. %',
+    align: 'center',
+    field: 'descuento_porcentaje'
+  },
+  {
+    name: 'impuesto_porcentaje',
+    label: 'IVA %',
+    align: 'center',
+    field: 'impuesto_porcentaje'
+  },
+  {
+    name: 'total_linea',
+    label: 'Total',
+    align: 'right',
+    field: 'total_linea'
+  }
+]
+
 // Columnas para selector de productos
 const columnsProductos = [
   {
@@ -1255,7 +1749,7 @@ const guardarOrdenCompra = async () => {
       fecha_orden: formulario.fecha_orden,
       fecha_requerida: formulario.fecha_requerida,
       fecha_prometida: formulario.fecha_prometida,
-      estado: 'PENDIENTE',
+      estado: 'CREADA',
       subtotal: formulario.subtotal,
       impuestos: formulario.impuestos,
       descuentos: formulario.descuentos,
@@ -1263,7 +1757,6 @@ const guardarOrdenCompra = async () => {
       moneda: formulario.moneda,
       tipo_cambio: formulario.tipo_cambio,
       condiciones_pago: formulario.condiciones_pago,
-      terminos_entrega: formulario.terminos_entrega,
       lugar_entrega: formulario.lugar_entrega,
       contacto_proveedor: formulario.contacto_proveedor,
       observaciones: formulario.observaciones,
@@ -1295,55 +1788,6 @@ const guardarOrdenCompra = async () => {
   }
 }
 
-const guardarBorrador = async () => {
-  try {
-    guardando.value = true
-
-    const ordenData: OrdenCompraCreate = {
-      numero_orden: formulario.numero_orden,
-      id_proveedor: formulario.id_proveedor!,
-      fecha_orden: formulario.fecha_orden,
-      fecha_requerida: formulario.fecha_requerida,
-      fecha_prometida: formulario.fecha_prometida,
-      estado: 'BORRADOR',
-      subtotal: formulario.subtotal,
-      impuestos: formulario.impuestos,
-      descuentos: formulario.descuentos,
-      total: formulario.total,
-      moneda: formulario.moneda,
-      tipo_cambio: formulario.tipo_cambio,
-      condiciones_pago: formulario.condiciones_pago,
-      terminos_entrega: formulario.terminos_entrega,
-      lugar_entrega: formulario.lugar_entrega,
-      contacto_proveedor: formulario.contacto_proveedor,
-      observaciones: formulario.observaciones,
-      activo: true,
-      detalles: formulario.detalles
-    }
-
-    if (modoEdicion.value) {
-      await ordenCompraStore.actualizarOrdenCompra(formulario.id_orden_compra!, ordenData)
-    } else {
-      await ordenCompraStore.crearOrdenCompra(ordenData)
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: 'Borrador guardado exitosamente'
-    })
-
-    cerrarFormulario()
-    await cargarDatos()
-  } catch (error) {
-    console.error('Error guardando borrador:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Error al guardar el borrador'
-    })
-  } finally {
-    guardando.value = false
-  }
-}
 
 const abrirSelectorProducto = async () => {
   try {
@@ -1432,7 +1876,12 @@ const eliminarDetalle = (index: number) => {
   formulario.detalles.splice(index, 1)
 }
 
-const onProveedorChange = (proveedorId: number) => {
+const onProveedorChange = (proveedorId: number | null) => {
+  if (!proveedorId) {
+    formulario.contacto_proveedor = ''
+    return
+  }
+
   const proveedor = ordenCompraStore.proveedores.find(p => p.id_proveedor === proveedorId)
   if (proveedor) {
     formulario.contacto_proveedor = proveedor.nombre_contacto || ''
@@ -1490,8 +1939,7 @@ const duplicarOrdenCompra = async (orden: OrdenCompra) => {
 
 const ejecutarAccion = async (orden: OrdenCompra) => {
   const accionesMap: { [key: string]: () => Promise<void> } = {
-    'BORRADOR': () => aprobar(orden),
-    'PENDIENTE': () => autorizar(orden),
+    'CREADA': () => aprobar(orden),
     'APROBADA': () => enviar(orden),
     'ENVIADA': () => cerrar(orden)
   }
@@ -1504,7 +1952,13 @@ const ejecutarAccion = async (orden: OrdenCompra) => {
 
 const aprobar = async (orden: OrdenCompra) => {
   try {
-    await ordenCompraStore.aprobarOrdenCompra(orden.id_orden_compra, 1) // TODO: usar ID del usuario actual
+    const usuarioId = authStore.user?.id_usuario || 1
+
+    await ordenCompraStore.aprobarOrdenCompra(orden.id_orden_compra, usuarioId)
+
+    // Registrar log de aprobación
+    await logStore.logAprobacion(orden.id_orden_compra, usuarioId, 'Orden aprobada desde módulo de órdenes de compra')
+
     $q.notify({
       type: 'positive',
       message: 'Orden de compra aprobada exitosamente'
@@ -1519,26 +1973,16 @@ const aprobar = async (orden: OrdenCompra) => {
   }
 }
 
-const autorizar = async (orden: OrdenCompra) => {
-  try {
-    await ordenCompraStore.autorizarOrdenCompra(orden.id_orden_compra, 1) // TODO: usar ID del usuario actual
-    $q.notify({
-      type: 'positive',
-      message: 'Orden de compra autorizada exitosamente'
-    })
-    await cargarDatos()
-  } catch (error) {
-    console.error('Error autorizando orden:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Error al autorizar la orden de compra'
-    })
-  }
-}
 
 const enviar = async (orden: OrdenCompra) => {
   try {
-    await ordenCompraStore.enviarOrdenCompra(orden.id_orden_compra, 1) // TODO: usar ID del usuario actual
+    const usuarioId = authStore.user?.id_usuario || 1
+
+    await ordenCompraStore.enviarOrdenCompra(orden.id_orden_compra, usuarioId)
+
+    // Registrar log de envío
+    await logStore.logEnvio(orden.id_orden_compra, usuarioId, 'Orden enviada al proveedor')
+
     $q.notify({
       type: 'positive',
       message: 'Orden de compra enviada exitosamente'
@@ -1555,7 +1999,13 @@ const enviar = async (orden: OrdenCompra) => {
 
 const cerrar = async (orden: OrdenCompra) => {
   try {
+    const usuarioId = authStore.user?.id_usuario || 1
+
     await ordenCompraStore.cerrarOrdenCompra(orden.id_orden_compra)
+
+    // Registrar log de cierre
+    await logStore.logCierre(orden.id_orden_compra, usuarioId, 'Orden cerrada - proceso completado')
+
     $q.notify({
       type: 'positive',
       message: 'Orden de compra cerrada exitosamente'
@@ -1609,8 +2059,7 @@ const formatDate = (date: string): string => {
 
 const getEstadoColor = (estado: string): string => {
   const colores: { [key: string]: string } = {
-    'BORRADOR': 'grey',
-    'PENDIENTE': 'orange',
+    'CREADA': 'grey',
     'APROBADA': 'blue',
     'ENVIADA': 'purple',
     'RECIBIDA': 'green',
@@ -1637,21 +2086,20 @@ const getDateClass = (fecha: string): string => {
 }
 
 const puedeEditar = (orden: OrdenCompra): boolean => {
-  return ['BORRADOR', 'PENDIENTE'].includes(orden.estado)
+  return ['CREADA'].includes(orden.estado)
 }
 
 const puedeEliminar = (orden: OrdenCompra): boolean => {
-  return ['BORRADOR', 'PENDIENTE'].includes(orden.estado)
+  return ['CREADA'].includes(orden.estado)
 }
 
 const puedeEjecutarAccion = (orden: OrdenCompra): boolean => {
-  return ['BORRADOR', 'PENDIENTE', 'APROBADA', 'ENVIADA'].includes(orden.estado)
+  return ['CREADA', 'APROBADA', 'ENVIADA'].includes(orden.estado)
 }
 
 const getAccionColor = (estado: string): string => {
   const colores: { [key: string]: string } = {
-    'BORRADOR': 'blue',
-    'PENDIENTE': 'green',
+    'CREADA': 'blue',
     'APROBADA': 'purple',
     'ENVIADA': 'teal'
   }
@@ -1660,8 +2108,7 @@ const getAccionColor = (estado: string): string => {
 
 const getAccionIcon = (estado: string): string => {
   const iconos: { [key: string]: string } = {
-    'BORRADOR': 'check',
-    'PENDIENTE': 'verified',
+    'CREADA': 'check',
     'APROBADA': 'send',
     'ENVIADA': 'done_all'
   }
@@ -1670,8 +2117,7 @@ const getAccionIcon = (estado: string): string => {
 
 const getAccionTooltip = (estado: string): string => {
   const tooltips: { [key: string]: string } = {
-    'BORRADOR': 'Aprobar',
-    'PENDIENTE': 'Autorizar',
+    'CREADA': 'Aprobar',
     'APROBADA': 'Enviar',
     'ENVIADA': 'Cerrar'
   }
@@ -1680,8 +2126,7 @@ const getAccionTooltip = (estado: string): string => {
 
 const getAccionLabel = (estado: string): string => {
   const labels: { [key: string]: string } = {
-    'BORRADOR': 'Aprobar',
-    'PENDIENTE': 'Autorizar',
+    'CREADA': 'Aprobar',
     'APROBADA': 'Enviar',
     'ENVIADA': 'Cerrar'
   }
@@ -1699,7 +2144,9 @@ const filtrarProveedores = (val: string, update: (fn: () => void) => void) => {
       const needle = val.toLowerCase()
       proveedoresFiltrados.value = proveedoresOptions.value.filter(proveedor =>
         proveedor.label.toLowerCase().includes(needle) ||
-        (proveedor.rut && proveedor.rut.toLowerCase().includes(needle))
+        proveedor.razon_social.toLowerCase().includes(needle) ||
+        (proveedor.rut && proveedor.rut.toLowerCase().includes(needle)) ||
+        (proveedor.email && proveedor.email.toLowerCase().includes(needle))
       )
     }
   })

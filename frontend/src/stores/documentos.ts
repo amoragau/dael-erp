@@ -291,6 +291,48 @@ export const useDocumentoStore = defineStore('documentos', () => {
     }
   }
 
+  // Búsqueda de proveedores por RUT (para importación XML)
+  const buscarProveedoresPorRUT = async (rut: string) => {
+    try {
+      const response = await apiStore.get(`/proveedores/search?rut=${encodeURIComponent(rut)}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al buscar proveedores por RUT')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al buscar proveedores por RUT:', error)
+      throw error
+    }
+  }
+
+  // Procesamiento de archivo XML
+  const procesarArchivoXML = async (formData: FormData) => {
+    try {
+      const response = await apiStore.uploadFile('/documentos-compra/procesar-xml', formData)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al procesar archivo XML')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al procesar archivo XML:', error)
+      throw error
+    }
+  }
+
+  // Importación de documento desde XML
+  const importarDocumentoDesdeXML = async (datosImportacion: any) => {
+    try {
+      const response = await apiStore.post('/documentos-compra/importar-xml', datosImportacion)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al importar documento desde XML')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al importar documento desde XML:', error)
+      throw error
+    }
+  }
+
   return {
     // State
     documentos,
@@ -307,6 +349,11 @@ export const useDocumentoStore = defineStore('documentos', () => {
     // Methods - Búsqueda
     buscarDocumentos,
     buscarOrdenesCompra,
-    buscarProveedores
+    buscarProveedores,
+    buscarProveedoresPorRUT,
+
+    // Methods - XML Import
+    procesarArchivoXML,
+    importarDocumentoDesdeXML
   }
 })

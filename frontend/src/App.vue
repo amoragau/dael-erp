@@ -117,6 +117,15 @@
             </q-item-section>
           </q-item>
 
+          <q-item clickable :inset-level="1" :to="{ name: 'aprobaciones' }">
+            <q-item-section avatar>
+              <q-icon name="check" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Autorizar OC</q-item-label>
+            </q-item-section>
+          </q-item>
+
         </q-expansion-item>
           
         <q-expansion-item
@@ -124,6 +133,15 @@
           label="Inventario"
           default-opened
         >
+          <q-item clickable :inset-level="1" :to="{ name: 'ajustes-inventario' }">
+            <q-item-section avatar>
+              <q-icon name="receipt_long" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Ajuste</q-item-label>
+            </q-item-section>
+          </q-item>
+
           <q-item clickable :inset-level="1" :to="{ name: 'movimientos' }">
             <q-item-section avatar>
               <q-icon name="warehouse" />
@@ -142,12 +160,30 @@
             </q-item-section>
           </q-item>
 
+          <q-item clickable :inset-level="1" :to="{ name: 'traspasos' }">
+            <q-item-section avatar>
+              <q-icon name="swap_vert" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Traspasos</q-item-label>
+            </q-item-section>
+          </q-item>
+
           <q-item clickable :inset-level="1" :to="{ name: 'tipos-producto' }">
             <q-item-section avatar>
               <q-icon name="category" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Tipos de produtos</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'stock-bodega' }">
+            <q-item-section avatar>
+              <q-icon name="warehouse" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Stock Bodega</q-item-label>
             </q-item-section>
           </q-item>
 
@@ -177,6 +213,24 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>Bodegas</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'configuracion-alertas' }">
+            <q-item-section avatar>
+              <q-icon name="notification_important" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Configurar Alertas</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable :inset-level="1" :to="{ name: 'configuracion-sistema' }">
+            <q-item-section avatar>
+              <q-icon name="settings_suggest" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Configurar Sistema</q-item-label>
             </q-item-section>
           </q-item>
 

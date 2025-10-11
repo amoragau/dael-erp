@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApiStore } from './api'
+import axios from 'axios'
 
 export interface Producto {
   id_producto: number
@@ -35,11 +36,6 @@ export interface Producto {
   // Certificaciones y normativas
   certificacion_ul?: string
   certificacion_fm?: string
-  certificacion_vds?: string
-  certificacion_lpcb?: string
-  norma_nfpa?: string
-  norma_en?: string
-  norma_iso?: string
 
   // Información de inventario
   stock_actual?: number
@@ -101,16 +97,10 @@ export interface ProductoCreate {
   // Certificaciones y normativas
   certificacion_ul?: string
   certificacion_fm?: string
-  certificacion_vds?: string
-  certificacion_lpcb?: string
-  norma_nfpa?: string
-  norma_en?: string
-  norma_iso?: string
 
   // Información de inventario
   stock_minimo: number
   stock_maximo: number
-  punto_reorden: number
   tiempo_entrega_dias?: number
   costo_promedio?: number
   precio_venta?: number
@@ -157,17 +147,10 @@ export interface ProductoUpdate {
   // Certificaciones y normativas
   certificacion_ul?: string
   certificacion_fm?: string
-  certificacion_vds?: string
-  certificacion_lpcb?: string
-  norma_nfpa?: string
-  norma_en?: string
-  norma_iso?: string
 
   // Información de inventario
-  stock_actual?: number
   stock_minimo?: number
   stock_maximo?: number
-  punto_reorden?: number
   tiempo_entrega_dias?: number
   costo_promedio?: number
   precio_venta?: number
@@ -524,21 +507,48 @@ export const useProductoStore = defineStore('productos', () => {
   }): Promise<ProductoProveedor[]> => {
     try {
       isLoading.value = true
-      const queryParams = new URLSearchParams()
 
+      // Primero intentar con el endpoint específico
+      const queryParams = new URLSearchParams()
       if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString())
       if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString())
       if (params?.activo !== undefined) queryParams.append('activo', params.activo === true ? 'true' : 'false')
 
-      const url = `/producto-proveedores/producto/${productoId}?${queryParams.toString()}`
-      const response = await apiStore.get(url)
+      let url = `/producto-proveedores/producto/${productoId}/?${queryParams.toString()}`
+      let response = await apiStore.get(url)
+
+      // Si el endpoint específico no existe (404), intentar con el endpoint general y filtrar
+      if (!response.success && response.error?.includes('404')) {
+        console.log('Endpoint específico no encontrado, intentando con endpoint general y filtrado...')
+
+        // Intentar obtener todos los producto-proveedores y filtrar por producto
+        queryParams.append('id_producto', productoId.toString())
+        url = `/producto-proveedores/?${queryParams.toString()}`
+        response = await apiStore.get(url)
+
+        if (!response.success) {
+          console.log('Endpoint general tampoco funciona, devolviendo array vacío')
+          productoProveedores.value = []
+          return []
+        }
+      }
+
       if (!response.success) {
         throw new Error(response.error || 'Error al obtener proveedores del producto')
       }
-      productoProveedores.value = response.data
-      return response.data
-    } catch (error) {
+
+      productoProveedores.value = response.data || []
+      return response.data || []
+    } catch (error: any) {
       console.error('Error al obtener proveedores del producto:', error)
+
+      // Si es error 404, no es crítico - simplemente no hay endpoint disponible
+      if (error.response?.status === 404 || error.message?.includes('404')) {
+        console.log('Endpoint de producto-proveedores no disponible (404), devolviendo array vacío')
+        productoProveedores.value = []
+        return []
+      }
+
       throw error
     } finally {
       isLoading.value = false
@@ -560,20 +570,54 @@ export const useProductoStore = defineStore('productos', () => {
 
   const crearProductoProveedor = async (productoProveedor: ProductoProveedorCreate): Promise<ProductoProveedor> => {
     try {
-      const response = await apiStore.post('/producto-proveedores', productoProveedor)
-      if (!response.success) {
-        throw new Error(response.error || 'Error al crear relación producto-proveedor')
+      console.log('=== CREATING PRODUCTO-PROVEEDOR ===')
+      console.log('URL:', '/producto-proveedores')
+      console.log('Payload:', JSON.stringify(productoProveedor, null, 2))
+      console.log('Payload type check:', typeof productoProveedor)
+      console.log('Keys:', Object.keys(productoProveedor))
+
+      // Usar directamente axios para obtener el error real del servidor
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+      const axiosResponse = await axios.post(`${baseURL}/producto-proveedores/`, productoProveedor, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      })
+
+      console.log('Direct axios response:', axiosResponse)
+      console.log('Response data:', axiosResponse.data)
+      console.log('Response status:', axiosResponse.status)
+
+      return axiosResponse.data
+    } catch (error: any) {
+      console.error('=== ERROR CREATING PRODUCTO-PROVEEDOR ===')
+      console.error('Error object:', error)
+      console.error('Error response:', error.response)
+      console.error('Error response data:', error.response?.data)
+      console.error('Error response status:', error.response?.status)
+      console.error('Error response headers:', error.response?.headers)
+      console.error('Error config:', error.config)
+
+      // Crear un error más informativo
+      const errorInfo = {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        sentData: error.config?.data
       }
-      return response.data
-    } catch (error) {
-      console.error('Error al crear relación producto-proveedor:', error)
+      console.error('Complete error info:', errorInfo)
+
       throw error
     }
   }
 
   const actualizarProductoProveedor = async (id: number, productoProveedor: ProductoProveedorUpdate): Promise<ProductoProveedor> => {
     try {
-      const response = await apiStore.put(`/producto-proveedores/${id}`, productoProveedor)
+      const response = await apiStore.put(`/producto-proveedores/${id}/`, productoProveedor)
       if (!response.success) {
         throw new Error(response.error || 'Error al actualizar relación producto-proveedor')
       }
@@ -589,7 +633,7 @@ export const useProductoStore = defineStore('productos', () => {
       const params = new URLSearchParams()
       params.append('permanente', permanente.toString())
 
-      const response = await apiStore.delete(`/producto-proveedores/${id}?${params.toString()}`)
+      const response = await apiStore.delete(`/producto-proveedores/${id}/?${params.toString()}`)
       if (!response.success) {
         throw new Error(response.error || 'Error al eliminar relación producto-proveedor')
       }

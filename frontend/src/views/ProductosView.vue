@@ -490,7 +490,7 @@
                     <q-tab-panel name="certificaciones">
                       <div class="text-h6 q-mb-md">
                         <q-icon name="verified" class="q-mr-sm" />
-                        Certificaciones y Normativas
+                        Certificaciones
                       </div>
 
                       <!-- Certificaciones Principales -->
@@ -515,58 +515,9 @@
                             dense
                           />
                         </div>
-                        <div class="col-12 col-md-3">
-                          <q-input
-                            v-model="formProducto.certificacion_vds"
-                            label="Certificación VDS"
-                            outlined
-                            dense
-                          />
-                        </div>
                       </div>
 
-                      <div class="row q-gutter-md q-mt-sm">
-                        <div class="col-12 col-md-6">
-                          <q-input
-                            v-model="formProducto.certificacion_lpcb"
-                            label="Certificación LPCB"
-                            outlined
-                            dense
-                          />
-                        </div>
-                      </div>
 
-                      <!-- Normativas -->
-                      <div class="text-subtitle1 q-mb-sm q-mt-lg">Normativas</div>
-                      <q-separator class="q-mb-md" />
-
-                      <div class="row q-gutter-md">
-                        <div class="col-12 col-md-4">
-                          <q-input
-                            v-model="formProducto.norma_nfpa"
-                            label="Norma NFPA"
-                            outlined
-                            dense
-                            hint="Ej: NFPA 13"
-                          />
-                        </div>
-                        <div class="col-12 col-md-4">
-                          <q-input
-                            v-model="formProducto.norma_en"
-                            label="Norma EN"
-                            outlined
-                            dense
-                          />
-                        </div>
-                        <div class="col-12 col-md-3">
-                          <q-input
-                            v-model="formProducto.norma_iso"
-                            label="Norma ISO"
-                            outlined
-                            dense
-                          />
-                        </div>
-                      </div>
                     </q-tab-panel>
 
                     <!-- Panel Control de Inventario -->
@@ -581,17 +532,7 @@
                       <q-separator class="q-mb-md" />
 
                       <div class="row q-gutter-md">
-                        <div class="col-12 col-md-3">
-                          <q-input
-                            v-model.number="formProducto.stock_actual"
-                            label="Stock Actual"
-                            outlined
-                            dense
-                            type="number"
-                            min="0"
-                          />
-                        </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-6">
                           <q-input
                             v-model.number="formProducto.stock_minimo"
                             label="Stock Mínimo *"
@@ -602,7 +543,7 @@
                             :rules="[val => val >= 0 || 'Debe ser mayor o igual a 0']"
                           />
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-6">
                           <q-input
                             v-model.number="formProducto.stock_maximo"
                             label="Stock Máximo *"
@@ -613,43 +554,8 @@
                             :rules="[val => val >= 0 || 'Debe ser mayor o igual a 0']"
                           />
                         </div>
-                        <div class="col-12 col-md-2">
-                          <q-input
-                            v-model.number="formProducto.punto_reorden"
-                            label="Punto de Reorden *"
-                            outlined
-                            dense
-                            type="number"
-                            min="0"
-                            :rules="[val => val >= 0 || 'Debe ser mayor o igual a 0']"
-                          />
-                        </div>
                       </div>
 
-                      <!-- Logística -->
-                      <div class="text-subtitle1 q-mb-sm q-mt-lg">Logística</div>
-                      <q-separator class="q-mb-md" />
-
-                      <div class="row q-gutter-md">
-                        <div class="col-12 col-md-4">
-                          <q-input
-                            v-model.number="formProducto.tiempo_entrega_dias"
-                            label="Tiempo Entrega (días)"
-                            outlined
-                            dense
-                            type="number"
-                            min="0"
-                          />
-                        </div>
-                        <div class="col-12 col-md-7">
-                          <q-input
-                            v-model="formProducto.ubicacion_principal"
-                            label="Ubicación Principal"
-                            outlined
-                            dense
-                          />
-                        </div>
-                      </div>
 
                       <!-- Costos -->
                       <div class="text-subtitle1 q-mb-sm q-mt-lg">Información Financiera</div>
@@ -698,7 +604,7 @@
                           label="Agregar Proveedor"
                           size="sm"
                           @click="abrirFormularioProductoProveedor"
-                          :disable="!formProducto.id_producto"
+                          :disable="!formProducto.id_producto || !proveedoresEndpointDisponible"
                         />
                       </div>
 
@@ -706,6 +612,14 @@
                         <q-card-section class="text-center text-grey-6">
                           <q-icon name="info" size="md" class="q-mb-sm" />
                           <div>Guarde el producto primero para gestionar proveedores</div>
+                        </q-card-section>
+                      </q-card>
+
+                      <q-card flat bordered v-else-if="!proveedoresEndpointDisponible" class="q-mb-md">
+                        <q-card-section class="text-center text-grey-6">
+                          <q-icon name="info" size="md" class="q-mb-sm" />
+                          <div>Gestión de proveedores temporalmente no disponible</div>
+                          <div class="text-caption">El servidor no tiene el endpoint necesario configurado</div>
                         </q-card-section>
                       </q-card>
 
@@ -737,24 +651,6 @@
                           </q-td>
                         </template>
 
-                        <template v-slot:body-cell-vigencia="props">
-                          <q-td :props="props">
-                            <div v-if="props.row.fecha_vigencia_desde || props.row.fecha_vigencia_hasta">
-                              <div v-if="props.row.fecha_vigencia_desde" class="text-caption">
-                                Desde: {{ formatDate(props.row.fecha_vigencia_desde) }}
-                              </div>
-                              <div v-if="props.row.fecha_vigencia_hasta" class="text-caption">
-                                Hasta: {{ formatDate(props.row.fecha_vigencia_hasta) }}
-                              </div>
-                              <q-badge
-                                :color="getVigenciaColor(props.row)"
-                                :label="getVigenciaLabel(props.row)"
-                                class="q-mt-xs"
-                              />
-                            </div>
-                            <span v-else class="text-grey-5">Sin vigencia</span>
-                          </q-td>
-                        </template>
 
                         <template v-slot:body-cell-activo="props">
                           <q-td :props="props">
@@ -818,15 +714,6 @@
                           <q-badge v-if="stockConsolidado && stockConsolidado.stock_reservado > 0" :label="`Reservado: ${stockConsolidado.stock_reservado}`" color="warning" class="q-ml-xs" />
                         </div>
                         <div>
-                          <q-btn
-                            color="secondary"
-                            icon="refresh"
-                            label="Consolidar"
-                            size="sm"
-                            @click="consolidarStock"
-                            :disable="!formProducto.id_producto"
-                            class="q-mr-sm"
-                          />
                           <q-btn
                             color="primary"
                             icon="add_location"
@@ -1303,30 +1190,6 @@
                 </div>
               </div>
 
-              <!-- Vigencias -->
-              <div class="text-subtitle1 q-mb-sm q-mt-lg">Vigencias</div>
-              <q-separator class="q-mb-md" />
-
-              <div class="row q-gutter-md">
-                <div class="col-12 col-md-6">
-                  <q-input
-                    v-model="formProductoProveedor.fecha_vigencia_desde"
-                    label="Vigencia Desde"
-                    outlined
-                    dense
-                    type="date"
-                  />
-                </div>
-                <div class="col-12 col-md-5">
-                  <q-input
-                    v-model="formProductoProveedor.fecha_vigencia_hasta"
-                    label="Vigencia Hasta"
-                    outlined
-                    dense
-                    type="date"
-                  />
-                </div>
-              </div>
 
               <div class="row q-gutter-md q-mt-sm">
                 <div class="col-12">
@@ -1846,6 +1709,7 @@ const editandoProductoProveedor = ref(false)
 const isGuardandoProveedor = ref(false)
 const isLoadingProveedores = ref(false)
 const productoProveedoresList = ref<ProductoProveedor[]>([])
+const proveedoresEndpointDisponible = ref(true)
 const proveedoresList = ref<any[]>([])
 
 // Product Locations
@@ -1930,21 +1794,12 @@ const formProducto = ref<ProductoCreate & { id_producto?: number }>({
   // Certificaciones
   certificacion_ul: '',
   certificacion_fm: '',
-  certificacion_vds: '',
-  certificacion_lpcb: '',
-  norma_nfpa: '',
-  norma_en: '',
-  norma_iso: '',
 
   // Control de inventario
-  stock_actual: undefined,
   stock_minimo: 0,
   stock_maximo: 0,
-  punto_reorden: 0,
-  tiempo_entrega_dias: undefined,
   costo_promedio: undefined,
   precio_venta: undefined,
-  ubicacion_principal: '',
 
   // Almacenamiento
   condiciones_especiales: '',
@@ -1962,8 +1817,6 @@ const formProductoProveedor = ref<ProductoProveedorCreate & { id_producto_provee
   moneda: 'CLP',
   tiempo_entrega_dias: undefined,
   cantidad_minima: undefined,
-  fecha_vigencia_desde: '',
-  fecha_vigencia_hasta: '',
   descuento_volumen: undefined,
   condiciones_especiales: '',
   activo: true
@@ -2139,12 +1992,6 @@ const columnsProductoProveedores = [
     align: 'center' as const,
     field: 'cantidad_minima',
     sortable: true
-  },
-  {
-    name: 'vigencia',
-    label: 'Vigencia',
-    align: 'center' as const,
-    field: 'vigencia'
   },
   {
     name: 'activo',
@@ -2339,21 +2186,12 @@ const resetFormProducto = () => {
     // Certificaciones
     certificacion_ul: '',
     certificacion_fm: '',
-    certificacion_vds: '',
-    certificacion_lpcb: '',
-    norma_nfpa: '',
-    norma_en: '',
-    norma_iso: '',
 
     // Control de inventario
-    stock_actual: undefined,
     stock_minimo: 0,
     stock_maximo: 0,
-    punto_reorden: 0,
-    tiempo_entrega_dias: undefined,
     costo_promedio: undefined,
     precio_venta: undefined,
-    ubicacion_principal: '',
 
     // Almacenamiento
     condiciones_especiales: '',
@@ -2395,28 +2233,56 @@ const cargarProveedores = async () => {
 }
 
 const cargarProductoProveedores = async (productoId: number) => {
-  if (!productoId) return
+  if (!productoId || productoId <= 0) {
+    console.warn('ProductoId inválido para cargar proveedores:', productoId)
+    return
+  }
 
   try {
     isLoadingProveedores.value = true
     const response = await productoStore.obtenerProductoProveedores(productoId)
-    productoProveedoresList.value = response
+    productoProveedoresList.value = response || []
+
+    // Log informativo
+    if (response && response.length > 0) {
+      console.log(`Cargados ${response.length} proveedores para el producto ${productoId}`)
+    } else {
+      console.log(`No se encontraron proveedores para el producto ${productoId}`)
+    }
   } catch (error: any) {
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cargar proveedores del producto',
-      caption: error.message
-    })
+    console.error('Error al cargar proveedores del producto:', error)
+
+    // Si es 404, es probable que el endpoint no exista - no mostrar error al usuario
+    if (error.response?.status === 404 || error.message?.includes('404')) {
+      console.log('Endpoint de producto-proveedores no disponible (404), continuando sin proveedores')
+      proveedoresEndpointDisponible.value = false
+      productoProveedoresList.value = []
+    } else {
+      // Solo mostrar notificación para otros errores
+      $q.notify({
+        type: 'negative',
+        message: 'Error al cargar proveedores del producto',
+        caption: error.message
+      })
+      productoProveedoresList.value = []
+    }
   } finally {
     isLoadingProveedores.value = false
   }
 }
 
 const abrirFormularioProductoProveedor = () => {
-  resetFormProductoProveedor()
-  if (formProducto.value.id_producto) {
-    formProductoProveedor.value.id_producto = formProducto.value.id_producto
+  if (!formProducto.value.id_producto || formProducto.value.id_producto <= 0) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error',
+      caption: 'Debe crear o seleccionar un producto antes de agregar proveedores'
+    })
+    return
   }
+
+  resetFormProductoProveedor()
+  formProductoProveedor.value.id_producto = formProducto.value.id_producto
   showCreateProductoProveedorDialog.value = true
 }
 
@@ -2430,14 +2296,100 @@ const guardarProductoProveedor = async () => {
   try {
     isGuardandoProveedor.value = true
 
+    // Validaciones antes de enviar
+    if (!formProductoProveedor.value.id_producto || formProductoProveedor.value.id_producto <= 0) {
+      $q.notify({
+        type: 'negative',
+        message: 'Error de validación',
+        caption: 'Debe seleccionar un producto válido'
+      })
+      return
+    }
+
+    if (!formProductoProveedor.value.id_proveedor || formProductoProveedor.value.id_proveedor <= 0) {
+      $q.notify({
+        type: 'negative',
+        message: 'Error de validación',
+        caption: 'Debe seleccionar un proveedor'
+      })
+      return
+    }
+
+    // Preparar datos según el esquema real del backend
+    const datosLimpios: any = {
+      id_producto: formProductoProveedor.value.id_producto,
+      id_proveedor: formProductoProveedor.value.id_proveedor,
+      es_principal: Boolean(formProductoProveedor.value.es_proveedor_principal), // Backend usa 'es_principal'
+      activo: Boolean(formProductoProveedor.value.activo !== false)
+    }
+
+    // Solo agregar campos opcionales si tienen valores válidos
+    if (formProductoProveedor.value.precio_proveedor !== undefined && formProductoProveedor.value.precio_proveedor !== null && formProductoProveedor.value.precio_proveedor > 0) {
+      datosLimpios.costo_actual = formProductoProveedor.value.precio_proveedor // Backend usa 'costo_actual'
+    }
+
+    if (formProductoProveedor.value.tiempo_entrega_dias !== undefined && formProductoProveedor.value.tiempo_entrega_dias !== null && formProductoProveedor.value.tiempo_entrega_dias > 0) {
+      datosLimpios.tiempo_entrega_dias = formProductoProveedor.value.tiempo_entrega_dias
+    }
+
+    if (formProductoProveedor.value.cantidad_minima !== undefined && formProductoProveedor.value.cantidad_minima !== null && formProductoProveedor.value.cantidad_minima > 0) {
+      datosLimpios.cantidad_minima_orden = formProductoProveedor.value.cantidad_minima // Backend usa 'cantidad_minima_orden'
+    }
+
+
+    if (formProductoProveedor.value.descuento_volumen !== undefined && formProductoProveedor.value.descuento_volumen !== null && formProductoProveedor.value.descuento_volumen >= 0) {
+      datosLimpios.descuento_producto = formProductoProveedor.value.descuento_volumen // Backend usa 'descuento_producto'
+    }
+
+    // Nota: El backend no parece tener campo para condiciones_especiales, omitiendo por ahora
+
+    // Validación final de estructura según el esquema real del backend
+    const camposRequeridos = ['id_producto', 'id_proveedor', 'es_principal', 'activo']
+    for (const campo of camposRequeridos) {
+      if (!(campo in datosLimpios)) {
+        $q.notify({
+          type: 'negative',
+          message: 'Error de validación',
+          caption: `Falta el campo requerido: ${campo}`
+        })
+        return
+      }
+    }
+
+    // Validar tipos de datos
+    if (typeof datosLimpios.id_producto !== 'number' || datosLimpios.id_producto <= 0) {
+      $q.notify({
+        type: 'negative',
+        message: 'Error de validación',
+        caption: 'id_producto debe ser un número mayor a 0'
+      })
+      return
+    }
+
+    if (typeof datosLimpios.id_proveedor !== 'number' || datosLimpios.id_proveedor <= 0) {
+      $q.notify({
+        type: 'negative',
+        message: 'Error de validación',
+        caption: 'id_proveedor debe ser un número mayor a 0'
+      })
+      return
+    }
+
+    console.log('=== PREPARANDO ENVÍO ===')
+    console.log('Form original:', JSON.stringify(formProductoProveedor.value, null, 2))
+    console.log('Datos limpios:', JSON.stringify(datosLimpios, null, 2))
+    console.log('Editando existente:', editandoProductoProveedor.value)
+    console.log('ID producto proveedor:', formProductoProveedor.value.id_producto_proveedor)
+    console.log('Validación de estructura completada exitosamente')
+
     if (editandoProductoProveedor.value && formProductoProveedor.value.id_producto_proveedor) {
-      await productoStore.actualizarProductoProveedor(formProductoProveedor.value.id_producto_proveedor, formProductoProveedor.value)
+      await productoStore.actualizarProductoProveedor(formProductoProveedor.value.id_producto_proveedor, datosLimpios)
       $q.notify({
         type: 'positive',
         message: 'Relación proveedor actualizada correctamente'
       })
     } else {
-      await productoStore.crearProductoProveedor(formProductoProveedor.value)
+      await productoStore.crearProductoProveedor(datosLimpios)
       $q.notify({
         type: 'positive',
         message: 'Proveedor agregado correctamente'
@@ -2451,10 +2403,40 @@ const guardarProductoProveedor = async () => {
     }
 
   } catch (error: any) {
+    console.error('Error al guardar relación proveedor:', error)
+    console.error('Response data:', error.response?.data)
+    console.error('Response status:', error.response?.status)
+
+    let errorMessage = 'Error desconocido'
+    if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+
+    // Si es error 422 o 400, mostrar información más específica
+    if (error.response?.status === 422) {
+      console.error('Datos enviados que causaron el error 422:', datosLimpios)
+      errorMessage = 'Datos inválidos (422): ' + errorMessage
+    } else if (error.response?.status === 400) {
+      console.error('Datos enviados que causaron el error 400:', datosLimpios)
+      console.error('Error 400 response data:', error.response?.data)
+
+      // Verificar si es error de relación duplicada
+      const responseText = JSON.stringify(error.response?.data).toLowerCase()
+      if (responseText.includes('duplicate') || responseText.includes('exists') || responseText.includes('ya existe')) {
+        errorMessage = 'Ya existe una relación entre este producto y proveedor'
+      } else {
+        errorMessage = 'Petición incorrecta (400): ' + (error.response?.data?.detail || errorMessage)
+      }
+    }
+
     $q.notify({
       type: 'negative',
       message: 'Error al guardar relación proveedor',
-      caption: error.message
+      caption: errorMessage
     })
   } finally {
     isGuardandoProveedor.value = false
@@ -2478,7 +2460,9 @@ const toggleEstadoProductoProveedor = async (productoProveedor: ProductoProveedo
     }
 
     if (formProducto.value.id_producto) {
-      await cargarProductoProveedores(formProducto.value.id_producto)
+      if (formProducto.value.id_producto) {
+        await cargarProductoProveedores(formProducto.value.id_producto)
+      }
     }
 
   } catch (error: any) {
@@ -2498,7 +2482,9 @@ const establecerProveedorPrincipal = async (productoProveedor: ProductoProveedor
       message: 'Proveedor establecido como principal'
     })
     if (formProducto.value.id_producto) {
-      await cargarProductoProveedores(formProducto.value.id_producto)
+      if (formProducto.value.id_producto) {
+        await cargarProductoProveedores(formProducto.value.id_producto)
+      }
     }
   } catch (error: any) {
     $q.notify({
@@ -2519,8 +2505,6 @@ const resetFormProductoProveedor = () => {
     moneda: 'CLP',
     tiempo_entrega_dias: undefined,
     cantidad_minima: undefined,
-    fecha_vigencia_desde: '',
-    fecha_vigencia_hasta: '',
     descuento_volumen: undefined,
     condiciones_especiales: '',
     activo: true
@@ -2539,29 +2523,6 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString('es-CL')
 }
 
-const getVigenciaColor = (productoProveedor: ProductoProveedor): string => {
-  if (!productoProveedor.fecha_vigencia_hasta) return 'blue'
-
-  const hoy = new Date()
-  const fechaVigencia = new Date(productoProveedor.fecha_vigencia_hasta)
-  const diasRestantes = Math.ceil((fechaVigencia.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diasRestantes < 0) return 'negative' // Vencido
-  if (diasRestantes <= 30) return 'warning' // Por vencer
-  return 'positive' // Vigente
-}
-
-const getVigenciaLabel = (productoProveedor: ProductoProveedor): string => {
-  if (!productoProveedor.fecha_vigencia_hasta) return 'Sin vencimiento'
-
-  const hoy = new Date()
-  const fechaVigencia = new Date(productoProveedor.fecha_vigencia_hasta)
-  const diasRestantes = Math.ceil((fechaVigencia.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diasRestantes < 0) return 'Vencido'
-  if (diasRestantes <= 30) return `${diasRestantes} días`
-  return 'Vigente'
-}
 
 // Lifecycle
 onMounted(async () => {
