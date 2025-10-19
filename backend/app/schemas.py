@@ -2659,6 +2659,105 @@ class EstadoOrdenCompraResponse(EstadoOrdenCompraBase):
 
 
 # ========================================
+# SCHEMAS PARA EMPRESAS
+# ========================================
+
+class EmpresaBase(BaseModel):
+    rut_empresa: str = Field(..., min_length=1, max_length=20, description="RUT de la empresa")
+    razon_social: str = Field(..., min_length=1, max_length=200, description="Razón social de la empresa")
+    nombre_fantasia: Optional[str] = Field(None, max_length=200, description="Nombre de fantasía")
+    giro: Optional[str] = Field(None, max_length=200, description="Giro o actividad económica")
+    direccion: Optional[str] = Field(None, max_length=255, description="Dirección fiscal")
+    comuna: Optional[str] = Field(None, max_length=100, description="Comuna")
+    ciudad: Optional[str] = Field(None, max_length=100, description="Ciudad")
+    region: Optional[str] = Field(None, max_length=100, description="Región")
+    telefono: Optional[str] = Field(None, max_length=20, description="Teléfono de contacto")
+    email: Optional[str] = Field(None, max_length=100, description="Email de contacto")
+    sitio_web: Optional[str] = Field(None, max_length=200, description="Sitio web")
+    logo_url: Optional[str] = Field(None, max_length=500, description="URL del logo")
+    activo: bool = Field(default=True, description="Estado de la empresa")
+
+class EmpresaCreate(EmpresaBase):
+    pass
+
+class EmpresaUpdate(BaseModel):
+    rut_empresa: Optional[str] = Field(None, min_length=1, max_length=20)
+    razon_social: Optional[str] = Field(None, min_length=1, max_length=200)
+    nombre_fantasia: Optional[str] = Field(None, max_length=200)
+    giro: Optional[str] = Field(None, max_length=200)
+    direccion: Optional[str] = Field(None, max_length=255)
+    comuna: Optional[str] = Field(None, max_length=100)
+    ciudad: Optional[str] = Field(None, max_length=100)
+    region: Optional[str] = Field(None, max_length=100)
+    telefono: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=100)
+    sitio_web: Optional[str] = Field(None, max_length=200)
+    logo_url: Optional[str] = Field(None, max_length=500)
+    activo: Optional[bool] = None
+
+class EmpresaSimple(BaseModel):
+    id_empresa: int
+    rut_empresa: str
+    razon_social: str
+    nombre_fantasia: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class EmpresaResponse(EmpresaBase):
+    id_empresa: int
+    fecha_creacion: Optional[datetime] = None
+    fecha_modificacion: Optional[datetime] = None
+    usuario_creacion: Optional[int] = None
+    usuario_modificacion: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ========================================
+# SCHEMAS PARA CENTROS DE COSTO
+# ========================================
+
+class CentroCostoBase(BaseModel):
+    codigo_centro_costo: str = Field(..., min_length=1, max_length=20, description="Código único del centro de costo")
+    nombre_centro_costo: str = Field(..., min_length=1, max_length=100, description="Nombre del centro de costo")
+    descripcion: Optional[str] = Field(None, description="Descripción del centro de costo")
+    id_responsable: Optional[int] = Field(None, description="ID del usuario responsable")
+    presupuesto_anual: Optional[Decimal] = Field(default=0, ge=0, description="Presupuesto anual asignado")
+    activo: bool = Field(default=True, description="Estado del centro de costo")
+
+class CentroCostoCreate(CentroCostoBase):
+    pass
+
+class CentroCostoUpdate(BaseModel):
+    codigo_centro_costo: Optional[str] = Field(None, min_length=1, max_length=20)
+    nombre_centro_costo: Optional[str] = Field(None, min_length=1, max_length=100)
+    descripcion: Optional[str] = None
+    id_responsable: Optional[int] = None
+    presupuesto_anual: Optional[Decimal] = Field(None, ge=0)
+    activo: Optional[bool] = None
+
+class CentroCostoSimple(BaseModel):
+    id_centro_costo: int
+    codigo_centro_costo: str
+    nombre_centro_costo: str
+
+    class Config:
+        from_attributes = True
+
+class CentroCostoResponse(CentroCostoBase):
+    id_centro_costo: int
+    fecha_creacion: Optional[datetime] = None
+    fecha_modificacion: Optional[datetime] = None
+    usuario_creacion: Optional[int] = None
+    usuario_modificacion: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ========================================
 # SCHEMAS PARA ÓRDENES DE COMPRA
 # ========================================
 
@@ -2667,11 +2766,14 @@ class OrdenCompraBase(BaseModel):
     numero_orden: str = Field(..., min_length=1, max_length=50, description="Número único de la orden")
     id_proveedor: int = Field(..., description="ID del proveedor")
     id_usuario_solicitante: int = Field(..., description="ID del usuario que solicita")
+    id_centro_costo: int = Field(..., description="ID del centro de costo")
+    id_empresa: Optional[int] = Field(None, description="ID de la empresa emisora")
     fecha_orden: date = Field(..., description="Fecha de la orden")
     fecha_requerida: date = Field(..., description="Fecha requerida de entrega")
     fecha_esperada_entrega: Optional[date] = Field(None, description="Fecha esperada de entrega")
     subtotal: Decimal = Field(default=0, ge=0, description="Subtotal de la orden")
     impuestos: Decimal = Field(default=0, ge=0, description="Impuestos de la orden")
+    iva_porcentaje: Decimal = Field(default=19.00, ge=0, le=100, description="Porcentaje de IVA")
     descuentos: Decimal = Field(default=0, ge=0, description="Descuentos de la orden")
     total: Decimal = Field(default=0, ge=0, description="Total de la orden")
     observaciones: Optional[str] = Field(None, description="Observaciones de la orden")
@@ -2692,6 +2794,8 @@ class OrdenCompraUpdate(BaseModel):
     numero_orden: Optional[str] = Field(None, min_length=1, max_length=50)
     id_proveedor: Optional[int] = None
     id_usuario_solicitante: Optional[int] = None
+    id_centro_costo: Optional[int] = None
+    id_empresa: Optional[int] = None
     id_usuario_aprobador: Optional[int] = None
     id_estado: Optional[int] = None
     fecha_orden: Optional[date] = None
@@ -2700,6 +2804,7 @@ class OrdenCompraUpdate(BaseModel):
     fecha_entrega_real: Optional[date] = None
     subtotal: Optional[Decimal] = Field(None, ge=0)
     impuestos: Optional[Decimal] = Field(None, ge=0)
+    iva_porcentaje: Optional[Decimal] = Field(None, ge=0, le=100)
     descuentos: Optional[Decimal] = Field(None, ge=0)
     total: Optional[Decimal] = Field(None, ge=0)
     observaciones: Optional[str] = None
@@ -2713,6 +2818,23 @@ class OrdenCompraUpdate(BaseModel):
     activo: Optional[bool] = None
 
 # Schema para respuesta (GET)
+class ProveedorSimple(BaseModel):
+    id_proveedor: int
+    nombre_proveedor: Optional[str] = None
+    razon_social: str
+    rfc: str
+
+    class Config:
+        from_attributes = True
+
+class EstadoSimple(BaseModel):
+    id_estado: int
+    codigo_estado: str
+    nombre_estado: str
+
+    class Config:
+        from_attributes = True
+
 class OrdenCompraResponse(OrdenCompraBase):
     id_orden_compra: int
     id_usuario_aprobador: Optional[int] = None
@@ -2723,6 +2845,10 @@ class OrdenCompraResponse(OrdenCompraBase):
     fecha_aprobacion: Optional[datetime] = None
     fecha_cancelacion: Optional[datetime] = None
     motivo_cancelacion: Optional[str] = None
+    proveedor: Optional[ProveedorSimple] = None
+    estado: Optional[EstadoSimple] = None
+    centro_costo: Optional[CentroCostoSimple] = None
+    empresa: Optional[EmpresaSimple] = None
 
     class Config:
         from_attributes = True
@@ -2763,6 +2889,16 @@ class OrdenCompraDetalleUpdate(BaseModel):
     fecha_entrega_real: Optional[date] = None
     activo: Optional[bool] = None
 
+# Schema simple para producto en detalles
+class ProductoSimpleDetalle(BaseModel):
+    id_producto: int
+    sku: str
+    nombre_producto: str
+    descripcion_corta: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 # Schema para respuesta de detalle (GET)
 class OrdenCompraDetalleResponse(OrdenCompraDetalleBase):
     id_detalle: int
@@ -2772,6 +2908,7 @@ class OrdenCompraDetalleResponse(OrdenCompraDetalleBase):
     fecha_entrega_real: Optional[date] = None
     fecha_creacion: datetime
     fecha_modificacion: datetime
+    producto: Optional[ProductoSimpleDetalle] = None
 
     class Config:
         from_attributes = True
@@ -2798,6 +2935,18 @@ class OrdenCompraFilters(BaseModel):
     total_minimo: Optional[Decimal] = None
     total_maximo: Optional[Decimal] = None
     activo: Optional[bool] = True
+
+# Schema para cancelar orden
+class OrdenCompraCancelar(BaseModel):
+    motivo: Optional[str] = "Sin motivo especificado"
+
+# Schema para aprobar orden
+class OrdenCompraAprobar(BaseModel):
+    aprobada_por: int
+
+# Schema para rechazar orden
+class OrdenCompraRechazar(BaseModel):
+    motivo: str
 
 
 # ========================================
@@ -2983,6 +3132,32 @@ class VistaOrdenesDetalleCompletoFilters(BaseModel):
 # SCHEMAS PARA WORKFLOW DE ÓRDENES DE COMPRA
 # ========================================
 
+# Schemas para Tipos de Documentos de Compra
+class TipoDocumentoCompraBase(BaseModel):
+    nombre: str
+    codigo_dte: Optional[str] = None
+    descripcion: Optional[str] = None
+    requiere_folio: bool = False
+    activo: bool = True
+
+class TipoDocumentoCompraCreate(TipoDocumentoCompraBase):
+    pass
+
+class TipoDocumentoCompraUpdate(BaseModel):
+    nombre: Optional[str] = None
+    codigo_dte: Optional[str] = None
+    descripcion: Optional[str] = None
+    requiere_folio: Optional[bool] = None
+    activo: Optional[bool] = None
+
+class TipoDocumentoCompraResponse(TipoDocumentoCompraBase):
+    id_tipo_documento: int
+    fecha_creacion: datetime
+    fecha_actualizacion: datetime
+
+    class Config:
+        from_attributes = True
+
 # Enums para el workflow
 class TipoDocumentoCompra(str, Enum):
     FACTURA = "FACTURA"
@@ -3129,10 +3304,43 @@ class DocumentoCompraArchivoResponse(DocumentoCompraArchivoBase):
     class Config:
         from_attributes = True
 
+# Schemas para Referencias de Documentos
+class ReferenciaDocumentoBase(BaseModel):
+    numero_linea_ref: int
+    tipo_documento_ref: Optional[str] = None
+    folio_ref: Optional[str] = None
+    fecha_ref: Optional[date] = None
+    codigo_ref: Optional[str] = None  # '1'=Anula, '2'=Corrige texto, '3'=Corrige montos
+    razon_ref: Optional[str] = None
+    indicador_global: bool = False
+
+class ReferenciaDocumentoCreate(ReferenciaDocumentoBase):
+    pass
+
+class ReferenciaDocumentoUpdate(BaseModel):
+    numero_linea_ref: Optional[int] = None
+    tipo_documento_ref: Optional[str] = None
+    folio_ref: Optional[str] = None
+    fecha_ref: Optional[date] = None
+    codigo_ref: Optional[str] = None
+    razon_ref: Optional[str] = None
+    indicador_global: Optional[bool] = None
+    activo: Optional[bool] = None
+
+class ReferenciaDocumentoResponse(ReferenciaDocumentoBase):
+    id_referencia: int
+    id_documento: int
+    activo: bool
+    fecha_creacion: datetime
+    fecha_actualizacion: datetime
+
+    class Config:
+        from_attributes = True
+
 class DocumentoCompraBase(BaseModel):
     id_proveedor: int
     id_orden_compra: Optional[int] = None
-    tipo_documento: TipoDocumentoCompra
+    tipo_documento: Optional[TipoDocumentoCompra] = None
     numero_documento: str
     fecha_documento: date
     serie: Optional[str] = None
@@ -3189,6 +3397,11 @@ class DocumentoCompraResponse(DocumentoCompraBase):
     usuario_modificacion: Optional[int] = None
     detalles: List[DocumentoCompraDetalleResponse] = []
     archivos: List[DocumentoCompraArchivoResponse] = []
+    referencias: List[ReferenciaDocumentoResponse] = []
+
+    # Relaciones
+    proveedor: Optional['ProveedorResponse'] = None
+    tipo_documento_rel: Optional['TipoDocumentoCompraResponse'] = None
 
     class Config:
         from_attributes = True
@@ -3465,4 +3678,3 @@ class ProcesarXMLResponse(BaseModel):
     mensaje: str
     datos_extraidos: Optional[Dict] = None
     errores: Optional[List[str]] = None
-

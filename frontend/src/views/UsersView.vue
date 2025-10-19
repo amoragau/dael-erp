@@ -2,18 +2,81 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Gestión de Usuarios</h4>
-          <p class="text-grey-7 q-mb-none">Administra los usuarios del sistema</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="admin_panel_settings" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Gestión de <span class="text-weight-bold text-primary">Usuarios</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Administra los usuarios del sistema</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Usuario"
           @click="showCreateDialog = true"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
+
+      <!-- Filters -->
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por usuario, nombre o email..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.id_rol"
+                :options="roleOptions"
+                option-value="id_rol"
+                option-label="nombre_rol"
+                emit-value
+                map-options
+                label="Rol"
+                outlined
+                dense
+                clearable
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.activo"
+                :options="activoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-5 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarUsuarios" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
 
       <!-- Users Table -->
       <q-table
@@ -226,6 +289,18 @@ const selectedUser = ref<User | null>(null)
 const newPassword = ref('')
 const confirmPassword = ref('')
 
+// Filters
+const filtros = ref({
+  busqueda: '',
+  id_rol: null as number | null,
+  activo: null as boolean | null
+})
+
+const activoOptions = [
+  { label: 'Activos', value: true },
+  { label: 'Inactivos', value: false }
+]
+
 // Form data
 const userForm = reactive<UserCreate & { activo: boolean }>({
   username: '',
@@ -307,12 +382,24 @@ const loadData = async () => {
   ])
 }
 
+const buscarUsuarios = async () => {
+  await usersStore.fetchUsers()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.id_rol = null
+  filtros.value.activo = null
+  buscarUsuarios()
+}
+
 const resetForm = () => {
   userForm.username = ''
   userForm.email = ''
   userForm.nombre_completo = ''
   userForm.password = ''
-  userForm.id_rol = usersStore.activeRoles.length > 0 ? usersStore.activeRoles[0].id_rol : 1
+  const firstRole = usersStore.activeRoles?.[0]
+  userForm.id_rol = firstRole ? firstRole.id_rol : 1
   userForm.activo = true
 }
 

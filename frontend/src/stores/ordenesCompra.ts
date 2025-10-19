@@ -2,23 +2,53 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApiStore } from './api'
 
+export interface ProveedorSimple {
+  id_proveedor: number
+  nombre_proveedor?: string
+  razon_social: string
+  rfc: string
+}
+
+export interface EstadoSimple {
+  id_estado: number
+  codigo_estado: string
+  nombre_estado: string
+}
+
+export interface CentroCostoSimple {
+  id_centro_costo: number
+  codigo_centro_costo: string
+  nombre_centro_costo: string
+}
+
+export interface EmpresaSimple {
+  id_empresa: number
+  rut_empresa: string
+  razon_social: string
+  nombre_fantasia?: string
+}
+
 export interface OrdenCompra {
   id_orden_compra: number
   numero_orden: string
   id_proveedor: number
+  id_centro_costo: number
+  id_empresa?: number
   fecha_orden: string
   fecha_requerida: string
   fecha_prometida?: string
-  estado: string
   subtotal: number
   impuestos: number
+  iva_porcentaje: number
   descuentos: number
   total: number
   moneda: string
   tipo_cambio: number
-  condiciones_pago?: string
+  terminos_pago?: string
   terminos_entrega?: string
-  lugar_entrega?: string
+  direccion_entrega?: string
+  contacto_entrega?: string
+  telefono_contacto?: string
   contacto_proveedor?: string
   observaciones?: string
   aprobada_por?: number
@@ -34,7 +64,10 @@ export interface OrdenCompra {
   usuario_modificacion?: number
 
   // Relaciones
-  proveedor?: any
+  proveedor?: ProveedorSimple
+  estado?: EstadoSimple
+  centro_costo?: CentroCostoSimple
+  empresa?: EmpresaSimple
   usuario_aprobacion?: any
   usuario_autorizacion?: any
   usuario_envio?: any
@@ -53,8 +86,8 @@ export interface OrdenCompraDetalle {
   descuento_monto: number
   impuesto_porcentaje: number
   impuesto_monto: number
-  subtotal_linea: number
-  total_linea: number
+  precio_neto: number
+  importe_total: number
   especificaciones?: string
   observaciones?: string
   fecha_requerida?: string
@@ -70,19 +103,25 @@ export interface OrdenCompraDetalle {
 export interface OrdenCompraCreate {
   numero_orden?: string
   id_proveedor: number
+  id_usuario_solicitante: number
+  id_centro_costo: number
+  id_empresa?: number
   fecha_orden: string
   fecha_requerida: string
   fecha_prometida?: string
   estado?: string
   subtotal: number
   impuestos: number
+  iva_porcentaje?: number
   descuentos: number
   total: number
   moneda?: string
   tipo_cambio?: number
-  condiciones_pago?: string
+  terminos_pago?: string
   terminos_entrega?: string
-  lugar_entrega?: string
+  direccion_entrega?: string
+  contacto_entrega?: string
+  telefono_contacto?: string
   contacto_proveedor?: string
   observaciones?: string
   activo?: boolean
@@ -98,8 +137,8 @@ export interface OrdenCompraDetalleCreate {
   descuento_monto?: number
   impuesto_porcentaje?: number
   impuesto_monto?: number
-  subtotal_linea: number
-  total_linea: number
+  precio_neto: number
+  importe_total: number
   especificaciones?: string
   observaciones?: string
   fecha_requerida?: string
@@ -116,13 +155,16 @@ export interface OrdenCompraUpdate {
   estado?: string
   subtotal?: number
   impuestos?: number
+  iva_porcentaje?: number
   descuentos?: number
   total?: number
   moneda?: string
   tipo_cambio?: number
-  condiciones_pago?: string
+  terminos_pago?: string
   terminos_entrega?: string
-  lugar_entrega?: string
+  direccion_entrega?: string
+  contacto_entrega?: string
+  telefono_contacto?: string
   contacto_proveedor?: string
   observaciones?: string
   activo?: boolean
@@ -188,7 +230,6 @@ export const useOrdenCompraStore = defineStore('ordenesCompra', () => {
       if (params?.fecha_hasta) queryParams.append('fecha_hasta', params.fecha_hasta)
 
       const url = `/ordenes-compra?${queryParams.toString()}`
-      console.log('URL construida órdenes de compra:', url, 'params recibidos:', params)
       const response = await apiStore.get(url)
       if (!response.success) {
         throw new Error(response.error || 'Error al obtener órdenes de compra')
@@ -259,15 +300,75 @@ export const useOrdenCompraStore = defineStore('ordenesCompra', () => {
     }
   }
 
+  const generarSiguienteNumeroOrden = async (): Promise<string> => {
+    try {
+      const response = await apiStore.get('/ordenes-compra/generar-numero/')
+      if (!response.success) {
+        throw new Error(response.error || 'Error al generar número de orden')
+      }
+      return response.data.numero_orden
+    } catch (error) {
+      console.error('Error al generar número de orden:', error)
+      throw error
+    }
+  }
+
   const crearOrdenCompra = async (ordenCompra: OrdenCompraCreate): Promise<OrdenCompra> => {
     try {
-      const response = await apiStore.post('/ordenes-compra', ordenCompra)
+      // Si la orden tiene detalles, usar el endpoint completo
+      const endpoint = ordenCompra.detalles && ordenCompra.detalles.length > 0
+        ? '/ordenes-compra/completa/'
+        : '/ordenes-compra/'
+
+      // Adaptar el formato si se usa el endpoint completo
+      const payload = ordenCompra.detalles && ordenCompra.detalles.length > 0
+        ? {
+            orden: {
+              numero_orden: ordenCompra.numero_orden,
+              id_proveedor: ordenCompra.id_proveedor,
+              id_usuario_solicitante: ordenCompra.id_usuario_solicitante,
+              id_centro_costo: ordenCompra.id_centro_costo,
+              id_empresa: ordenCompra.id_empresa,
+              fecha_orden: ordenCompra.fecha_orden,
+              fecha_requerida: ordenCompra.fecha_requerida,
+              fecha_esperada_entrega: ordenCompra.fecha_prometida,
+              subtotal: ordenCompra.subtotal,
+              impuestos: ordenCompra.impuestos,
+              iva_porcentaje: ordenCompra.iva_porcentaje || 19.00,
+              descuentos: ordenCompra.descuentos,
+              total: ordenCompra.total,
+              observaciones: ordenCompra.observaciones,
+              terminos_pago: ordenCompra.terminos_pago,
+              moneda: ordenCompra.moneda,
+              tipo_cambio: ordenCompra.tipo_cambio,
+              direccion_entrega: ordenCompra.direccion_entrega,
+              contacto_entrega: ordenCompra.contacto_entrega,
+              telefono_contacto: ordenCompra.telefono_contacto,
+              activo: ordenCompra.activo
+            },
+            detalles: ordenCompra.detalles.map(detalle => ({
+              id_producto: detalle.id_producto,
+              cantidad_solicitada: detalle.cantidad_solicitada,
+              precio_unitario: detalle.precio_unitario,
+              descuento_porcentaje: detalle.descuento_porcentaje || 0,
+              descuento_importe: detalle.descuento_monto || 0,
+              precio_neto: detalle.precio_neto || 0,
+              importe_total: detalle.importe_total || 0,
+              observaciones: detalle.observaciones || '',
+              numero_linea: detalle.numero_linea,
+              activo: detalle.activo !== false
+            }))
+          }
+        : ordenCompra
+
+      const response = await apiStore.post(endpoint, payload)
       if (!response.success) {
-        throw new Error(response.error || 'Error al crear orden de compra')
+        const error: any = new Error(response.error || 'Error al crear orden de compra')
+        error.response = { data: response.data }
+        throw error
       }
       return response.data
     } catch (error) {
-      console.error('Error al crear orden de compra:', error)
       throw error
     }
   }
@@ -375,6 +476,19 @@ export const useOrdenCompraStore = defineStore('ordenesCompra', () => {
       return response.data.orden_compra
     } catch (error) {
       console.error('Error al cancelar orden de compra:', error)
+      throw error
+    }
+  }
+
+  const rechazarOrdenCompra = async (id: number, motivo: string): Promise<OrdenCompra> => {
+    try {
+      const response = await apiStore.patch(`/ordenes-compra/${id}/rechazar`, { motivo })
+      if (!response.success) {
+        throw new Error(response.error || 'Error al rechazar orden de compra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al rechazar orden de compra:', error)
       throw error
     }
   }
@@ -557,6 +671,7 @@ export const useOrdenCompraStore = defineStore('ordenesCompra', () => {
     buscarOrdenesCompra,
     obtenerOrdenCompra,
     obtenerOrdenCompraPorNumero,
+    generarSiguienteNumeroOrden,
     crearOrdenCompra,
     actualizarOrdenCompra,
     eliminarOrdenCompra,
@@ -568,6 +683,7 @@ export const useOrdenCompraStore = defineStore('ordenesCompra', () => {
     enviarOrdenCompra,
     cerrarOrdenCompra,
     cancelarOrdenCompra,
+    rechazarOrdenCompra,
 
     // Methods - Detalles
     obtenerDetallesOrdenCompra,

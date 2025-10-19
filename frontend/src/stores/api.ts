@@ -14,14 +14,10 @@ export const useApiStore = defineStore('api', () => {
   const apiClient: AxiosInstance = axios.create({
     baseURL,
     timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
   })
 
   apiClient.interceptors.request.use(
     (config) => {
-      console.log('Request:', config)
       return config
     },
     (error) => {
@@ -31,11 +27,9 @@ export const useApiStore = defineStore('api', () => {
 
   apiClient.interceptors.response.use(
     (response) => {
-      console.log('Response:', response)
       return response
     },
     (error) => {
-      console.error('API Error:', error)
       return Promise.reject(error)
     }
   )
@@ -72,9 +66,20 @@ export const useApiStore = defineStore('api', () => {
     }
   }
 
-  const post = async (url: string, data: any): Promise<ApiResponse> => {
+  const post = async (url: string, data: any, config?: any): Promise<ApiResponse> => {
     try {
-      const response = await apiClient.post(url, data)
+      // Si data es FormData, no enviar Content-Type header (axios lo manejará automáticamente)
+      const headers = data instanceof FormData
+        ? {}
+        : { 'Content-Type': 'application/json' }
+
+      const response = await apiClient.post(url, data, {
+        ...config,
+        headers: {
+          ...headers,
+          ...(config?.headers || {})
+        }
+      })
       return {
         success: true,
         data: response.data
@@ -82,14 +87,19 @@ export const useApiStore = defineStore('api', () => {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message
+        error: error.response?.data?.detail || error.message,
+        data: error.response?.data
       }
     }
   }
 
   const put = async (url: string, data: any): Promise<ApiResponse> => {
     try {
-      const response = await apiClient.put(url, data)
+      const response = await apiClient.put(url, data, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       return {
         success: true,
         data: response.data
@@ -119,7 +129,11 @@ export const useApiStore = defineStore('api', () => {
 
   const patch = async (url: string, data?: any): Promise<ApiResponse> => {
     try {
-      const response = await apiClient.patch(url, data)
+      const response = await apiClient.patch(url, data, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       return {
         success: true,
         data: response.data
@@ -134,11 +148,8 @@ export const useApiStore = defineStore('api', () => {
 
   const uploadFile = async (url: string, formData: FormData): Promise<ApiResponse> => {
     try {
-      const response = await apiClient.post(url, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
+      // No establecer Content-Type manualmente, axios lo hará con el boundary correcto
+      const response = await apiClient.post(url, formData)
       return {
         success: true,
         data: response.data

@@ -179,6 +179,30 @@ const router = createRouter({
       }
     },
     {
+      path: '/perfil',
+      name: 'perfil',
+      component: () => import('../views/PerfilView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/configuracion',
+      name: 'configuracion',
+      component: () => import('../views/ConfiguracionView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/centros-costo',
+      name: 'centros-costo',
+      component: () => import('../views/CentrosCostoView.vue'),
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')

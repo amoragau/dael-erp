@@ -2,31 +2,26 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Stock de Bodega</h4>
-          <p class="text-grey-7 q-mb-none">Consulta y gestión del inventario por bodega</p>
-        </div>
-        <div class="q-gutter-sm">
-          <q-btn
-            color="secondary"
-            icon="file_download"
-            label="Exportar"
-            @click="exportarStock"
-          />
-          <q-btn
-            color="primary"
-            icon="add"
-            label="Ajuste de Stock"
-            @click="abrirAjusteStock"
-          />
+          <div class="row items-center q-mb-sm">
+            <q-icon name="warehouse" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Stock por <span class="text-weight-bold text-primary">Bodega</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Consulta de inventario disponible por ubicación</p>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-end">
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
             <div class="col-12 col-md-3">
               <q-input
                 v-model="filtros.busqueda"
@@ -36,7 +31,7 @@
                 clearable
               >
                 <template v-slot:prepend>
-                  <q-icon name="search" />
+                  <q-icon name="search" color="grey-5" />
                 </template>
               </q-input>
             </div>
@@ -88,13 +83,9 @@
               />
             </div>
 
-            <div class="col-auto">
-              <q-btn
-                color="primary"
-                icon="search"
-                label="Buscar"
-                @click="buscarStock"
-              />
+            <div class="col-12 col-md-1 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarStock" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
             </div>
           </div>
         </q-card-section>
@@ -880,6 +871,15 @@ const cargarOpciones = async () => {
 const buscarStock = () => {
   // Implementar lógica de búsqueda
   cargarDatos()
+}
+
+const limpiarFiltros = () => {
+  filtros.busqueda = ''
+  filtros.bodega = null
+  filtros.categoria = null
+  filtros.estado_stock = null
+  filtros.solo_activos = true
+  buscarStock()
 }
 
 const onRequestStock = async (props: any) => {

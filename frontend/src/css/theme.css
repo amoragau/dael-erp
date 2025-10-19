@@ -1,0 +1,872 @@
+/* ===================================
+   ERP DAEL - MINIMAL BLUE THEME
+   =================================== */
+
+/* Variables CSS personalizadas para el tema azul minimalista */
+:root {
+  /* Paleta de colores azules */
+  --primary-50: #f0f7ff;
+  --primary-100: #e0efff;
+  --primary-200: #b8dfff;
+  --primary-300: #7cc7ff;
+  --primary-400: #36a9ff;
+  --primary-500: #0284ff;
+  --primary-600: #0066cc;
+  --primary-700: #0052a3;
+  --primary-800: #054785;
+  --primary-900: #0a3b6e;
+
+  /* Grises minimalistas */
+  --grey-50: #fafbfc;
+  --grey-100: #f4f6f8;
+  --grey-200: #e6eaed;
+  --grey-300: #d2d8dc;
+  --grey-400: #9ba3ab;
+  --grey-500: #6b7280;
+  --grey-600: #4b5563;
+  --grey-700: #374151;
+  --grey-800: #1f2937;
+  --grey-900: #111827;
+
+  /* Elevaciones suaves */
+  --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow-strong: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.02);
+
+  /* Bordes redondeados minimalistas */
+  --border-radius-sm: 6px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+
+  /* Espaciado consistente */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+/* Sobrescribir colores de Quasar */
+.q-primary { color: var(--primary-600) !important; }
+.bg-primary { background-color: var(--primary-600) !important; }
+.text-primary { color: var(--primary-600) !important; }
+
+.q-blue-1 { background-color: var(--primary-50) !important; }
+.q-blue-2 { background-color: var(--primary-100) !important; }
+.q-blue-3 { background-color: var(--primary-200) !important; }
+.q-blue-4 { background-color: var(--primary-300) !important; }
+.q-blue-5 { background-color: var(--primary-400) !important; }
+.q-blue-6 { background-color: var(--primary-500) !important; }
+.q-blue-7 { background-color: var(--primary-600) !important; }
+.q-blue-8 { background-color: var(--primary-700) !important; }
+.q-blue-9 { background-color: var(--primary-800) !important; }
+
+/* Background principal del layout */
+.q-layout {
+  background-color: var(--grey-50) !important;
+}
+
+/* Header personalizado */
+.q-header {
+  box-shadow: var(--shadow-light) !important;
+  border-bottom: 1px solid var(--grey-200);
+}
+
+.q-toolbar {
+  min-height: 64px !important;
+}
+
+/* Drawer personalizado */
+.q-drawer {
+  box-shadow: var(--shadow-light) !important;
+  border-right: 1px solid var(--grey-200);
+}
+
+/* Tarjetas minimalistas */
+.q-card {
+  border-radius: var(--border-radius-lg) !important;
+  box-shadow: var(--shadow-light) !important;
+  border: 1px solid var(--grey-200);
+}
+
+.q-card--flat {
+  box-shadow: none !important;
+  border: 1px solid var(--grey-200);
+}
+
+/* Botones minimalistas */
+.q-btn {
+  border-radius: var(--border-radius-md) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.q-btn--flat {
+  box-shadow: none !important;
+}
+
+.q-btn--outline {
+  border: 1.5px solid currentColor !important;
+}
+
+.q-btn--unelevated {
+  box-shadow: none !important;
+}
+
+.q-btn:hover:not(.q-btn--disable) {
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Inputs minimalistas */
+.q-field {
+  margin-bottom: var(--spacing-md) !important;
+}
+
+.q-field--outlined .q-field__control {
+  border-radius: var(--border-radius-md) !important;
+  border-color: var(--grey-300) !important;
+}
+
+.q-field--outlined.q-field--focused .q-field__control {
+  border-color: var(--primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 255, 0.1) !important;
+}
+
+.q-field--outlined .q-field__control:hover {
+  border-color: var(--grey-400) !important;
+}
+
+/* Tablas minimalistas */
+.q-table {
+  border-radius: var(--border-radius-lg) !important;
+  border: 1px solid var(--grey-200);
+}
+
+.q-table__top {
+  border-bottom: 1px solid var(--grey-200);
+  background-color: var(--grey-50);
+}
+
+.q-table thead th {
+  background-color: var(--grey-50) !important;
+  color: var(--grey-700) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.5px !important;
+  border-bottom: 2px solid var(--grey-200) !important;
+}
+
+.q-table tbody tr {
+  border-bottom: 1px solid var(--grey-100) !important;
+}
+
+.q-table tbody tr:hover {
+  background-color: var(--grey-50) !important;
+}
+
+/* Items del menú */
+.q-item {
+  border-radius: var(--border-radius-md) !important;
+  margin-bottom: var(--spacing-xs) !important;
+  transition: all 0.2s ease !important;
+}
+
+.q-item:hover {
+  background-color: var(--grey-100) !important;
+  transform: translateX(2px);
+}
+
+.q-item--active {
+  background-color: var(--primary-50) !important;
+  color: var(--primary-700) !important;
+  border-left: 3px solid var(--primary-600) !important;
+}
+
+.q-expansion-item__header {
+  border-radius: var(--border-radius-md) !important;
+  margin-bottom: var(--spacing-xs) !important;
+}
+
+/* Badges minimalistas */
+.q-badge {
+  border-radius: var(--border-radius-sm) !important;
+  font-weight: 500 !important;
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+}
+
+/* Separadores */
+.q-separator {
+  background-color: var(--grey-200) !important;
+}
+
+/* Avatars */
+.q-avatar {
+  border-radius: var(--border-radius-md) !important;
+}
+
+/* Notificaciones */
+.q-notification {
+  border-radius: var(--border-radius-lg) !important;
+  box-shadow: var(--shadow-strong) !important;
+}
+
+/* Dialogs */
+.q-dialog__inner {
+  padding: var(--spacing-lg) !important;
+}
+
+.q-dialog .q-card {
+  border-radius: var(--border-radius-xl) !important;
+}
+
+/* Scrollbars personalizadas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--grey-100);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--grey-300);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--grey-400);
+}
+
+/* Texto y tipografía minimalista */
+.text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
+  font-weight: 600 !important;
+  letter-spacing: -0.5px !important;
+}
+
+.text-subtitle1, .text-subtitle2 {
+  font-weight: 500 !important;
+}
+
+.text-body1, .text-body2 {
+  line-height: 1.6 !important;
+}
+
+.text-caption {
+  color: var(--grey-500) !important;
+}
+
+/* Estados de elementos */
+.q-item--disabled {
+  opacity: 0.5 !important;
+}
+
+/* Clases utilitarias adicionales */
+.rounded-borders {
+  border-radius: var(--border-radius-md) !important;
+}
+
+.shadow-light {
+  box-shadow: var(--shadow-light) !important;
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium) !important;
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-strong) !important;
+}
+
+.min-width-none {
+  min-width: none !important;
+}
+
+/* Animaciones suaves */
+* {
+  transition: all 0.2s ease;
+}
+
+/* Focus personalizado para accesibilidad */
+.q-focusable:focus {
+  outline: 2px solid var(--primary-500) !important;
+  outline-offset: 2px !important;
+}
+
+/* Media queries para responsive */
+@media (max-width: 768px) {
+  .q-toolbar {
+    padding: 0 12px !important;
+  }
+
+  .q-drawer {
+    width: 280px !important;
+  }
+
+  .q-card {
+    margin: var(--spacing-sm) !important;
+  }
+}
+
+/* Estados hover para mejores interacciones */
+.q-btn:hover {
+  box-shadow: var(--shadow-medium) !important;
+}
+
+.q-card:hover {
+  box-shadow: var(--shadow-medium) !important;
+  border-color: var(--grey-300) !important;
+}
+
+/* Loading states */
+.q-spinner {
+  color: var(--primary-600) !important;
+}
+
+/* Form improvements */
+.q-field--error .q-field__control {
+  border-color: #ef4444 !important;
+}
+
+.q-field--error .q-field__control:hover {
+  border-color: #dc2626 !important;
+}
+
+/* Success state */
+.q-field--success .q-field__control {
+  border-color: #10b981 !important;
+}
+
+/* Custom components styles */
+.orders-table .q-table__top {
+  padding: 16px 24px !important;
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--grey-50) 100%) !important;
+}
+
+.orders-table .q-table__bottom {
+  padding: 16px 24px !important;
+}
+
+.orders-table tbody tr:hover {
+  background-color: var(--primary-50) !important;
+  cursor: pointer;
+}
+
+/* Header improvements */
+.page-header {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--grey-50) 100%);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Status badges */
+.status-badge {
+  padding: 4px 12px !important;
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Action buttons */
+.action-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  margin: 0 2px !important;
+}
+
+.action-btn:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Card enhancements */
+.modern-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Loading states */
+.q-spinner-dots {
+  color: var(--primary-600) !important;
+}
+
+/* Notification improvements */
+.q-notification--positive {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+.q-notification--negative {
+  background-color: #ef4444 !important;
+  color: white !important;
+}
+
+.q-notification--warning {
+  background-color: #f59e0b !important;
+  color: white !important;
+}
+
+.q-notification--info {
+  background-color: var(--primary-600) !important;
+  color: white !important;
+}
+
+/* ===================================
+   DARK THEME
+   =================================== */
+
+body.dark {
+  /* Dark mode color palette */
+  --primary-50: #0a1929;
+  --primary-100: #0f2744;
+  --primary-200: #1e3a5f;
+  --primary-300: #2e4d7a;
+  --primary-400: #3d6095;
+  --primary-500: #5180b8;
+  --primary-600: #7ca6d8;
+  --primary-700: #a0c0e8;
+  --primary-800: #c4daf8;
+  --primary-900: #e8f4ff;
+
+  /* Dark grays */
+  --grey-50: #111827;
+  --grey-100: #1f2937;
+  --grey-200: #374151;
+  --grey-300: #4b5563;
+  --grey-400: #6b7280;
+  --grey-500: #9ba3ab;
+  --grey-600: #d2d8dc;
+  --grey-700: #e6eaed;
+  --grey-800: #f4f6f8;
+  --grey-900: #fafbfc;
+
+  /* Darker shadows */
+  --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-strong: 0 10px 15px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(0, 0, 0, 0.3);
+
+  background-color: var(--grey-50) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Layout */
+body.dark .q-layout {
+  background-color: var(--grey-50) !important;
+}
+
+body.dark .q-page {
+  background-color: var(--grey-50) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Header */
+body.dark .q-header {
+  background-color: var(--grey-100) !important;
+  border-bottom-color: var(--grey-200) !important;
+}
+
+body.dark .q-toolbar {
+  background-color: var(--grey-100) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Drawer */
+body.dark .q-drawer {
+  background-color: var(--grey-100) !important;
+  border-right-color: var(--grey-200) !important;
+}
+
+body.dark .q-drawer .bg-white {
+  background-color: var(--grey-100) !important;
+}
+
+body.dark .q-drawer .bg-blue-1 {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-drawer .text-h6,
+body.dark .q-drawer .text-caption {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-drawer .q-expansion-item__header {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-drawer .q-expansion-item .text-primary {
+  color: var(--primary-700) !important;
+}
+
+/* Dark theme - Cards */
+body.dark .q-card {
+  background-color: var(--grey-100) !important;
+  border-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-card__section {
+  background-color: transparent !important;
+}
+
+body.dark .q-card .bg-blue-1 {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-card .bg-green-1 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+body.dark .q-card .bg-orange-1 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+body.dark .q-card .bg-purple-1 {
+  background-color: rgba(168, 85, 247, 0.1) !important;
+}
+
+/* Dark theme - Tables */
+body.dark .q-table {
+  background-color: var(--grey-100) !important;
+  border-color: var(--grey-200) !important;
+}
+
+body.dark .q-table__top {
+  background-color: var(--grey-200) !important;
+  border-bottom-color: var(--grey-300) !important;
+}
+
+body.dark .q-table thead th {
+  background-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+  border-bottom-color: var(--grey-300) !important;
+}
+
+body.dark .q-table tbody tr {
+  background-color: var(--grey-100) !important;
+  border-bottom-color: var(--grey-200) !important;
+}
+
+body.dark .q-table tbody tr:hover {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-table__bottom {
+  background-color: var(--grey-200) !important;
+  border-top: 1px solid var(--grey-300) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-table__bottom .q-table__control {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-table td,
+body.dark .q-table th {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Inputs */
+body.dark .q-field--outlined .q-field__control {
+  background-color: var(--grey-200) !important;
+  border-color: var(--grey-300) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-field__label {
+  color: var(--grey-600) !important;
+}
+
+body.dark .q-field--outlined .q-field__control:hover {
+  border-color: var(--grey-400) !important;
+}
+
+body.dark .q-field--outlined.q-field--focused .q-field__control {
+  border-color: var(--primary-600) !important;
+  box-shadow: 0 0 0 3px rgba(81, 128, 184, 0.2) !important;
+}
+
+body.dark .q-field__native,
+body.dark .q-field__input {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Buttons */
+body.dark .q-btn {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-btn--flat:not(.q-btn--disable):hover {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-btn.bg-primary {
+  background-color: var(--primary-600) !important;
+  color: var(--grey-50) !important;
+}
+
+body.dark .q-btn.text-primary {
+  color: var(--primary-600) !important;
+}
+
+/* Dark theme - Menu items */
+body.dark .q-item {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-item:hover {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-item--active,
+body.dark .q-item.bg-blue-1 {
+  background-color: var(--grey-200) !important;
+  color: var(--primary-700) !important;
+  border-left-color: var(--primary-600) !important;
+}
+
+body.dark .q-item__label {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-item__label--caption {
+  color: var(--grey-600) !important;
+}
+
+/* Dark theme - Separators */
+body.dark .q-separator {
+  background-color: var(--grey-300) !important;
+}
+
+/* Dark theme - Text colors */
+body.dark .text-grey-6,
+body.dark .text-grey-7,
+body.dark .text-caption {
+  color: var(--grey-600) !important;
+}
+
+body.dark .text-primary {
+  color: var(--primary-700) !important;
+}
+
+body.dark .text-h1,
+body.dark .text-h2,
+body.dark .text-h3,
+body.dark .text-h4,
+body.dark .text-h5,
+body.dark .text-h6 {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Page header */
+body.dark .page-header {
+  background: linear-gradient(135deg, var(--grey-200) 0%, var(--grey-100) 100%) !important;
+}
+
+/* Dark theme - Scrollbars */
+body.dark ::-webkit-scrollbar-track {
+  background: var(--grey-200) !important;
+}
+
+body.dark ::-webkit-scrollbar-thumb {
+  background: var(--grey-400) !important;
+}
+
+body.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--grey-500) !important;
+}
+
+/* Dark theme - Badges */
+body.dark .q-badge {
+  background-color: var(--grey-300) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Dialogs */
+body.dark .q-dialog .q-card {
+  background-color: var(--grey-100) !important;
+}
+
+/* Dark theme - Select dropdown */
+body.dark .q-menu {
+  background-color: var(--grey-100) !important;
+  border: 1px solid var(--grey-200) !important;
+}
+
+body.dark .q-item.q-manual-focusable--focused {
+  background-color: var(--grey-200) !important;
+}
+
+/* Dark theme - Icons */
+body.dark .q-icon {
+  color: var(--grey-700) !important;
+}
+
+body.dark .q-icon.text-primary {
+  color: var(--primary-700) !important;
+}
+
+/* Dark theme - Special backgrounds */
+body.dark .bg-grey-1,
+body.dark .bg-grey-2 {
+  background-color: var(--grey-200) !important;
+}
+
+/* Dark theme - Tooltips */
+body.dark .q-tooltip {
+  background-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Pagination controls */
+body.dark .q-table__bottom .q-btn {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-table__bottom .q-btn .q-icon {
+  color: var(--grey-700) !important;
+}
+
+body.dark .q-table__bottom .q-btn--disable {
+  opacity: 0.5 !important;
+}
+
+body.dark .q-table__bottom .q-field {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-table__bottom .q-select .q-field__native {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Text improvements for better readability */
+body.dark p,
+body.dark span,
+body.dark div {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-field__native::placeholder,
+body.dark .q-field__input::placeholder {
+  color: var(--grey-500) !important;
+}
+
+/* Dark theme - Card headers and sections text */
+body.dark .q-card__section .text-h6,
+body.dark .q-card__section .text-subtitle1,
+body.dark .q-card__section .text-subtitle2,
+body.dark .q-card__section .text-body1,
+body.dark .q-card__section .text-body2 {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - List items text */
+body.dark .q-list .q-item__label {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Tab text */
+body.dark .q-tab {
+  color: var(--grey-700) !important;
+}
+
+body.dark .q-tab--active {
+  color: var(--primary-700) !important;
+}
+
+body.dark .q-tab__label {
+  color: inherit !important;
+}
+
+/* Dark theme - Form labels */
+body.dark label,
+body.dark .q-field__label {
+  color: var(--grey-700) !important;
+}
+
+/* Dark theme - Chip/Badge improvements */
+body.dark .q-chip {
+  background-color: var(--grey-300) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Expansion items */
+body.dark .q-expansion-item__label {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Calendar/Date picker */
+body.dark .q-date {
+  background-color: var(--grey-100) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-date__header {
+  background-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-date__view {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-date__calendar-item button {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Time picker */
+body.dark .q-time {
+  background-color: var(--grey-100) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-time__header {
+  background-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Banner text */
+body.dark .q-banner {
+  background-color: var(--grey-200) !important;
+}
+
+body.dark .q-banner__content {
+  color: var(--grey-900) !important;
+}
+
+/* Dark theme - Stepper */
+body.dark .q-stepper {
+  background-color: var(--grey-100) !important;
+}
+
+body.dark .q-stepper__header {
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-stepper__tab {
+  color: var(--grey-700) !important;
+}
+
+body.dark .q-stepper__tab--active {
+  color: var(--primary-700) !important;
+}
+
+/* Dark theme - Uploader */
+body.dark .q-uploader {
+  background-color: var(--grey-100) !important;
+  color: var(--grey-900) !important;
+}
+
+body.dark .q-uploader__header {
+  background-color: var(--grey-200) !important;
+  color: var(--grey-900) !important;
+}

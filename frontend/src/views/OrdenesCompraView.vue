@@ -1,97 +1,155 @@
 <template>
-  <q-page padding>
-    <div class="q-pa-md">
+  <q-page class="bg-grey-1">
+    <div class="q-pa-lg">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Órdenes de Compra</h4>
-          <p class="text-grey-7 q-mb-none">Gestión integral de órdenes de compra</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="local_mall" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Órdenes de <span class="text-weight-bold text-primary">Compra</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión integral de órdenes de compra y aprobaciones</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nueva Orden"
           @click="abrirFormularioOrdenCompra"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por número de orden..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.proveedor"
-              :options="proveedoresOptions"
-              label="Proveedor"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 200px"
-            />
-            <q-select
-              v-model="filtros.estado"
-              :options="estadosOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-input
-              v-model="filtros.fechaDesde"
-              type="date"
-              label="Fecha desde"
-              outlined
-              dense
-              clearable
-              style="min-width: 150px"
-            />
-            <q-input
-              v-model="filtros.fechaHasta"
-              type="date"
-              label="Fecha hasta"
-              outlined
-              dense
-              clearable
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarOrdenesCompra"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <!-- Primera fila de filtros -->
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por número de orden..."
+                outlined
+                clearable
+                dense
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.proveedor"
+                :options="proveedoresOptions"
+                label="Proveedor"
+                outlined
+                clearable
+                emit-value
+                map-options
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.empresa"
+                :options="empresasOptions"
+                label="Empresa Emisora"
+                outlined
+                clearable
+                emit-value
+                map-options
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadosOptions"
+                label="Estado"
+                outlined
+                clearable
+                emit-value
+                map-options
+                dense
+              />
+            </div>
+
+            <!-- Segunda fila de filtros -->
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.centro_costo"
+                :options="centrosCostoOptions"
+                label="Centro de Costo"
+                outlined
+                clearable
+                emit-value
+                map-options
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fechaDesde"
+                type="date"
+                label="Fecha desde"
+                outlined
+                clearable
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fechaHasta"
+                type="date"
+                label="Fecha hasta"
+                outlined
+                clearable
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-5 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="buscarOrdenesCompra"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
 
       <!-- Orders Table -->
-      <q-table
-        :rows="ordenesCompraFiltradas"
-        :columns="columnsOrdenesCompra"
-        :loading="isLoading"
-        :pagination="paginacion"
-        row-key="id_orden_compra"
-        flat
-        bordered
-        @request="onRequestOrdenesCompra"
-      >
+      <q-card flat class="shadow-light">
+        <q-card-section class="q-pa-none">
+          <q-table
+            :rows="ordenesCompraFiltradas"
+            :columns="columnsOrdenesCompra"
+            :loading="isLoading"
+            :pagination="paginacion"
+            row-key="id_orden_compra"
+            flat
+            @request="onRequestOrdenesCompra"
+            class="orders-table"
+          >
         <template v-slot:body-cell-estado="props">
           <q-td :props="props">
             <q-badge
@@ -149,6 +207,28 @@
               </q-btn>
               <q-btn
                 size="sm"
+                color="red"
+                icon="picture_as_pdf"
+                @click="verPDF(props.row)"
+                dense
+                round
+                :disable="!puedeVerPDF(props.row)"
+              >
+                <q-tooltip>{{ puedeVerPDF(props.row) ? 'Ver PDF' : 'No se puede generar PDF de órdenes canceladas o rechazadas' }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                size="sm"
+                color="purple"
+                icon="receipt"
+                @click="crearDocumentoDesdeOrden(props.row)"
+                dense
+                round
+                :disable="!puedeCrearDocumento(props.row)"
+              >
+                <q-tooltip>{{ puedeCrearDocumento(props.row) ? 'Crear Documento de Compra' : 'Solo se pueden crear documentos de órdenes aprobadas o enviadas' }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                size="sm"
                 color="green"
                 icon="edit"
                 @click="editarOrdenCompra(props.row)"
@@ -170,30 +250,21 @@
               </q-btn>
               <q-btn
                 size="sm"
-                :color="getAccionColor(props.row.estado)"
-                :icon="getAccionIcon(props.row.estado)"
-                @click="ejecutarAccion(props.row)"
-                dense
-                round
-                :disable="!puedeEjecutarAccion(props.row)"
-              >
-                <q-tooltip>{{ getAccionTooltip(props.row.estado) }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                size="sm"
                 color="red"
-                icon="delete"
+                icon="cancel"
                 @click="eliminarOrdenCompra(props.row)"
                 dense
                 round
                 :disable="!puedeEliminar(props.row)"
               >
-                <q-tooltip>Eliminar</q-tooltip>
+                <q-tooltip>Cancelar orden</q-tooltip>
               </q-btn>
             </div>
           </q-td>
         </template>
-      </q-table>
+          </q-table>
+        </q-card-section>
+      </q-card>
 
       <!-- Dialog para formulario de orden de compra -->
       <q-dialog v-model="mostrarFormulario" persistent>
@@ -283,6 +354,36 @@
                         </div>
 
                         <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.id_centro_costo"
+                            :options="centrosCostoOptions"
+                            label="Centro de Costo *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            clearable
+                            :rules="[val => !!val || 'Centro de costo es requerido']"
+                            hint="Seleccione el centro de costo"
+                          />
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 col-xs-12">
+                          <q-select
+                            v-model="formulario.id_empresa"
+                            :options="empresasOptions"
+                            label="Empresa Emisora *"
+                            outlined
+                            dense
+                            emit-value
+                            map-options
+                            clearable
+                            :rules="[val => !!val || 'Empresa emisora es requerida']"
+                            hint="Seleccione la empresa emisora"
+                          />
+                        </div>
+
+                        <div class="col-md-3 col-sm-6 col-xs-12">
                           <q-input
                             v-model="formulario.fecha_orden"
                             type="date"
@@ -364,7 +465,7 @@
                       <div class="row q-gutter-md">
                         <div class="col-md-6 col-sm-12 col-xs-12">
                           <q-input
-                            v-model="formulario.condiciones_pago"
+                            v-model="formulario.terminos_pago"
                             label="Condiciones de Pago"
                             outlined
                             dense
@@ -375,7 +476,7 @@
 
                         <div class="col-md-6 col-sm-12 col-xs-12">
                           <q-input
-                            v-model="formulario.lugar_entrega"
+                            v-model="formulario.direccion_entrega"
                             label="Lugar de Entrega"
                             outlined
                             dense
@@ -552,10 +653,10 @@
                           </q-td>
                         </template>
 
-                        <template v-slot:body-cell-total_linea="props">
+                        <template v-slot:body-cell-importe_total="props">
                           <q-td :props="props">
                             <span class="text-weight-bold">
-                              {{ formatCurrency(props.row.total_linea || 0) }}
+                              {{ formatCurrency(props.row.importe_total || 0) }}
                             </span>
                           </q-td>
                         </template>
@@ -799,10 +900,10 @@
                                   </q-td>
                                 </template>
 
-                                <template v-slot:body-cell-total_linea="props">
+                                <template v-slot:body-cell-importe_total="props">
                                   <q-td :props="props">
                                     <span class="text-weight-bold">
-                                      {{ formatCurrency(props.row.total_linea || 0) }}
+                                      {{ formatCurrency(props.row.importe_total || 0) }}
                                     </span>
                                   </q-td>
                                 </template>
@@ -825,7 +926,7 @@
                                   <q-field label="Condiciones de Pago" stack-label outlined readonly dense>
                                     <template v-slot:control>
                                       <div class="self-center full-width no-outline" tabindex="-1">
-                                        {{ formulario.condiciones_pago || 'No especificado' }}
+                                        {{ formulario.terminos_pago || 'No especificado' }}
                                       </div>
                                     </template>
                                   </q-field>
@@ -836,7 +937,7 @@
                                   <q-field label="Lugar de Entrega" stack-label outlined readonly dense>
                                     <template v-slot:control>
                                       <div class="self-center full-width no-outline" tabindex="-1">
-                                        {{ formulario.lugar_entrega || 'No especificado' }}
+                                        {{ formulario.direccion_entrega || 'No especificado' }}
                                       </div>
                                     </template>
                                   </q-field>
@@ -1081,23 +1182,46 @@
                 </q-field>
               </div>
 
-              <div class="col-md-3 col-sm-6 col-xs-12">
+              <div class="col-md-4 col-sm-6 col-xs-12">
                 <q-field label="Proveedor" stack-label outlined readonly dense>
                   <template v-slot:control>
                     <div class="self-center full-width no-outline" tabindex="-1">
-                      {{ ordenSeleccionada.proveedor?.razon_social }}
+                      <div class="text-weight-medium">{{ ordenSeleccionada.proveedor?.razon_social }}</div>
+                      <div class="text-caption text-grey-6">RUT: {{ ordenSeleccionada.proveedor?.rfc }}</div>
                     </div>
                   </template>
                 </q-field>
               </div>
 
               <div class="col-md-3 col-sm-6 col-xs-12">
+                <q-field label="Centro de Costo" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      <div class="text-weight-medium">{{ ordenSeleccionada.centro_costo?.nombre_centro_costo || 'No especificado' }}</div>
+                      <div class="text-caption text-grey-6" v-if="ordenSeleccionada.centro_costo">Código: {{ ordenSeleccionada.centro_costo.codigo_centro_costo }}</div>
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-3 col-sm-6 col-xs-12">
+                <q-field label="Empresa Emisora" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      <div class="text-weight-medium">{{ ordenSeleccionada.empresa?.razon_social || 'No especificada' }}</div>
+                      <div class="text-caption text-grey-6" v-if="ordenSeleccionada.empresa">RUT: {{ ordenSeleccionada.empresa.rut_empresa }}</div>
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-2 col-sm-6 col-xs-12">
                 <q-field label="Estado" stack-label outlined readonly dense>
                   <template v-slot:control>
                     <div class="self-center full-width no-outline" tabindex="-1">
                       <q-badge
-                        :color="getEstadoColor(ordenSeleccionada.estado)"
-                        :label="ordenSeleccionada.estado"
+                        :color="getEstadoColor(ordenSeleccionada.estado?.codigo_estado)"
+                        :label="ordenSeleccionada.estado?.nombre_estado"
                       />
                     </div>
                   </template>
@@ -1125,10 +1249,88 @@
               </div>
 
               <div class="col-md-3 col-sm-6 col-xs-12">
-                <q-field label="Total" stack-label outlined readonly dense>
+                <q-field label="Moneda" stack-label outlined readonly dense>
                   <template v-slot:control>
-                    <div class="self-center full-width no-outline text-weight-bold text-primary" tabindex="-1">
-                      {{ formatCurrency(ordenSeleccionada.total) }}
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.moneda || 'CLP' }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-3 col-sm-6 col-xs-12">
+                <q-field label="Tipo de Cambio" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.tipo_cambio || 1 }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-6 col-sm-12 col-xs-12">
+                <q-field label="Términos de Pago" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.terminos_pago || 'No especificado' }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-6 col-sm-12 col-xs-12">
+                <q-field label="Lugar de Entrega" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.direccion_entrega || 'No especificado' }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-12" v-if="ordenSeleccionada.observaciones">
+                <q-field label="Observaciones" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.observaciones }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+            </div>
+
+            <!-- Información de envío -->
+            <div class="row q-gutter-md q-mb-lg" v-if="ordenSeleccionada.direccion_entrega || ordenSeleccionada.contacto_entrega || ordenSeleccionada.telefono_contacto">
+              <div class="col-12">
+                <q-separator />
+                <h6 class="q-ma-none q-mb-md q-mt-md">Información de Envío</h6>
+              </div>
+
+              <div class="col-md-6 col-sm-12 col-xs-12" v-if="ordenSeleccionada.direccion_entrega">
+                <q-field label="Dirección de Entrega" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.direccion_entrega }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-3 col-sm-6 col-xs-12" v-if="ordenSeleccionada.contacto_entrega">
+                <q-field label="Contacto de Entrega" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.contacto_entrega }}
+                    </div>
+                  </template>
+                </q-field>
+              </div>
+
+              <div class="col-md-3 col-sm-6 col-xs-12" v-if="ordenSeleccionada.telefono_contacto">
+                <q-field label="Teléfono de Contacto" stack-label outlined readonly dense>
+                  <template v-slot:control>
+                    <div class="self-center full-width no-outline" tabindex="-1">
+                      {{ ordenSeleccionada.telefono_contacto }}
                     </div>
                   </template>
                 </q-field>
@@ -1154,27 +1356,45 @@
                   <template v-slot:body-cell-producto="props">
                     <q-td :props="props">
                       <div>
-                        <div class="text-weight-bold">{{ props.row.producto?.sku }}</div>
-                        <div class="text-caption">{{ props.row.producto?.nombre_producto }}</div>
+                        <div class="text-caption text-grey-7">{{ props.row.producto?.sku || 'N/A' }}</div>
+                        <div class="text-weight-bold">{{ props.row.producto?.nombre_producto || 'Sin nombre' }}</div>
                       </div>
                     </q-td>
                   </template>
 
+                  <template v-slot:body-cell-cantidad_solicitada="props">
+                    <q-td :props="props" class="text-center">
+                      {{ formatQuantity(props.value) }}
+                    </q-td>
+                  </template>
+
+                  <template v-slot:body-cell-cantidad_recibida="props">
+                    <q-td :props="props" class="text-center">
+                      {{ formatQuantity(props.value) }}
+                    </q-td>
+                  </template>
+
                   <template v-slot:body-cell-precio_unitario="props">
-                    <q-td :props="props">
+                    <q-td :props="props" class="text-right">
                       {{ formatCurrency(props.value) }}
                     </q-td>
                   </template>
 
-                  <template v-slot:body-cell-subtotal_linea="props">
-                    <q-td :props="props">
+                  <template v-slot:body-cell-descuento_monto="props">
+                    <q-td :props="props" class="text-right text-red">
+                      {{ formatCurrency(props.value || 0) }}
+                    </q-td>
+                  </template>
+
+                  <template v-slot:body-cell-precio_neto="props">
+                    <q-td :props="props" class="text-right">
                       {{ formatCurrency(props.value) }}
                     </q-td>
                   </template>
 
-                  <template v-slot:body-cell-total_linea="props">
-                    <q-td :props="props">
-                      <span class="text-weight-bold">
+                  <template v-slot:body-cell-importe_total="props">
+                    <q-td :props="props" class="text-right">
+                      <span class="text-weight-bold text-primary">
                         {{ formatCurrency(props.value) }}
                       </span>
                     </q-td>
@@ -1183,25 +1403,63 @@
               </div>
             </div>
 
+            <!-- Totales de la orden -->
+            <div class="row q-gutter-md q-mt-md">
+              <div class="col-12">
+                <q-separator />
+              </div>
+
+              <div class="col-12">
+                <div class="row justify-end">
+                  <div class="col-md-4 col-sm-6 col-xs-12">
+                    <q-card flat bordered>
+                      <q-card-section>
+                        <div class="row q-col-gutter-sm">
+                          <div class="col-12">
+                            <div class="row items-center justify-between">
+                              <div class="text-body2">Subtotal:</div>
+                              <div class="text-body2 text-weight-medium">{{ formatCurrency(ordenSeleccionada.subtotal) }}</div>
+                            </div>
+                          </div>
+
+                          <div class="col-12">
+                            <div class="row items-center justify-between">
+                              <div class="text-body2 text-red">Descuentos:</div>
+                              <div class="text-body2 text-weight-medium text-red">-{{ formatCurrency(ordenSeleccionada.descuentos) }}</div>
+                            </div>
+                          </div>
+
+                          <div class="col-12">
+                            <div class="row items-center justify-between">
+                              <div class="text-body2">IVA ({{ ordenSeleccionada.iva_porcentaje || 19 }}%):</div>
+                              <div class="text-body2 text-weight-medium">{{ formatCurrency(ordenSeleccionada.impuestos) }}</div>
+                            </div>
+                          </div>
+
+                          <div class="col-12">
+                            <q-separator />
+                          </div>
+
+                          <div class="col-12">
+                            <div class="row items-center justify-between">
+                              <div class="text-h6 text-weight-bold">TOTAL:</div>
+                              <div class="text-h6 text-weight-bold text-primary">{{ formatCurrency(ordenSeleccionada.total) }}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Botones de acción -->
             <div class="row justify-end q-gutter-md q-mt-lg">
               <q-btn
                 label="Cerrar"
-                color="grey"
-                flat
-                @click="cerrarDetalle"
-              />
-              <q-btn
-                v-if="puedeEditar(ordenSeleccionada)"
-                label="Editar"
                 color="primary"
-                @click="editarOrdenCompraDesdeDetalle"
-              />
-              <q-btn
-                v-if="puedeEjecutarAccion(ordenSeleccionada)"
-                :label="getAccionLabel(ordenSeleccionada.estado)"
-                :color="getAccionColor(ordenSeleccionada.estado)"
-                @click="ejecutarAccion(ordenSeleccionada)"
+                @click="cerrarDetalle"
               />
             </div>
           </q-card-section>
@@ -1214,16 +1472,28 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useQuasar } from 'quasar'
-import { useOrdenCompraStore, type OrdenCompra, type OrdenCompraCreate, type OrdenCompraDetalle, type OrdenCompraDetalleCreate } from '@/stores/ordenesCompra'
+import { useRouter } from 'vue-router'
+import type { QTableColumn } from 'quasar'
+import { useOrdenCompraStore, type OrdenCompra, type OrdenCompraCreate, type OrdenCompraDetalle, type OrdenCompraDetalleCreate, type Producto } from '@/stores/ordenesCompra'
 import { useLogStore } from '@/stores/logs'
 import { useAuthStore } from '@/stores/auth'
+import { useCentroCostoStore } from '@/stores/centrosCosto'
+import { useEmpresaStore } from '@/stores/empresas'
+import { formatCurrency as formatCurrencyUtil, formatNumber as formatNumberUtil } from '@/utils/formatters'
 
 const $q = useQuasar()
+const router = useRouter()
 const ordenCompraStore = useOrdenCompraStore()
 const logStore = useLogStore()
 const authStore = useAuthStore()
+const centroCostoStore = useCentroCostoStore()
+const empresaStore = useEmpresaStore()
 
 // Estado reactivo
+type OrdenCompraDetalleForm = OrdenCompraDetalleCreate & {
+  producto?: Producto
+}
+
 const mostrarFormulario = ref(false)
 const tabActivoOrden = ref('general')
 const mostrarSelectorProducto = ref(false)
@@ -1233,7 +1503,7 @@ const guardando = ref(false)
 const cargandoProductos = ref(false)
 const busquedaProducto = ref('')
 const busquedaProveedor = ref('')
-const productoSeleccionado = ref([])
+const productoSeleccionado = ref<Producto[]>([])
 const ordenSeleccionada = ref<OrdenCompra | null>(null)
 const especificacionesGenerales = ref('')
 const observacionesGenerales = ref('')
@@ -1242,6 +1512,8 @@ const observacionesGenerales = ref('')
 const filtros = reactive({
   busqueda: '',
   proveedor: null,
+  centro_costo: null,
+  empresa: null,
   estado: null,
   fechaDesde: '',
   fechaHasta: ''
@@ -1258,20 +1530,24 @@ const paginacion = ref({
 
 // Formulario
 const formularioInicial = {
+  id_orden_compra: null as number | null,
   numero_orden: '',
   id_proveedor: null,
+  id_centro_costo: null,
+  id_empresa: null,
   fecha_orden: new Date().toISOString().split('T')[0],
   fecha_requerida: '',
   fecha_prometida: '',
   estado: 'CREADA',
   subtotal: 0,
   impuestos: 0,
+  iva_porcentaje: 19,
   descuentos: 0,
   total: 0,
   moneda: 'CLP',
   tipo_cambio: 1,
-  condiciones_pago: '',
-  lugar_entrega: '',
+  terminos_pago: '',
+  direccion_entrega: '',
   contacto_proveedor: '',
   plazo_entrega: null,
   prioridad: 'NORMAL',
@@ -1279,7 +1555,7 @@ const formularioInicial = {
   terminos_condiciones: '',
   observaciones: '',
   activo: true,
-  detalles: [] as OrdenCompraDetalleCreate[]
+  detalles: [] as OrdenCompraDetalleForm[]
 }
 
 const formulario = reactive({ ...formularioInicial })
@@ -1298,6 +1574,14 @@ const ordenesCompraFiltradas = computed(() => {
 
   if (filtros.proveedor) {
     ordenes = ordenes.filter(orden => orden.id_proveedor === filtros.proveedor)
+  }
+
+  if (filtros.centro_costo) {
+    ordenes = ordenes.filter(orden => orden.id_centro_costo === filtros.centro_costo)
+  }
+
+  if (filtros.empresa) {
+    ordenes = ordenes.filter(orden => orden.id_empresa === filtros.empresa)
   }
 
   if (filtros.estado) {
@@ -1355,10 +1639,28 @@ const metodosEnvioOptions = [
   { label: 'Otro', value: 'OTRO' }
 ]
 
+const centrosCostoOptions = computed(() =>
+  centroCostoStore.centrosCosto
+    .filter(centro => centro.activo)
+    .map(centro => ({
+      label: `${centro.codigo_centro_costo} - ${centro.nombre_centro_costo}`,
+      value: centro.id_centro_costo
+    }))
+)
+
+const empresasOptions = computed(() =>
+  empresaStore.empresas
+    .filter(empresa => empresa.activo)
+    .map(empresa => ({
+      label: `${empresa.razon_social} (${empresa.rut_empresa})`,
+      value: empresa.id_empresa
+    }))
+)
+
 const productosDisponibles = computed(() => ordenCompraStore.productos)
 
 const totales = computed(() => {
-  const subtotal = formulario.detalles.reduce((sum, detalle) => sum + (detalle.subtotal_linea || 0), 0)
+  const subtotal = formulario.detalles.reduce((sum, detalle) => sum + (detalle.precio_neto || 0), 0)
   const descuentos = formulario.detalles.reduce((sum, detalle) => sum + (detalle.descuento_monto || 0), 0)
   const impuestos = formulario.detalles.reduce((sum, detalle) => sum + (detalle.impuesto_monto || 0), 0)
   const total = subtotal - descuentos + impuestos
@@ -1373,6 +1675,8 @@ const totales = computed(() => {
 
 const formularioValido = computed(() => {
   return formulario.id_proveedor &&
+         formulario.id_centro_costo &&
+         formulario.id_empresa &&
          formulario.fecha_orden &&
          formulario.fecha_requerida &&
          formulario.detalles.length > 0
@@ -1384,7 +1688,7 @@ const proveedorSeleccionado = computed(() => {
 })
 
 // Columnas de la tabla principal
-const columnsOrdenesCompra = [
+const columnsOrdenesCompra: QTableColumn<OrdenCompra>[] = [
   {
     name: 'numero_orden',
     label: 'Número',
@@ -1396,7 +1700,36 @@ const columnsOrdenesCompra = [
     name: 'proveedor',
     label: 'Proveedor',
     align: 'left',
-    field: (row: OrdenCompra) => row.proveedor?.razon_social,
+    field: (row: OrdenCompra) => {
+      if (row.proveedor) {
+        return `${row.proveedor.razon_social} (${row.proveedor.rfc})`
+      }
+      return ''
+    },
+    sortable: true
+  },
+  {
+    name: 'centro_costo',
+    label: 'Centro de Costo',
+    align: 'left',
+    field: (row: OrdenCompra) => {
+      if (row.centro_costo) {
+        return `${row.centro_costo.codigo_centro_costo} - ${row.centro_costo.nombre_centro_costo}`
+      }
+      return ''
+    },
+    sortable: true
+  },
+  {
+    name: 'empresa',
+    label: 'Empresa',
+    align: 'left',
+    field: (row: OrdenCompra) => {
+      if (row.empresa) {
+        return row.empresa.nombre_fantasia || row.empresa.razon_social
+      }
+      return ''
+    },
     sortable: true
   },
   {
@@ -1417,7 +1750,7 @@ const columnsOrdenesCompra = [
     name: 'estado',
     label: 'Estado',
     align: 'center',
-    field: 'estado',
+    field: (row: OrdenCompra) => row.estado?.nombre_estado || '',
     sortable: true
   },
   {
@@ -1438,13 +1771,13 @@ const columnsOrdenesCompra = [
     name: 'acciones',
     label: 'Acciones',
     align: 'center',
-    field: 'acciones',
+    field: (row: OrdenCompra) => row.id_orden_compra,
     sortable: false
   }
 ]
 
 // Columnas para detalles en formulario
-const columnsDetalles = [
+const columnsDetalles: QTableColumn[] = [
   {
     name: 'producto',
     label: 'Producto',
@@ -1476,10 +1809,10 @@ const columnsDetalles = [
     field: 'impuesto_porcentaje'
   },
   {
-    name: 'total_linea',
+    name: 'importe_total',
     label: 'Total',
     align: 'right',
-    field: 'total_linea'
+    field: 'importe_total'
   },
   {
     name: 'acciones',
@@ -1490,7 +1823,7 @@ const columnsDetalles = [
 ]
 
 // Columnas para ver detalles
-const columnsDetallesVer = [
+const columnsDetallesVer: QTableColumn[] = [
   {
     name: 'numero_linea',
     label: 'Línea',
@@ -1528,27 +1861,27 @@ const columnsDetallesVer = [
     field: 'descuento_porcentaje'
   },
   {
-    name: 'impuesto_porcentaje',
-    label: 'IVA %',
-    align: 'center',
-    field: 'impuesto_porcentaje'
+    name: 'descuento_monto',
+    label: 'Desc. Monto',
+    align: 'right',
+    field: 'descuento_monto'
   },
   {
-    name: 'subtotal_linea',
+    name: 'precio_neto',
     label: 'Subtotal',
     align: 'right',
-    field: 'subtotal_linea'
+    field: 'precio_neto'
   },
   {
-    name: 'total_linea',
+    name: 'importe_total',
     label: 'Total',
     align: 'right',
-    field: 'total_linea'
+    field: 'importe_total'
   }
 ]
 
 // Columnas para resumen
-const columnsResumen = [
+const columnsResumen: QTableColumn[] = [
   {
     name: 'numero_linea',
     label: 'Línea',
@@ -1586,15 +1919,15 @@ const columnsResumen = [
     field: 'impuesto_porcentaje'
   },
   {
-    name: 'total_linea',
+    name: 'importe_total',
     label: 'Total',
     align: 'right',
-    field: 'total_linea'
+    field: 'importe_total'
   }
 ]
 
 // Columnas para selector de productos
-const columnsProductos = [
+const columnsProductos: QTableColumn[] = [
   {
     name: 'sku',
     label: 'SKU',
@@ -1641,7 +1974,9 @@ const cargarDatos = async () => {
     await Promise.all([
       ordenCompraStore.obtenerOrdenesCompra(),
       ordenCompraStore.obtenerEstadosOrdenCompra(),
-      ordenCompraStore.obtenerProveedores()
+      ordenCompraStore.obtenerProveedores(),
+      centroCostoStore.obtenerCentrosCostoActivos(),
+      empresaStore.obtenerEmpresasActivas()
     ])
     // Actualizar lista filtrada de proveedores después de cargar datos
     proveedoresFiltrados.value = proveedoresOptions.value
@@ -1688,6 +2023,17 @@ const onRequestOrdenesCompra = async (props: any) => {
   await buscarOrdenesCompra()
 }
 
+const limpiarFiltros = () => {
+  filtros.busqueda = ''
+  filtros.proveedor = null
+  filtros.centro_costo = null
+  filtros.empresa = null
+  filtros.estado = null
+  filtros.fechaDesde = ''
+  filtros.fechaHasta = ''
+  cargarDatos()
+}
+
 const abrirFormularioOrdenCompra = () => {
   Object.assign(formulario, formularioInicial)
   formulario.detalles = []
@@ -1711,8 +2057,8 @@ const editarOrdenCompra = async (orden: OrdenCompra) => {
         descuento_monto: detalle.descuento_monto || 0,
         impuesto_porcentaje: detalle.impuesto_porcentaje || 19,
         impuesto_monto: detalle.impuesto_monto || 0,
-        subtotal_linea: detalle.subtotal_linea,
-        total_linea: detalle.total_linea,
+        precio_neto: detalle.precio_neto,
+        importe_total: detalle.importe_total,
         especificaciones: detalle.especificaciones,
         observaciones: detalle.observaciones,
         fecha_requerida: detalle.fecha_requerida,
@@ -1743,25 +2089,42 @@ const guardarOrdenCompra = async () => {
   try {
     guardando.value = true
 
+    // Obtener el ID del usuario actual
+    const usuarioId = authStore.user?.id_usuario || 1
+
+    // Generar número de orden si está vacío usando el endpoint del backend
+    if (!formulario.numero_orden || formulario.numero_orden.trim() === '') {
+      formulario.numero_orden = await ordenCompraStore.generarSiguienteNumeroOrden()
+    }
+
+    const fechaOrden = formulario.fecha_orden ?? new Date().toISOString().split('T')[0]
+    const fechaRequerida = formulario.fecha_requerida ?? fechaOrden
+
     const ordenData: OrdenCompraCreate = {
       numero_orden: formulario.numero_orden,
       id_proveedor: formulario.id_proveedor!,
-      fecha_orden: formulario.fecha_orden,
-      fecha_requerida: formulario.fecha_requerida,
+      id_usuario_solicitante: usuarioId,
+      id_centro_costo: formulario.id_centro_costo!,
+      fecha_orden: fechaOrden,
+      fecha_requerida: fechaRequerida,
       fecha_prometida: formulario.fecha_prometida,
       estado: 'CREADA',
       subtotal: formulario.subtotal,
       impuestos: formulario.impuestos,
+      iva_porcentaje: formulario.iva_porcentaje || 19,
       descuentos: formulario.descuentos,
       total: formulario.total,
       moneda: formulario.moneda,
       tipo_cambio: formulario.tipo_cambio,
-      condiciones_pago: formulario.condiciones_pago,
-      lugar_entrega: formulario.lugar_entrega,
+      terminos_pago: formulario.terminos_pago,
+      direccion_entrega: formulario.direccion_entrega,
       contacto_proveedor: formulario.contacto_proveedor,
       observaciones: formulario.observaciones,
       activo: true,
-      detalles: formulario.detalles
+      detalles: formulario.detalles.map(detalle => {
+        const { producto, ...detalleParaEnviar } = detalle
+        return detalleParaEnviar as OrdenCompraDetalleCreate
+      })
     }
 
     if (modoEdicion.value) {
@@ -1777,11 +2140,23 @@ const guardarOrdenCompra = async () => {
 
     cerrarFormulario()
     await cargarDatos()
-  } catch (error) {
-    console.error('Error guardando orden de compra:', error)
+  } catch (error: any) {
+    let errorMessage = 'Error al guardar la orden de compra'
+    if (error.response?.data?.detail) {
+      if (Array.isArray(error.response.data.detail)) {
+        errorMessage = error.response.data.detail.map((e: any) =>
+          `${e.loc?.join(' -> ') || 'Error'}: ${e.msg}`
+        ).join('\n')
+      } else {
+        errorMessage = error.response.data.detail
+      }
+    }
+
     $q.notify({
       type: 'negative',
-      message: 'Error al guardar la orden de compra'
+      message: 'Error al guardar la orden de compra',
+      caption: errorMessage,
+      html: true
     })
   } finally {
     guardando.value = false
@@ -1829,10 +2204,10 @@ const buscarProductos = async () => {
 const agregarProductoSeleccionado = () => {
   if (productoSeleccionado.value.length === 0) return
 
-  const producto = productoSeleccionado.value[0]
+  const producto = productoSeleccionado.value[0]!
   const numeroLinea = Math.max(0, ...formulario.detalles.map(d => d.numero_linea)) + 1
 
-  const nuevoDetalle: OrdenCompraDetalleCreate = {
+  const nuevoDetalle: OrdenCompraDetalleForm = {
     numero_linea: numeroLinea,
     id_producto: producto.id_producto,
     cantidad_solicitada: 1,
@@ -1841,8 +2216,8 @@ const agregarProductoSeleccionado = () => {
     descuento_monto: 0,
     impuesto_porcentaje: 19,
     impuesto_monto: 0,
-    subtotal_linea: 0,
-    total_linea: 0,
+    precio_neto: 0,
+    importe_total: 0,
     especificaciones: '',
     observaciones: '',
     activo: true,
@@ -1866,10 +2241,10 @@ const calcularTotalLinea = (detalle: any) => {
   const base = subtotal - descuentoMonto
   const impuestoMonto = (base * impuestoPct) / 100
 
-  detalle.subtotal_linea = subtotal
+  detalle.precio_neto = subtotal
   detalle.descuento_monto = descuentoMonto
   detalle.impuesto_monto = impuestoMonto
-  detalle.total_linea = base + impuestoMonto
+  detalle.importe_total = base + impuestoMonto
 }
 
 const eliminarDetalle = (index: number) => {
@@ -1908,6 +2283,20 @@ const verOrdenCompra = async (orden: OrdenCompra) => {
   }
 }
 
+const verPDF = (orden: OrdenCompra) => {
+  try {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+    const pdfUrl = `${baseURL}/ordenes-compra/${orden.id_orden_compra}/pdf`
+    window.open(pdfUrl, '_blank')
+  } catch (error) {
+    console.error('Error al abrir PDF:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al abrir el PDF de la orden'
+    })
+  }
+}
+
 const cerrarDetalle = () => {
   mostrarDetalle.value = false
   ordenSeleccionada.value = null
@@ -1938,13 +2327,15 @@ const duplicarOrdenCompra = async (orden: OrdenCompra) => {
 }
 
 const ejecutarAccion = async (orden: OrdenCompra) => {
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
   const accionesMap: { [key: string]: () => Promise<void> } = {
     'CREADA': () => aprobar(orden),
+    'BORRADOR': () => aprobar(orden),
     'APROBADA': () => enviar(orden),
     'ENVIADA': () => cerrar(orden)
   }
 
-  const accion = accionesMap[orden.estado]
+  const accion = accionesMap[codigoEstado]
   if (accion) {
     await accion()
   }
@@ -2022,44 +2413,56 @@ const cerrar = async (orden: OrdenCompra) => {
 
 const eliminarOrdenCompra = async (orden: OrdenCompra) => {
   $q.dialog({
-    title: 'Confirmar eliminación',
-    message: `¿Está seguro de que desea eliminar la orden de compra ${orden.numero_orden}?`,
+    title: 'Confirmar cancelación',
+    message: `¿Está seguro de que desea cancelar la orden de compra ${orden.numero_orden}? Esta acción cambiará el estado de la orden a CANCELADA.`,
     cancel: true,
-    persistent: true
-  }).onOk(async () => {
+    persistent: true,
+    prompt: {
+      model: '',
+      type: 'text',
+      label: 'Motivo de cancelación (opcional)',
+      hint: 'Indique el motivo de la cancelación'
+    }
+  }).onOk(async (motivo: string) => {
     try {
-      await ordenCompraStore.eliminarOrdenCompra(orden.id_orden_compra)
+      // Cancelar la orden (cambia estado a CANCELADA - estado 7)
+      await ordenCompraStore.cancelarOrdenCompra(orden.id_orden_compra, motivo || undefined)
+
       $q.notify({
         type: 'positive',
-        message: 'Orden de compra eliminada exitosamente'
+        message: 'Orden de compra cancelada exitosamente'
       })
       await cargarDatos()
     } catch (error) {
-      console.error('Error eliminando orden:', error)
+      console.error('Error cancelando orden:', error)
       $q.notify({
         type: 'negative',
-        message: 'Error al eliminar la orden de compra'
+        message: 'Error al cancelar la orden de compra'
       })
     }
   })
 }
 
-// Funciones de utilidad
-const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP'
-  }).format(value || 0)
-}
+// Funciones de utilidad (usando formatters centralizados)
+const formatCurrency = formatCurrencyUtil
+const formatQuantity = formatNumberUtil
 
-const formatDate = (date: string): string => {
+const formatDate = (date: string | null | undefined): string => {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('es-CL')
+  // Evitar problemas de zona horaria al parsear fechas en formato YYYY-MM-DD
+  const [year, month, day] = date.split('T')[0].split('-')
+  const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  return localDate.toLocaleDateString('es-CL')
 }
 
-const getEstadoColor = (estado: string): string => {
+const getEstadoColor = (estado: any): string => {
+  if (!estado) return 'grey'
+  const codigoEstado: string = typeof estado === 'string'
+    ? estado
+    : estado?.codigo_estado ?? estado?.nombre_estado ?? ''
   const colores: { [key: string]: string } = {
     'CREADA': 'grey',
+    'BORRADOR': 'grey',
     'APROBADA': 'blue',
     'ENVIADA': 'purple',
     'RECIBIDA': 'green',
@@ -2069,7 +2472,7 @@ const getEstadoColor = (estado: string): string => {
     'CERRADA': 'dark',
     'CANCELADA': 'negative'
   }
-  return colores[estado] || 'grey'
+  return colores[codigoEstado.toUpperCase()] || 'grey'
 }
 
 const getDateClass = (fecha: string): string => {
@@ -2086,51 +2489,101 @@ const getDateClass = (fecha: string): string => {
 }
 
 const puedeEditar = (orden: OrdenCompra): boolean => {
-  return ['CREADA'].includes(orden.estado)
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
+  return codigoEstado === 'CREADA'
 }
 
 const puedeEliminar = (orden: OrdenCompra): boolean => {
-  return ['CREADA'].includes(orden.estado)
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
+  return ['CREADA', 'BORRADOR'].includes(codigoEstado)
+}
+
+const puedeVerPDF = (orden: OrdenCompra): boolean => {
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
+  return !['CANCELADA', 'RECHAZADA'].includes(codigoEstado)
 }
 
 const puedeEjecutarAccion = (orden: OrdenCompra): boolean => {
-  return ['CREADA', 'APROBADA', 'ENVIADA'].includes(orden.estado)
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
+  return ['CREADA', 'BORRADOR', 'APROBADA', 'ENVIADA'].includes(codigoEstado)
 }
 
-const getAccionColor = (estado: string): string => {
+const puedeCrearDocumento = (orden: OrdenCompra): boolean => {
+  const codigoEstado = orden.estado?.codigo_estado?.toUpperCase() || ''
+  return ['APROBADA', 'ENVIADA'].includes(codigoEstado)
+}
+
+const crearDocumentoDesdeOrden = (orden: OrdenCompra) => {
+  if (!puedeCrearDocumento(orden)) {
+    $q.notify({
+      type: 'warning',
+      message: 'Solo se pueden crear documentos de órdenes aprobadas o enviadas',
+      position: 'top'
+    })
+    return
+  }
+
+  // Navegar a la vista de documentos con los datos de la orden en el query
+  router.push({
+    path: '/documentos',
+    query: {
+      fromOrden: orden.id_orden_compra.toString()
+    }
+  })
+}
+
+const getAccionColor = (estado: any): string => {
+  if (!estado) return 'grey'
+  const codigoEstado: string = typeof estado === 'string'
+    ? estado
+    : estado?.codigo_estado ?? estado?.nombre_estado ?? ''
   const colores: { [key: string]: string } = {
     'CREADA': 'blue',
+    'BORRADOR': 'blue',
     'APROBADA': 'purple',
     'ENVIADA': 'teal'
   }
-  return colores[estado] || 'grey'
+  return colores[codigoEstado.toUpperCase()] || 'grey'
 }
 
-const getAccionIcon = (estado: string): string => {
+const getAccionIcon = (estado: any): string => {
+  if (!estado) return 'more_horiz'
+  const codigoEstado: string = typeof estado === 'string'
+    ? estado
+    : estado?.codigo_estado ?? estado?.nombre_estado ?? ''
   const iconos: { [key: string]: string } = {
     'CREADA': 'check',
+    'BORRADOR': 'check',
     'APROBADA': 'send',
     'ENVIADA': 'done_all'
   }
-  return iconos[estado] || 'more_horiz'
+  return iconos[codigoEstado.toUpperCase()] || 'more_horiz'
 }
 
-const getAccionTooltip = (estado: string): string => {
+const getAccionTooltip = (estado: any): string => {
+  if (!estado) return 'Acción'
+  const codigoEstado: string = typeof estado === 'string'
+    ? estado
+    : estado?.codigo_estado ?? estado?.nombre_estado ?? ''
   const tooltips: { [key: string]: string } = {
     'CREADA': 'Aprobar',
+    'BORRADOR': 'Aprobar',
     'APROBADA': 'Enviar',
     'ENVIADA': 'Cerrar'
   }
-  return tooltips[estado] || 'Acción'
+  return tooltips[codigoEstado.toUpperCase()] || 'Acción'
 }
 
-const getAccionLabel = (estado: string): string => {
+const getAccionLabel = (estado: any): string => {
+  if (!estado) return 'Acción'
+  const codigoEstado = typeof estado === 'string' ? estado : estado.codigo_estado || estado.nombre_estado || ''
   const labels: { [key: string]: string } = {
     'CREADA': 'Aprobar',
+    'BORRADOR': 'Aprobar',
     'APROBADA': 'Enviar',
     'ENVIADA': 'Cerrar'
   }
-  return labels[estado] || 'Acción'
+  return labels[codigoEstado.toUpperCase()] || 'Acción'
 }
 
 // Funciones de autocompletado de proveedores

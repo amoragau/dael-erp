@@ -2,16 +2,24 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Movimientos de Inventario</h4>
-          <p class="text-grey-7 q-mb-none">Control integral de movimientos con autorización y trazabilidad</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="sync_alt" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Movimientos de <span class="text-weight-bold text-primary">Inventario</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Control integral de movimientos con autorización y trazabilidad</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Movimiento"
           @click="abrirFormularioMovimiento"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
@@ -60,65 +68,72 @@
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por número, motivo..."
-              outlined
-              dense
-              clearable
-              style="min-width: 250px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.tipo_movimiento"
-              :options="tiposMovimientoOptions"
-              label="Tipo Movimiento"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 200px"
-            />
-            <q-input
-              v-model="filtros.fecha_desde"
-              label="Desde"
-              outlined
-              dense
-              type="date"
-              style="min-width: 150px"
-            />
-            <q-input
-              v-model="filtros.fecha_hasta"
-              label="Hasta"
-              outlined
-              dense
-              type="date"
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Filtrar"
-              @click="aplicarFiltros"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por número, motivo..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.tipo_movimiento"
+                :options="tiposMovimientoOptions"
+                label="Tipo Movimiento"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fecha_desde"
+                label="Desde"
+                outlined
+                dense
+                type="date"
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fecha_hasta"
+                label="Hasta"
+                outlined
+                dense
+                type="date"
+              />
+            </div>
+            <div class="col-12 col-md-1 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="aplicarFiltros" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -867,7 +882,7 @@ const paginacion = ref({
 // Forms
 const formMovimiento = ref<MovimientoInventarioCreate & { id_movimiento?: number }>({
   id_tipo_movimiento: 0,
-  fecha_movimiento: new Date().toISOString().split('T')[0],
+  fecha_movimiento: new Date().toISOString().slice(0, 10),
   motivo: '',
   observaciones: '',
   id_documento: undefined,
@@ -1102,6 +1117,15 @@ const aplicarFiltros = async () => {
   await cargarEstadisticas()
 }
 
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.tipo_movimiento = null
+  filtros.value.fecha_desde = ''
+  filtros.value.fecha_hasta = ''
+  aplicarFiltros()
+}
+
 const abrirFormularioMovimiento = () => {
   resetFormMovimiento()
   showCreateMovimientoDialog.value = true
@@ -1247,7 +1271,7 @@ const resetFormMovimiento = () => {
   tabActivo.value = 'cabecera'
   formMovimiento.value = {
     id_tipo_movimiento: 0,
-    fecha_movimiento: new Date().toISOString().split('T')[0],
+    fecha_movimiento: new Date().toISOString().slice(0, 10),
     motivo: '',
     observaciones: '',
     id_documento: undefined,
@@ -1301,7 +1325,7 @@ const onRejectedFile = (rejectedEntries: any[]) => {
 }
 
 // Helper methods
-const getTipoMovimientoColor = (tipo: TipoMovimiento): string => {
+const getTipoMovimientoColor = (tipo?: TipoMovimiento): string => {
   if (!tipo) return 'grey'
 
   const colorMap: { [key: string]: string } = {
@@ -1321,11 +1345,11 @@ const getTipoMovimientoColor = (tipo: TipoMovimiento): string => {
   return colorMap[tipo.codigo_tipo] || 'grey'
 }
 
-const getTipoMovimientoLabel = (tipo: TipoMovimiento): string => {
+const getTipoMovimientoLabel = (tipo?: TipoMovimiento): string => {
   return tipo ? `${tipo.codigo_tipo} - ${tipo.nombre_tipo}` : '-'
 }
 
-const getTipoMovimientoIcon = (tipo: TipoMovimiento): string => {
+const getTipoMovimientoIcon = (tipo?: TipoMovimiento): string => {
   if (!tipo) return 'help'
 
   const iconMap: { [key: string]: string } = {

@@ -2,16 +2,24 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Traspasos entre Bodegas</h4>
-          <p class="text-grey-7 q-mb-none">Control de transferencias de productos entre bodegas</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="compare_arrows" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Traspasos entre <span class="text-weight-bold text-primary">Bodegas</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Control de transferencias de productos entre bodegas</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Traspaso"
           @click="abrirFormularioTraspaso"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
@@ -60,76 +68,84 @@
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por número, motivo..."
-              outlined
-              dense
-              clearable
-              style="min-width: 250px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.id_bodega_origen"
-              :options="bodegasOptions"
-              label="Bodega Origen"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 180px"
-            />
-            <q-select
-              v-model="filtros.id_bodega_destino"
-              :options="bodegasOptions"
-              label="Bodega Destino"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 180px"
-            />
-            <q-input
-              v-model="filtros.fecha_desde"
-              label="Desde"
-              outlined
-              dense
-              type="date"
-              style="min-width: 150px"
-            />
-            <q-input
-              v-model="filtros.fecha_hasta"
-              label="Hasta"
-              outlined
-              dense
-              type="date"
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Filtrar"
-              @click="aplicarFiltros"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por número, motivo..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.id_bodega_origen"
+                :options="bodegasOptions"
+                label="Bodega Origen"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.id_bodega_destino"
+                :options="bodegasOptions"
+                label="Bodega Destino"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-1">
+              <q-input
+                v-model="filtros.fecha_desde"
+                label="Desde"
+                outlined
+                dense
+                type="date"
+              />
+            </div>
+            <div class="col-12 col-md-1">
+              <q-input
+                v-model="filtros.fecha_hasta"
+                label="Hasta"
+                outlined
+                dense
+                type="date"
+              />
+            </div>
+            <div class="col-12 col-md-1 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="aplicarFiltros" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -879,6 +895,7 @@ interface Traspaso {
   observaciones?: string
   numero_documento_referencia?: string
   solicitante?: string
+  activo?: boolean
   estado: string
   cantidad_productos: number
   valor_total: number
@@ -999,7 +1016,7 @@ const paginacion = ref({
 const formTraspaso = ref<TraspasoCreate & { id_traspaso?: number; estado?: string }>({
   id_bodega_origen: 0,
   id_bodega_destino: 0,
-  fecha_traspaso: new Date().toISOString().split('T')[0],
+  fecha_traspaso: new Date().toISOString().slice(0, 10),
   fecha_estimada_llegada: '',
   prioridad: 'normal',
   motivo: '',
@@ -1234,6 +1251,16 @@ const aplicarFiltros = async () => {
   await cargarEstadisticas()
 }
 
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.id_bodega_origen = null
+  filtros.value.id_bodega_destino = null
+  filtros.value.fecha_desde = ''
+  filtros.value.fecha_hasta = ''
+  aplicarFiltros()
+}
+
 const abrirFormularioTraspaso = () => {
   resetFormTraspaso()
   showCreateTraspasoDialog.value = true
@@ -1241,7 +1268,7 @@ const abrirFormularioTraspaso = () => {
 
 const editarTraspaso = (traspaso: Traspaso) => {
   editandoTraspaso.value = true
-  formTraspaso.value = { ...traspaso }
+  formTraspaso.value = { ...traspaso, activo: traspaso.activo ?? true }
   showCreateTraspasoDialog.value = true
 }
 
@@ -1400,7 +1427,7 @@ const resetFormTraspaso = () => {
   formTraspaso.value = {
     id_bodega_origen: 0,
     id_bodega_destino: 0,
-    fecha_traspaso: new Date().toISOString().split('T')[0],
+    fecha_traspaso: new Date().toISOString().slice(0, 10),
     fecha_estimada_llegada: '',
     prioridad: 'normal',
     motivo: '',

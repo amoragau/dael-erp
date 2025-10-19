@@ -2,74 +2,102 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Catálogo de Productos</h4>
-          <p class="text-grey-7 q-mb-none">Gestión integral de productos contra incendios</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="inventory_2" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Catálogo de <span class="text-weight-bold text-primary">Productos</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión integral de productos contra incendios</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Producto"
           @click="abrirFormularioProducto"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por SKU, nombre o modelo..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.marca"
-              :options="marcasOptions"
-              label="Marca"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.tipo"
-              :options="tiposOptions"
-              label="Tipo"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 120px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarProductos"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por SKU, nombre o modelo..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.marca"
+                :options="marcasOptions"
+                label="Marca"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.tipo"
+                :options="tiposOptions"
+                label="Tipo"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="buscarProductos"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -1822,6 +1850,65 @@ const formProductoProveedor = ref<ProductoProveedorCreate & { id_producto_provee
   activo: true
 })
 
+const formUbicacion = ref<ProductoUbicacionCreate & { id_producto_ubicacion?: number }>({
+  id_producto: 0,
+  id_bodega: 0,
+  id_pasillo: undefined,
+  id_estante: undefined,
+  ubicacion_codigo: '',
+  ubicacion_descripcion: '',
+  cantidad_actual: 0,
+  cantidad_reservada: 0,
+  observaciones: '',
+  activo: true
+})
+
+const formTransfer = ref<{
+  id_bodega: number | null
+  id_pasillo?: number | null
+  id_estante?: number | null
+  cantidad: number
+  motivo: string
+}>({
+  id_bodega: null,
+  id_pasillo: null,
+  id_estante: null,
+  cantidad: 0,
+  motivo: ''
+})
+
+const formAjuste = ref<{
+  tipo_ajuste: 'conteo' | 'ajuste' | 'entrada' | 'salida'
+  cantidad_nueva: number
+  motivo: string
+}>({
+  tipo_ajuste: 'conteo',
+  cantidad_nueva: 0,
+  motivo: ''
+})
+
+const formReserva = ref<{
+  tipo_operacion: 'reservar' | 'liberar'
+  cantidad: number
+  motivo: string
+}>({
+  tipo_operacion: 'reservar',
+  cantidad: 0,
+  motivo: ''
+})
+
+const tipoAjusteOptions = [
+  { label: 'Conteo Físico', value: 'conteo' },
+  { label: 'Ajuste Manual', value: 'ajuste' },
+  { label: 'Entrada', value: 'entrada' },
+  { label: 'Salida', value: 'salida' }
+]
+
+const tipoReservaOptions = [
+  { label: 'Reservar', value: 'reservar' },
+  { label: 'Liberar', value: 'liberar' }
+]
+
 const monedaOptions = [
   { label: 'CLP - Peso Chileno', value: 'CLP' },
   { label: 'USD - Dólar Americano', value: 'USD' },
@@ -1854,6 +1941,41 @@ const proveedoresOptions = computed(() => {
   return proveedoresList.value.map(proveedor => ({
     label: `${proveedor.codigo_proveedor} - ${proveedor.nombre_proveedor}`,
     value: proveedor.id_proveedor
+  }))
+})
+
+const bodegasOptions = computed(() => {
+  return bodegasList.value.map(bodega => ({
+    label: `${bodega.codigo_bodega} - ${bodega.nombre_bodega}`,
+    value: bodega.id_bodega
+  }))
+})
+
+const pasillosOptions = computed(() => {
+  return pasillosList.value.map(pasillo => ({
+    label: pasillo.nombre_pasillo ? `${pasillo.numero_pasillo} - ${pasillo.nombre_pasillo}` : `Pasillo ${pasillo.numero_pasillo}`,
+    value: pasillo.id_pasillo
+  }))
+})
+
+const estantesOptions = computed(() => {
+  return estantesList.value.map(estante => ({
+    label: estante.codigo_estante,
+    value: estante.id_estante
+  }))
+})
+
+const pasillosTransferOptions = computed(() => {
+  return pasillosTransferList.value.map(pasillo => ({
+    label: pasillo.nombre_pasillo ? `${pasillo.numero_pasillo} - ${pasillo.nombre_pasillo}` : `Pasillo ${pasillo.numero_pasillo}`,
+    value: pasillo.id_pasillo
+  }))
+})
+
+const estantesTransferOptions = computed(() => {
+  return estantesTransferList.value.map(estante => ({
+    label: estante.codigo_estante,
+    value: estante.id_estante
   }))
 })
 
@@ -2008,6 +2130,93 @@ const columnsProductoProveedores = [
   }
 ]
 
+const columnsProductoUbicaciones = [
+  {
+    name: 'ubicacion',
+    label: 'Ubicación',
+    align: 'left' as const,
+    field: (row: ProductoUbicacion) => getUbicacionCompleta(row)
+  },
+  {
+    name: 'cantidad_actual',
+    label: 'Cantidad',
+    align: 'center' as const,
+    field: 'cantidad_actual',
+    sortable: true
+  },
+  {
+    name: 'cantidad_reservada',
+    label: 'Reservado',
+    align: 'center' as const,
+    field: 'cantidad_reservada',
+    sortable: true
+  },
+  {
+    name: 'cantidad_disponible',
+    label: 'Disponible',
+    align: 'center' as const,
+    field: 'cantidad_disponible',
+    sortable: true
+  },
+  {
+    name: 'ultimo_conteo',
+    label: 'Último Conteo',
+    align: 'center' as const,
+    field: 'fecha_ultimo_conteo',
+    sortable: true
+  },
+  {
+    name: 'activo',
+    label: 'Estado',
+    align: 'center' as const,
+    field: 'activo',
+    sortable: true
+  },
+  {
+    name: 'actions',
+    label: 'Acciones',
+    align: 'center' as const,
+    field: 'actions'
+  }
+]
+
+const columnsMovimientos = [
+  {
+    name: 'tipo_movimiento',
+    label: 'Tipo',
+    align: 'left' as const,
+    field: 'tipo_movimiento',
+    sortable: true
+  },
+  {
+    name: 'cantidad',
+    label: 'Cantidad',
+    align: 'center' as const,
+    field: 'cantidad',
+    sortable: true
+  },
+  {
+    name: 'usuario',
+    label: 'Usuario',
+    align: 'left' as const,
+    field: 'usuario',
+    sortable: true
+  },
+  {
+    name: 'fecha_movimiento',
+    label: 'Fecha',
+    align: 'center' as const,
+    field: 'fecha_movimiento',
+    sortable: true
+  },
+  {
+    name: 'motivo',
+    label: 'Motivo',
+    align: 'left' as const,
+    field: 'motivo'
+  }
+]
+
 // Methods
 const onRequestProductos = async (props: any) => {
   const { page, rowsPerPage, sortBy, descending } = props.pagination
@@ -2061,6 +2270,14 @@ const cargarDatosRelacionados = async () => {
 const buscarProductos = async () => {
   paginacion.value.page = 1
   await cargarProductos()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.marca = null
+  filtros.value.tipo = null
+  filtros.value.estado = null
+  buscarProductos()
 }
 
 const abrirFormularioProducto = () => {
@@ -2200,6 +2417,145 @@ const resetFormProducto = () => {
 
     activo: true
   }
+}
+
+const resetFormUbicacion = () => {
+  editandoUbicacion.value = false
+  formUbicacion.value = {
+    id_producto: formProducto.value.id_producto || 0,
+    id_bodega: 0,
+    id_pasillo: undefined,
+    id_estante: undefined,
+    ubicacion_codigo: '',
+    ubicacion_descripcion: '',
+    cantidad_actual: 0,
+    cantidad_reservada: 0,
+    observaciones: '',
+    activo: true
+  }
+  pasillosList.value = []
+  estantesList.value = []
+}
+
+const cargarBodegas = async () => {
+  try {
+    const response = await bodegaStore.obtenerBodegas({ activo: true })
+    bodegasList.value = response || []
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar bodegas',
+      caption: error.message
+    })
+  }
+}
+
+const cargarPasillos = async (bodegaId?: number) => {
+  if (!bodegaId) {
+    pasillosList.value = []
+    estantesList.value = []
+    formUbicacion.value.id_pasillo = undefined
+    formUbicacion.value.id_estante = undefined
+    return
+  }
+
+  try {
+    const response = await bodegaStore.obtenerPasillosPorBodega(bodegaId, { activo: true })
+    pasillosList.value = response || []
+    estantesList.value = []
+    formUbicacion.value.id_pasillo = undefined
+    formUbicacion.value.id_estante = undefined
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar pasillos',
+      caption: error.message
+    })
+  }
+}
+
+const cargarEstantes = async (pasilloId?: number) => {
+  if (!pasilloId) {
+    estantesList.value = []
+    formUbicacion.value.id_estante = undefined
+    return
+  }
+
+  try {
+    const response = await bodegaStore.obtenerEstantesPorPasillo(pasilloId, { activo: true })
+    estantesList.value = response || []
+    formUbicacion.value.id_estante = undefined
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar estantes',
+      caption: error.message
+    })
+  }
+}
+
+const cargarPasillosTransfer = async (bodegaId?: number) => {
+  if (!bodegaId) {
+    pasillosTransferList.value = []
+    estantesTransferList.value = []
+    formTransfer.value.id_pasillo = null
+    formTransfer.value.id_estante = null
+    return
+  }
+
+  try {
+    const response = await bodegaStore.obtenerPasillosPorBodega(bodegaId, { activo: true })
+    pasillosTransferList.value = response || []
+    estantesTransferList.value = []
+    formTransfer.value.id_pasillo = null
+    formTransfer.value.id_estante = null
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar pasillos',
+      caption: error.message
+    })
+  }
+}
+
+const cargarEstantesTransfer = async (pasilloId?: number) => {
+  if (!pasilloId) {
+    estantesTransferList.value = []
+    formTransfer.value.id_estante = null
+    return
+  }
+
+  try {
+    const response = await bodegaStore.obtenerEstantesPorPasillo(pasilloId, { activo: true })
+    estantesTransferList.value = response || []
+    formTransfer.value.id_estante = null
+  } catch (error: any) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar estantes',
+      caption: error.message
+    })
+  }
+}
+
+const abrirFormularioUbicacion = async () => {
+  if (!formProducto.value.id_producto || formProducto.value.id_producto <= 0) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error',
+      caption: 'Debe crear o seleccionar un producto antes de agregar ubicaciones'
+    })
+    return
+  }
+
+  resetFormUbicacion()
+  formUbicacion.value.id_producto = formProducto.value.id_producto
+
+  if (!bodegasList.value.length) {
+    await cargarBodegas()
+  }
+
+  showCreateUbicacionDialog.value = true
 }
 
 // Helper methods

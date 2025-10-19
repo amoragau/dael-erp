@@ -1,70 +1,94 @@
 <template>
-  <q-page padding>
-    <div class="q-pa-md">
+  <q-page class="bg-grey-1">
+    <div class="q-pa-lg">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Aprobaciones</h4>
-          <p class="text-grey-7 q-mb-none">Aprobación de órdenes de compra pendientes</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="check_circle" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Centro de <span class="text-weight-bold text-primary">Aprobaciones</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Aprobación de órdenes de compra pendientes</p>
+            </div>
+          </div>
+        </div>
+        <div class="column items-end">
+          <div class="text-h6 text-primary text-weight-bold">{{ ordenesFiltradas.length }}</div>
+          <div class="text-caption text-grey-6">Órdenes pendientes</div>
         </div>
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por número de orden..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.proveedor"
-              :options="proveedoresOptions"
-              label="Proveedor"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 200px"
-            />
-            <q-input
-              v-model="filtros.fechaDesde"
-              label="Fecha desde"
-              type="date"
-              outlined
-              dense
-              style="min-width: 150px"
-            />
-            <q-input
-              v-model="filtros.fechaHasta"
-              label="Fecha hasta"
-              type="date"
-              outlined
-              dense
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="aplicarFiltros"
-            />
-            <q-btn
-              color="grey"
-              icon="clear"
-              label="Limpiar"
-              @click="limpiarFiltros"
-              flat
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por número de orden..."
+                outlined
+                clearable
+                dense
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.proveedor"
+                :options="proveedoresOptions"
+                label="Proveedor"
+                outlined
+                clearable
+                emit-value
+                map-options
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fechaDesde"
+                type="date"
+                label="Fecha desde"
+                outlined
+                clearable
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-model="filtros.fechaHasta"
+                type="date"
+                label="Fecha hasta"
+                outlined
+                clearable
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-2 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="aplicarFiltros"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -120,7 +144,7 @@
               <q-td :props="props">
                 <q-badge
                   :color="getEstadoColor(props.row.estado)"
-                  :label="props.row.estado"
+                  :label="getNombreEstado(props.row.estado)"
                 />
               </q-td>
             </template>
@@ -216,7 +240,7 @@
                           <div class="self-center full-width no-outline" tabindex="0">
                             <q-badge
                               :color="getEstadoColor(ordenSeleccionada.estado)"
-                              :label="ordenSeleccionada.estado"
+                              :label="getNombreEstado(ordenSeleccionada.estado)"
                             />
                           </div>
                         </template>
@@ -356,6 +380,7 @@ import { useProveedorStore } from '../stores/proveedores'
 import { useLogStore } from '../stores/logs'
 import { useAuthStore } from '../stores/auth'
 import type { OrdenCompra } from '../stores/ordenesCompra'
+import { formatCurrency } from '@/utils/formatters'
 
 const $q = useQuasar()
 const ordenCompraStore = useOrdenCompraStore()
@@ -419,7 +444,8 @@ const columnas = [
   {
     name: 'acciones',
     label: 'Acciones',
-    align: 'center' as const
+    align: 'center' as const,
+    field: 'acciones'
   }
 ]
 
@@ -452,14 +478,25 @@ const columnasDetalle = [
   {
     name: 'total',
     label: 'Total',
-    align: 'right' as const
+    align: 'right' as const,
+    field: (row: any) => row.cantidad * row.precio_unitario
   }
 ]
 
 // Computed
 const ordenesFiltradas = computed(() => {
   // Solo mostrar órdenes en estado CREADA (pendientes de aprobación)
-  let resultado = ordenCompraStore.ordenesCompra.filter(orden => orden.estado === 'CREADA')
+  let resultado = ordenCompraStore.ordenesCompra.filter(orden => {
+    // Si el estado es un objeto con codigo_estado, comparar directamente
+    if (orden.estado && typeof orden.estado === 'object' && 'codigo_estado' in orden.estado) {
+      return orden.estado.codigo_estado === 'CREADA'
+    }
+    // Si el estado es un string, comparar directamente
+    if (typeof orden.estado === 'string') {
+      return orden.estado === 'CREADA'
+    }
+    return false
+  })
 
   // Aplicar filtros
   if (filtros.value.busqueda && filtros.value.busqueda.trim()) {
@@ -497,6 +534,7 @@ const cargarDatos = async () => {
     cargando.value = true
     await Promise.all([
       ordenCompraStore.obtenerOrdenesCompra(),
+      ordenCompraStore.obtenerEstadosOrdenCompra(),
       proveedorStore.obtenerProveedores({ activo: true })
     ])
   } catch (error) {
@@ -544,8 +582,12 @@ const aprobarOrden = async (orden: OrdenCompra | null) => {
     // Aprobar la orden
     await ordenCompraStore.aprobarOrdenCompra(orden.id_orden_compra, usuarioId)
 
-    // Registrar log de aprobación
-    await logStore.logAprobacion(orden.id_orden_compra, usuarioId, 'Orden aprobada desde módulo de aprobaciones')
+    // Registrar log de aprobación (opcional - no bloquear si falla)
+    try {
+      await logStore.logAprobacion(orden.id_orden_compra, usuarioId, 'Orden aprobada desde módulo de aprobaciones')
+    } catch (logError) {
+      console.warn('No se pudo registrar el log de aprobación:', logError)
+    }
 
     $q.notify({
       type: 'positive',
@@ -590,15 +632,19 @@ const confirmarRechazo = async () => {
 
     const usuarioId = authStore.user?.id_usuario || 1
 
-    // TODO: Implementar endpoint para rechazar orden con motivo
-    // await ordenCompraStore.rechazarOrdenCompra(ordenParaRechazar.value.id_orden_compra, motivoRechazo.value, usuarioId)
+    // Rechazar la orden con el motivo
+    await ordenCompraStore.rechazarOrdenCompra(ordenParaRechazar.value.id_orden_compra, motivoRechazo.value)
 
-    // Registrar log de rechazo
-    await logStore.logRechazo(ordenParaRechazar.value.id_orden_compra, usuarioId, motivoRechazo.value)
+    // Registrar log de rechazo (opcional - no bloquear si falla)
+    try {
+      await logStore.logRechazo(ordenParaRechazar.value.id_orden_compra, usuarioId, motivoRechazo.value)
+    } catch (logError) {
+      console.warn('No se pudo registrar el log de rechazo:', logError)
+    }
 
     $q.notify({
       type: 'positive',
-      message: `Orden ${ordenParaRechazar.value.numero_orden} rechazada`
+      message: `Orden ${ordenParaRechazar.value.numero_orden} rechazada exitosamente`
     })
 
     await cargarDatos()
@@ -627,7 +673,7 @@ const getNombreProveedor = (idProveedor: number): string => {
 
 const getRutProveedor = (idProveedor: number): string => {
   const proveedor = proveedorStore.proveedores.find(p => p.id_proveedor === idProveedor)
-  return proveedor ? (proveedor.rut || '-') : '-'
+  return proveedor ? (proveedor.rfc || '-') : '-'
 }
 
 const formatearFecha = (fecha: string): string => {
@@ -635,14 +681,39 @@ const formatearFecha = (fecha: string): string => {
   return new Date(fecha).toLocaleDateString('es-CL')
 }
 
-const formatearMoneda = (cantidad: number, moneda: string): string => {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: moneda || 'CLP'
-  }).format(cantidad)
+const formatearMoneda = (cantidad: number, moneda: string = 'CLP'): string => {
+  // Usar el formatter centralizado para formato chileno
+  return formatCurrency(cantidad)
 }
 
-const getEstadoColor = (estado: string): string => {
+const getCodigoEstado = (estadoOrden: any): string => {
+  // Si el estado es un objeto con codigo_estado
+  if (estadoOrden && typeof estadoOrden === 'object' && 'codigo_estado' in estadoOrden) {
+    return estadoOrden.codigo_estado
+  }
+  // Si el estado es un string
+  if (typeof estadoOrden === 'string') {
+    return estadoOrden
+  }
+  // Si no tenemos estado, retornar vacío
+  return ''
+}
+
+const getNombreEstado = (estadoOrden: any): string => {
+  // Si el estado es un objeto con nombre_estado
+  if (estadoOrden && typeof estadoOrden === 'object' && 'nombre_estado' in estadoOrden) {
+    return estadoOrden.nombre_estado
+  }
+  // Si el estado es un string o código, retornar tal cual
+  if (typeof estadoOrden === 'string') {
+    return estadoOrden
+  }
+  // Si no tenemos estado, retornar '-'
+  return '-'
+}
+
+const getEstadoColor = (estadoOrden: any): string => {
+  const codigo = getCodigoEstado(estadoOrden)
   const colores: { [key: string]: string } = {
     'CREADA': 'grey',
     'APROBADA': 'blue',
@@ -655,7 +726,7 @@ const getEstadoColor = (estado: string): string => {
     'CERRADA': 'dark',
     'CANCELADA': 'negative'
   }
-  return colores[estado] || 'grey'
+  return colores[codigo] || 'grey'
 }
 
 // Lifecycle

@@ -2,64 +2,77 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Gestión de Marcas</h4>
-          <p class="text-grey-7 q-mb-none">Administra fabricantes y sus datos de contacto técnico</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="branding_watermark" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Marcas de <span class="text-weight-bold text-primary">Productos</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión de marcas y fabricantes del catálogo</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nueva Marca"
           @click="abrirFormularioMarca"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por nombre, país o contacto..."
-              outlined
-              dense
-              clearable
-              style="min-width: 350px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-input
-              v-model="filtros.pais"
-              placeholder="Filtrar por país..."
-              outlined
-              dense
-              clearable
-              style="min-width: 200px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="flag" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarMarcas"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por nombre, país o contacto..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.pais"
+                placeholder="Filtrar por país..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="flag" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarMarcas" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -509,6 +522,13 @@ const cargarEstadisticas = async () => {
 const buscarMarcas = async () => {
   paginacion.value.page = 1
   await cargarMarcas()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.pais = ''
+  filtros.value.estado = null
+  buscarMarcas()
 }
 
 const abrirFormularioMarca = () => {

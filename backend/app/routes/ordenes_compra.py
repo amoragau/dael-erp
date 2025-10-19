@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
 import schemas, crud
+from utils.pdf_generator import generar_pdf_orden_compra
 
 router = APIRouter()
 
@@ -56,6 +58,15 @@ def get_orden_compra(
     orden_response.detalles = [schemas.OrdenCompraDetalleResponse.model_validate(detalle) for detalle in detalles]
 
     return orden_response
+
+@router.get("/generar-numero/", response_model=dict)
+def generar_numero_orden(db: Session = Depends(get_db)):
+    """Generar el siguiente número de orden de compra"""
+    try:
+        siguiente_numero = crud.orden_compra_crud.generar_siguiente_numero(db)
+        return {"numero_orden": siguiente_numero}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/numero/{numero_orden}", response_model=schemas.OrdenCompraResponse)
 def get_orden_by_numero(
@@ -143,33 +154,68 @@ def count_ordenes_compra(
     )
     return crud.orden_compra_crud.count_ordenes(db, filtros)
 
-@router.post("/{orden_id}/aprobar/", response_model=schemas.OrdenCompraResponse)
+@router.patch("/{orden_id}/aprobar", response_model=schemas.OrdenCompraResponse)
 def aprobar_orden(
     orden_id: int,
-    usuario_aprobador_id: int,
+    aprobar_data: schemas.OrdenCompraAprobar,
     db: Session = Depends(get_db)
 ):
     """Aprobar orden de compra"""
     try:
-        db_orden = crud.orden_compra_crud.aprobar_orden(db, orden_id, usuario_aprobador_id)
+        db_orden = crud.orden_compra_crud.aprobar_orden(db, orden_id, aprobar_data.aprobada_por)
         if not db_orden:
             raise HTTPException(status_code=404, detail="Orden no encontrada")
         return db_orden
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/{orden_id}/cancelar/", response_model=schemas.OrdenCompraResponse)
+@router.patch("/{orden_id}/cancelar", response_model=schemas.OrdenCompraResponse)
 def cancelar_orden(
     orden_id: int,
-    motivo: str,
+    cancelar_data: schemas.OrdenCompraCancelar,
     db: Session = Depends(get_db)
 ):
     """Cancelar orden de compra"""
     try:
-        db_orden = crud.orden_compra_crud.cancelar_orden(db, orden_id, motivo)
+        db_orden = crud.orden_compra_crud.cancelar_orden(db, orden_id, cancelar_data.motivo)
         if not db_orden:
             raise HTTPException(status_code=404, detail="Orden no encontrada")
         return db_orden
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.patch("/{orden_id}/rechazar", response_model=schemas.OrdenCompraResponse)
+def rechazar_orden(
+    orden_id: int,
+    rechazar_data: schemas.OrdenCompraRechazar,
+    db: Session = Depends(get_db)
+):
+    """Rechazar orden de compra"""
+    try:
+        db_orden = crud.orden_compra_crud.rechazar_orden(db, orden_id, rechazar_data.motivo)
+        if not db_orden:
+            raise HTTPException(status_code=404, detail="Orden no encontrada")
+        return db_orden
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{orden_id}/duplicar", response_model=schemas.OrdenCompraCompletaResponse)
+def duplicar_orden(
+    orden_id: int,
+    db: Session = Depends(get_db)
+):
+    """Duplicar orden de compra con sus detalles"""
+    try:
+        db_orden = crud.orden_compra_crud.duplicar_orden(db, orden_id)
+
+        # Obtener los detalles de la nueva orden
+        detalles = crud.orden_compra_detalle_crud.get_detalles_by_orden(db, db_orden.id_orden_compra)
+
+        # Crear respuesta completa
+        orden_response = schemas.OrdenCompraCompletaResponse.model_validate(db_orden)
+        orden_response.detalles = [schemas.OrdenCompraDetalleResponse.model_validate(detalle) for detalle in detalles]
+
+        return orden_response
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -240,3 +286,39 @@ def delete_detalle_orden(
     if not success:
         raise HTTPException(status_code=404, detail="Detalle no encontrado")
     return {"message": "Detalle eliminado correctamente"}
+
+
+# ========================================
+# ENDPOINTS PARA PDF
+# ========================================
+
+@router.get("/{orden_id}/pdf")
+def generar_pdf_orden(
+    orden_id: int,
+    db: Session = Depends(get_db)
+):
+    """Generar PDF de la orden de compra"""
+    try:
+        # Obtener la orden completa
+        orden = crud.orden_compra_crud.get_orden(db, orden_id)
+        if not orden:
+            raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+        # Obtener los detalles
+        detalles = crud.orden_compra_detalle_crud.get_detalles_by_orden(db, orden_id)
+        if not detalles:
+            raise HTTPException(status_code=400, detail="La orden no tiene detalles para generar el PDF")
+
+        # Generar el PDF
+        pdf_content = generar_pdf_orden_compra(orden, detalles)
+
+        # Retornar el PDF como respuesta
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"inline; filename=orden_compra_{orden.numero_orden}.pdf"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar PDF: {str(e)}")

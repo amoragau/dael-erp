@@ -2,60 +2,64 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Gestión de Categorías</h4>
-          <p class="text-grey-7 q-mb-none">Administra las categorías y subcategorías del sistema</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="category" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Categorías de <span class="text-weight-bold text-primary">Productos</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Organización y clasificación del catálogo de productos</p>
+            </div>
+          </div>
         </div>
-        <div class="q-gutter-sm">
-          <q-btn
-            color="secondary"
-            icon="category"
-            label="Nueva Subcategoría"
-            @click="abrirFormularioSubcategoriaLibre"
-          />
-          <q-btn
-            color="primary"
-            icon="add"
-            label="Nueva Categoría"
-            @click="showCreateCategoriaDialog = true"
-          />
-        </div>
+        <q-btn
+          color="primary"
+          icon="add"
+          label="Nueva Categoría"
+          @click="showCreateCategoriaDialog = true"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
+        />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por nombre o código..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarCategorias"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-5">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por nombre o código..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-4 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarCategorias" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -534,6 +538,12 @@ const cargarCategorias = async () => {
 const buscarCategorias = async () => {
   paginacion.value.page = 1
   await cargarCategorias()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  buscarCategorias()
 }
 
 const verSubcategorias = async (categoria: Categoria) => {

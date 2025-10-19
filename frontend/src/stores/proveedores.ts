@@ -9,7 +9,7 @@ export interface Proveedor {
   razon_social?: string
 
   // Datos fiscales
-  rut?: string
+  rfc?: string
   giro_comercial?: string
   direccion_fiscal?: string
   ciudad_fiscal?: string
@@ -120,7 +120,7 @@ export interface ProveedorCreate {
   razon_social?: string
 
   // Datos fiscales
-  rut?: string
+  rfc?: string
   giro_comercial?: string
   direccion_fiscal?: string
   ciudad_fiscal?: string
@@ -172,7 +172,7 @@ export interface ProveedorUpdate {
   razon_social?: string
 
   // Datos fiscales
-  rut?: string
+  rfc?: string
   giro_comercial?: string
   direccion_fiscal?: string
   ciudad_fiscal?: string

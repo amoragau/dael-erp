@@ -2,10 +2,15 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Documentos de Compra</h4>
-          <p class="text-grey-7 q-mb-none">Gestión manual de documentos de compra</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="receipt_long" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Documentos de <span class="text-weight-bold text-primary">Compra</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión manual de documentos de compra</p>
+            </div>
+          </div>
         </div>
         <div class="q-gutter-sm">
           <q-btn
@@ -13,60 +18,85 @@
             icon="upload_file"
             label="Importar XML"
             @click="abrirDialogoImportarXML"
+            unelevated
+            class="q-px-lg q-py-sm"
+            no-caps
           />
           <q-btn
             color="primary"
             icon="add"
             label="Nuevo Documento"
             @click="abrirFormularioDocumento"
+            unelevated
+            class="q-px-lg q-py-sm"
+            no-caps
           />
         </div>
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por número de documento, UUID..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.tipoDocumento"
-              :options="tiposDocumentoOptions"
-              label="Tipo de Documento"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.estado"
-              :options="estadosOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 120px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarDocumentos"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por número de documento, UUID..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.tipoDocumento"
+                :options="tiposDocumentoOptions"
+                label="Tipo de Documento"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadosOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="buscarDocumentos"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -85,9 +115,15 @@
         <template v-slot:body-cell-tipo_documento="props">
           <q-td :props="props">
             <q-badge
-              :color="getTipoDocumentoColor(props.value)"
-              :label="props.value"
+              :color="getTipoDocumentoColor(props.row.tipo_documento)"
+              :label="props.row.tipo_documento_rel?.nombre || props.row.tipo_documento || 'Sin tipo'"
             />
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-proveedor="props">
+          <q-td :props="props">
+            {{ props.row.proveedor?.razon_social || props.row.proveedor?.nombre_proveedor || 'Sin proveedor' }}
           </q-td>
         </template>
 
@@ -146,6 +182,17 @@
                 round
               >
                 <q-tooltip>Ver detalle</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="props.row.estado === 'PENDIENTE'"
+                size="sm"
+                color="orange"
+                icon="check_circle"
+                @click="validarDocumento(props.row)"
+                dense
+                round
+              >
+                <q-tooltip>Validar documento</q-tooltip>
               </q-btn>
               <q-btn
                 size="sm"
@@ -250,7 +297,7 @@
 
                         <div class="col-md-6 col-sm-12 col-xs-12">
                           <q-select
-                            v-model="formularioDocumento.tipo_documento"
+                            v-model="formularioDocumento.id_tipo_documento"
                             :options="tiposDocumentoOptions"
                             label="Tipo de Documento *"
                             outlined
@@ -258,6 +305,7 @@
                             emit-value
                             map-options
                             :rules="[val => !!val || 'Tipo de documento es requerido']"
+                            hint="Selecciona el tipo de documento (incluye código DTE para Chile)"
                           />
                         </div>
 
@@ -856,7 +904,7 @@
             </div>
 
             <!-- Observaciones -->
-            <div class="row q-gutter-md" v-if="documentoSeleccionado.observaciones">
+            <div class="row q-gutter-md q-mb-lg" v-if="documentoSeleccionado.observaciones">
               <div class="col-12">
                 <h6 class="q-ma-none q-mb-md">Observaciones</h6>
                 <q-card flat bordered>
@@ -867,18 +915,72 @@
               </div>
             </div>
 
+            <!-- Detalles del Documento -->
+            <div class="row q-gutter-md q-mb-lg" v-if="documentoSeleccionado.detalles && documentoSeleccionado.detalles.length > 0">
+              <div class="col-12">
+                <h6 class="q-ma-none q-mb-md">Detalles del Documento</h6>
+                <q-table
+                  :rows="documentoSeleccionado.detalles"
+                  :columns="columnsDetalles"
+                  row-key="id_detalle"
+                  flat
+                  bordered
+                  dense
+                  :pagination="{ rowsPerPage: 0 }"
+                  hide-pagination
+                >
+                  <template v-slot:body-cell-precio_unitario="props">
+                    <q-td :props="props">
+                      {{ formatCurrency(props.value) }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-descuento_linea="props">
+                    <q-td :props="props">
+                      {{ formatCurrency(props.value) }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-subtotal_linea="props">
+                    <q-td :props="props">
+                      {{ formatCurrency(props.value) }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-impuesto_linea="props">
+                    <q-td :props="props">
+                      {{ formatCurrency(props.value) }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-total_linea="props">
+                    <q-td :props="props">
+                      <strong>{{ formatCurrency(props.value) }}</strong>
+                    </q-td>
+                  </template>
+                </q-table>
+              </div>
+            </div>
+
+            <!-- Referencias -->
+            <div class="row q-gutter-md q-mb-lg" v-if="documentoSeleccionado.referencias && documentoSeleccionado.referencias.length > 0">
+              <div class="col-12">
+                <h6 class="q-ma-none q-mb-md">Referencias</h6>
+                <q-table
+                  :rows="documentoSeleccionado.referencias"
+                  :columns="columnsReferencias"
+                  row-key="id_referencia"
+                  flat
+                  bordered
+                  dense
+                  :pagination="{ rowsPerPage: 0 }"
+                  hide-pagination
+                />
+              </div>
+            </div>
+
             <!-- Botones de acción -->
             <div class="row justify-end q-gutter-md q-mt-lg">
               <q-btn
                 label="Cerrar"
-                color="grey"
-                flat
-                @click="cerrarDetalle"
-              />
-              <q-btn
-                label="Editar"
                 color="primary"
-                @click="editarDocumentoDesdeDetalle"
+                @click="cerrarDetalle"
               />
             </div>
           </q-card-section>
@@ -962,61 +1064,79 @@
                 </div>
 
                 <div v-else-if="datosExtraidos" class="q-gutter-md">
-                  <div class="text-subtitle1 q-mb-md">Datos extraídos del XML:</div>
+                  <div class="text-subtitle1 q-mb-md">Datos extraídos del XML DTE:</div>
 
                   <q-card flat bordered>
                     <q-card-section>
                       <div class="row q-gutter-md">
-                        <div class="col-6">
-                          <q-field label="Tipo Documento" stack-label outlined readonly dense>
+                        <div class="col-5">
+                          <q-field label="Tipo DTE" stack-label outlined readonly dense>
                             <template v-slot:control>
                               <div class="self-center full-width no-outline" tabindex="-1">
-                                {{ datosExtraidos.tipo_documento }}
+                                {{ datosExtraidos.encabezado?.tipo_dte || 'N/A' }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-6">
+                          <q-field label="Folio" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.encabezado?.folio || 'N/A' }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-6">
+                          <q-field label="Emisor" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.encabezado?.emisor?.razon_social || 'N/A' }}
                               </div>
                             </template>
                           </q-field>
                         </div>
                         <div class="col-5">
-                          <q-field label="Número" stack-label outlined readonly dense>
-                            <template v-slot:control>
-                              <div class="self-center full-width no-outline" tabindex="-1">
-                                {{ datosExtraidos.numero_documento }}
-                              </div>
-                            </template>
-                          </q-field>
-                        </div>
-                        <div class="col-6">
                           <q-field label="RUT Emisor" stack-label outlined readonly dense>
                             <template v-slot:control>
                               <div class="self-center full-width no-outline" tabindex="-1">
-                                {{ datosExtraidos.rut_emisor }}
-                              </div>
-                            </template>
-                          </q-field>
-                        </div>
-                        <div class="col-5">
-                          <q-field label="Fecha" stack-label outlined readonly dense>
-                            <template v-slot:control>
-                              <div class="self-center full-width no-outline" tabindex="-1">
-                                {{ formatDate(datosExtraidos.fecha_documento) }}
+                                {{ datosExtraidos.encabezado?.emisor?.rut || 'N/A' }}
                               </div>
                             </template>
                           </q-field>
                         </div>
                         <div class="col-6">
-                          <q-field label="Total" stack-label outlined readonly dense>
+                          <q-field label="Fecha Emisión" stack-label outlined readonly dense>
                             <template v-slot:control>
-                              <div class="self-center full-width no-outline text-weight-bold text-primary" tabindex="-1">
-                                {{ formatCurrency(datosExtraidos.total) }}
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.encabezado?.fecha_emision || 'N/A' }}
                               </div>
                             </template>
                           </q-field>
                         </div>
                         <div class="col-5">
-                          <q-field label="UUID Fiscal" stack-label outlined readonly dense>
+                          <q-field label="Total" stack-label outlined readonly dense>
                             <template v-slot:control>
-                              <div class="self-center full-width no-outline text-caption" tabindex="-1">
-                                {{ datosExtraidos.uuid_fiscal }}
+                              <div class="self-center full-width no-outline text-weight-bold text-primary" tabindex="-1">
+                                ${{ datosExtraidos.encabezado?.totales?.monto_total?.toLocaleString('es-CL') || '0' }}
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div class="col-12">
+                          <q-field label="Detalles" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.detalles?.length || 0 }} líneas de detalle
+                              </div>
+                            </template>
+                          </q-field>
+                        </div>
+                        <div v-if="datosExtraidos.referencias?.length > 0" class="col-12">
+                          <q-field label="Referencias" stack-label outlined readonly dense>
+                            <template v-slot:control>
+                              <div class="self-center full-width no-outline" tabindex="-1">
+                                {{ datosExtraidos.referencias.length }} referencias encontradas
                               </div>
                             </template>
                           </q-field>
@@ -1117,11 +1237,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
-import { useQuasar } from 'quasar'
-import { useDocumentoStore, type DocumentoCompra, type DocumentoCompraDetalle } from '@/stores/documentos'
+import { useQuasar, type QTableColumn } from 'quasar'
+import { useRoute } from 'vue-router'
+import { useDocumentoStore, type DocumentoCompra, type DocumentoCompraDetalle, type DocumentoCreate, type DocumentoUpdate } from '@/stores/documentos'
+import { useOrdenCompraStore, type OrdenCompra } from '@/stores/ordenesCompra'
+import { useTiposDocumentosCompraStore, type TipoDocumentoCompra } from '@/stores/tiposDocumentosCompra'
+import { useApiStore } from '@/stores/api'
 
 const $q = useQuasar()
+const route = useRoute()
 const documentoStore = useDocumentoStore()
+const ordenCompraStore = useOrdenCompraStore()
+const tiposDocumentosCompraStore = useTiposDocumentosCompraStore()
+const apiStore = useApiStore()
 
 // Estado reactivo
 const mostrarFormularioDocumento = ref(false)
@@ -1139,8 +1267,15 @@ const procesandoXML = ref(false)
 const importandoDocumento = ref(false)
 const errorProcesamiento = ref('')
 const datosExtraidos = ref<any>(null)
-const proveedoresEncontrados = ref([])
-const configuracionImportacion = ref({
+const proveedoresEncontrados = ref<ProveedorOption[]>([])
+
+interface ConfiguracionImportacion {
+  id_proveedor: number | 'nuevo' | null
+  validar_automaticamente: boolean
+  importar_detalles: boolean
+}
+
+const configuracionImportacion = ref<ConfiguracionImportacion>({
   id_proveedor: null,
   validar_automaticamente: true,
   importar_detalles: true
@@ -1163,12 +1298,66 @@ const paginacion = ref({
   rowsNumber: 0
 })
 
+type DocumentoForm = Omit<
+  Partial<DocumentoCompra>,
+  'id_proveedor' |
+  'id_orden_compra' |
+  'tipo_documento' |
+  'id_tipo_documento' |
+  'forma_pago' |
+  'numero_documento' |
+  'fecha_documento' |
+  'folio' |
+  'moneda' |
+  'tipo_cambio' |
+  'activo'
+> & {
+  id_proveedor: number | null
+  id_orden_compra: number | null
+  tipo_documento: DocumentoCompra['tipo_documento'] | null
+  id_tipo_documento: number | null
+  forma_pago: DocumentoCompra['forma_pago'] | null
+  numero_documento: string
+  fecha_documento: string
+  folio: string
+  moneda: string
+  tipo_cambio: number
+  subtotal: number
+  impuestos: number
+  descuentos: number
+  total: number
+  activo: boolean
+}
+
+interface ProveedorBusqueda {
+  id_proveedor: number
+  razon_social?: string
+  rfc?: string
+  rut_proveedor?: string
+  rut?: string
+  email?: string
+  telefono?: string
+}
+
+interface ProveedorOption {
+  label: string
+  value: number | 'nuevo'
+  rut: string
+  rfc: string
+  razon_social?: string
+  email?: string
+  telefono?: string
+  proveedor?: ProveedorBusqueda
+}
+
 // Formulario de documento
-const formularioDocumentoInicial: Partial<DocumentoCompra> = {
+const formularioDocumentoInicial: DocumentoForm = {
   id_proveedor: null,
   id_orden_compra: null,
   tipo_documento: null,
+  id_tipo_documento: null,
   numero_documento: '',
+  folio: '',
   fecha_documento: '',
   forma_pago: null,
   plazo_pago: 0,
@@ -1216,8 +1405,15 @@ const documentosFiltrados = computed(() => {
   return docs
 })
 
-const ordenesCompraOptions = ref([])
-const proveedoresOptions = ref([])
+interface OrdenCompraOption {
+  label: string
+  value: number
+  proveedor: string
+  total: number
+}
+
+const ordenesCompraOptions = ref<OrdenCompraOption[]>([])
+const proveedoresOptions = ref<ProveedorOption[]>([])
 
 const filtrarProveedores = async (val: string, update: Function) => {
   if (val.length < 2) {
@@ -1228,12 +1424,12 @@ const filtrarProveedores = async (val: string, update: Function) => {
   }
 
   try {
-    const proveedores = await documentoStore.buscarProveedores(val)
+    const proveedores = await documentoStore.buscarProveedores(val) as ProveedorBusqueda[]
     update(() => {
-      proveedoresOptions.value = proveedores.map(proveedor => {
+      proveedoresOptions.value = proveedores.map((proveedor: ProveedorBusqueda) => {
         const rfc = proveedor.rfc || proveedor.rut_proveedor || proveedor.rut || 'Sin RUT'
         return {
-          label: `${proveedor.razon_social} - ${rfc}`,
+          label: `${proveedor.razon_social ?? 'Proveedor sin razón social'} - ${rfc}`,
           value: proveedor.id_proveedor,
           rut: rfc,
           rfc: rfc,
@@ -1264,7 +1460,7 @@ const filtrarOrdenesCompra = async (val: string, update: Function) => {
   try {
     const ordenes = await documentoStore.buscarOrdenesCompra(val)
     update(() => {
-      ordenesCompraOptions.value = ordenes.map(orden => ({
+      ordenesCompraOptions.value = ordenes.map((orden: OrdenCompra) => ({
         label: `${orden.numero_orden} - ${orden.proveedor?.razon_social || 'Sin proveedor'}`,
         value: orden.id_orden_compra,
         proveedor: orden.proveedor?.razon_social || 'Sin proveedor',
@@ -1279,15 +1475,28 @@ const filtrarOrdenesCompra = async (val: string, update: Function) => {
   }
 }
 
-const tiposDocumentoOptions = [
-  { label: 'Factura', value: 'FACTURA' },
-  { label: 'Factura Exenta', value: 'FACTURA_EXENTA' },
-  { label: 'Boleta', value: 'BOLETA' },
-  { label: 'Nota de Crédito', value: 'NOTA_CREDITO' },
-  { label: 'Nota de Débito', value: 'NOTA_DEBITO' },
-  { label: 'Guía de Despacho', value: 'GUIA_DESPACHO' },
-  { label: 'Otro', value: 'OTRO' }
-]
+// Tipos de documentos - ahora cargados dinámicamente desde la base de datos
+const tiposDocumentoOptions = ref<{ label: string; value: number; codigo_dte?: string; requiere_folio?: boolean }[]>([])
+
+// Cargar tipos de documentos
+const cargarTiposDocumentos = async () => {
+  try {
+    const tipos = await tiposDocumentosCompraStore.obtenerTiposDocumentos({ activo: true })
+    tiposDocumentoOptions.value = tipos.map(tipo => ({
+      label: tipo.codigo_dte ? `${tipo.nombre} (DTE ${tipo.codigo_dte})` : tipo.nombre,
+      value: tipo.id_tipo_documento,
+      codigo_dte: tipo.codigo_dte,
+      requiere_folio: tipo.requiere_folio
+    }))
+  } catch (error) {
+    console.error('Error al cargar tipos de documentos:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar tipos de documentos',
+      caption: error instanceof Error ? error.message : String(error)
+    })
+  }
+}
 
 const estadosOptions = [
   { label: 'Pendiente', value: 'PENDIENTE' },
@@ -1299,7 +1508,7 @@ const estadosOptions = [
 
 const formularioDocumentoValido = computed(() => {
   return formularioDocumento.id_proveedor &&
-         formularioDocumento.tipo_documento &&
+         formularioDocumento.id_tipo_documento &&
          formularioDocumento.numero_documento &&
          formularioDocumento.fecha_documento &&
          formularioDocumento.forma_pago &&
@@ -1333,7 +1542,7 @@ const formasPagoOptions = [
 ]
 
 // Columnas de la tabla
-const columnsDocumentos = [
+const columnsDocumentos: QTableColumn<any>[] = [
   {
     name: 'tipo_documento',
     label: 'Tipo',
@@ -1399,6 +1608,119 @@ const columnsDocumentos = [
   }
 ]
 
+// Columnas para tabla de detalles
+const columnsDetalles: QTableColumn<any>[] = [
+  {
+    name: 'numero_linea',
+    label: '#',
+    align: 'center',
+    field: 'numero_linea',
+    sortable: true
+  },
+  {
+    name: 'codigo_producto',
+    label: 'Código',
+    align: 'left',
+    field: 'codigo_producto',
+    sortable: false
+  },
+  {
+    name: 'descripcion',
+    label: 'Descripción',
+    align: 'left',
+    field: 'descripcion',
+    sortable: false
+  },
+  {
+    name: 'cantidad',
+    label: 'Cantidad',
+    align: 'right',
+    field: 'cantidad',
+    sortable: false
+  },
+  {
+    name: 'precio_unitario',
+    label: 'Precio Unit.',
+    align: 'right',
+    field: 'precio_unitario',
+    sortable: false
+  },
+  {
+    name: 'descuento_linea',
+    label: 'Descuento',
+    align: 'right',
+    field: 'descuento_linea',
+    sortable: false
+  },
+  {
+    name: 'subtotal_linea',
+    label: 'Subtotal',
+    align: 'right',
+    field: 'subtotal_linea',
+    sortable: false
+  },
+  {
+    name: 'impuesto_linea',
+    label: 'Impuesto',
+    align: 'right',
+    field: 'impuesto_linea',
+    sortable: false
+  },
+  {
+    name: 'total_linea',
+    label: 'Total',
+    align: 'right',
+    field: 'total_linea',
+    sortable: false
+  }
+]
+
+// Columnas para tabla de referencias
+const columnsReferencias: QTableColumn<any>[] = [
+  {
+    name: 'numero_linea_ref',
+    label: '#',
+    align: 'center',
+    field: 'numero_linea_ref',
+    sortable: true
+  },
+  {
+    name: 'tipo_documento_ref',
+    label: 'Tipo Doc.',
+    align: 'center',
+    field: 'tipo_documento_ref',
+    sortable: false
+  },
+  {
+    name: 'folio_ref',
+    label: 'Folio',
+    align: 'center',
+    field: 'folio_ref',
+    sortable: false
+  },
+  {
+    name: 'fecha_ref',
+    label: 'Fecha',
+    align: 'center',
+    field: 'fecha_ref',
+    sortable: false
+  },
+  {
+    name: 'codigo_ref',
+    label: 'Código',
+    align: 'center',
+    field: 'codigo_ref',
+    sortable: false
+  },
+  {
+    name: 'razon_ref',
+    label: 'Razón',
+    align: 'left',
+    field: 'razon_ref',
+    sortable: false
+  }
+]
+
 // Métodos
 const cargarDatos = async () => {
   try {
@@ -1433,6 +1755,14 @@ const buscarDocumentos = async () => {
   }
 }
 
+const limpiarFiltros = () => {
+  filtros.busqueda = ''
+  filtros.ordenCompra = null
+  filtros.tipoDocumento = null
+  filtros.estado = null
+  buscarDocumentos()
+}
+
 const onRequestDocumentos = async (props: any) => {
   const { page, rowsPerPage, sortBy, descending } = props.pagination
 
@@ -1462,6 +1792,92 @@ const cerrarFormularioDocumento = () => {
   })
 }
 
+const cargarDatosDesdeOrden = async (idOrden: number) => {
+  try {
+    // Obtener los datos de la orden de compra
+    const orden = await ordenCompraStore.obtenerOrdenCompra(idOrden)
+
+    if (!orden) {
+      $q.notify({
+        type: 'negative',
+        message: 'No se encontró la orden de compra',
+        position: 'top'
+      })
+      return
+    }
+
+    // Pre-cargar las opciones del proveedor para que se muestre correctamente
+    if (orden.proveedor) {
+      const rfc = orden.proveedor.rfc || 'Sin RUT'
+      proveedoresOptions.value = [{
+        label: `${orden.proveedor.razon_social} - ${rfc}`,
+        value: orden.id_proveedor,
+        rut: rfc,
+        rfc: rfc,
+        razon_social: orden.proveedor.razon_social
+      }]
+    }
+
+    // Pre-cargar las opciones de la orden de compra para que se muestre correctamente
+    ordenesCompraOptions.value = [{
+      label: `${orden.numero_orden} - ${orden.proveedor?.razon_social || 'Sin proveedor'}`,
+      value: orden.id_orden_compra,
+      proveedor: orden.proveedor?.razon_social || 'Sin proveedor',
+      total: orden.total
+    }]
+
+    // Pre-llenar el formulario con los datos de la orden
+    Object.assign(formularioDocumento, {
+      ...formularioDocumentoInicial,
+      id_proveedor: orden.id_proveedor,
+      id_orden_compra: orden.id_orden_compra,
+      tipo_documento: 'FACTURA' as const,
+      fecha_documento: new Date().toISOString().split('T')[0],
+      subtotal: orden.subtotal,
+      impuestos: orden.impuestos,
+      descuentos: orden.descuentos,
+      total: orden.total,
+      moneda: orden.moneda || 'CLP',
+      tipo_cambio: orden.tipo_cambio || 1,
+      observaciones: `Documento generado desde orden de compra ${orden.numero_orden}`,
+      detalles: []
+    })
+
+    // Convertir los detalles de la orden a detalles de documento
+    if (orden.detalles && orden.detalles.length > 0) {
+      formularioDocumento.detalles = orden.detalles.map((detalle, index) => ({
+        descripcion: detalle.producto?.nombre_producto || `Producto ${detalle.id_producto}`,
+        cantidad: detalle.cantidad_solicitada,
+        precio_unitario: detalle.precio_unitario,
+        descuento_linea: detalle.descuento_monto || 0,
+        subtotal_linea: detalle.precio_neto,
+        impuesto_linea: detalle.impuesto_monto || 0,
+        total_linea: detalle.importe_total,
+        numero_linea: index + 1,
+        id_producto: detalle.id_producto,
+        codigo_producto: detalle.producto?.codigo_producto
+      }))
+    }
+
+    // Abrir el formulario
+    mostrarFormularioDocumento.value = true
+
+    $q.notify({
+      type: 'info',
+      message: `Documento pre-llenado desde orden ${orden.numero_orden}. Puede modificar los datos antes de guardar.`,
+      position: 'top',
+      timeout: 5000
+    })
+  } catch (error) {
+    console.error('Error al cargar datos desde orden:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar los datos de la orden de compra',
+      position: 'top'
+    })
+  }
+}
+
 const calcularTotal = () => {
   const subtotal = formularioDocumento.subtotal || 0
   const impuestos = formularioDocumento.impuestos || 0
@@ -1479,7 +1895,7 @@ const agregarDetalle = () => {
     subtotal_linea: 0,
     impuesto_linea: 0,
     total_linea: 0,
-    numero_linea: formularioDocumento.detalles?.length + 1 || 1
+    numero_linea: (formularioDocumento.detalles?.length ?? 0) + 1
   }
   if (!formularioDocumento.detalles) {
     formularioDocumento.detalles = []
@@ -1523,21 +1939,89 @@ const calcularTotalesDocumento = () => {
   }
 }
 
+const construirDocumentoCreatePayload = (): DocumentoCreate => {
+  if (formularioDocumento.id_proveedor === null || !formularioDocumento.id_tipo_documento || !formularioDocumento.forma_pago) {
+    throw new Error('Formulario inválido')
+  }
+
+  return {
+    id_proveedor: formularioDocumento.id_proveedor,
+    id_orden_compra: formularioDocumento.id_orden_compra ?? undefined,
+    id_tipo_documento: formularioDocumento.id_tipo_documento,
+    tipo_documento: formularioDocumento.tipo_documento ?? undefined,
+    numero_documento: formularioDocumento.numero_documento,
+    fecha_documento: formularioDocumento.fecha_documento,
+    serie: formularioDocumento.serie || undefined,
+    folio: formularioDocumento.folio,
+    uuid_fiscal: formularioDocumento.uuid_fiscal || undefined,
+    rut_emisor: formularioDocumento.rut_emisor || undefined,
+    rut_receptor: formularioDocumento.rut_receptor || undefined,
+    forma_pago: formularioDocumento.forma_pago ?? undefined,
+    plazo_pago: formularioDocumento.plazo_pago ?? undefined,
+    fecha_vencimiento: formularioDocumento.fecha_vencimiento || undefined,
+    referencia_pago: formularioDocumento.referencia_pago || undefined,
+    subtotal: formularioDocumento.subtotal,
+    impuestos: formularioDocumento.impuestos,
+    descuentos: formularioDocumento.descuentos,
+    total: formularioDocumento.total,
+    moneda: formularioDocumento.moneda,
+    tipo_cambio: formularioDocumento.tipo_cambio,
+    contenido_xml: formularioDocumento.contenido_xml || undefined,
+    observaciones: formularioDocumento.observaciones || undefined,
+    activo: formularioDocumento.activo,
+    detalles: formularioDocumento.detalles ?? []
+  }
+}
+
+const construirDocumentoUpdatePayload = (): DocumentoUpdate & { detalles?: DocumentoCompraDetalle[] } => {
+  const payload: DocumentoUpdate & { detalles?: DocumentoCompraDetalle[] } = {
+    subtotal: formularioDocumento.subtotal,
+    impuestos: formularioDocumento.impuestos,
+    descuentos: formularioDocumento.descuentos,
+    total: formularioDocumento.total,
+    moneda: formularioDocumento.moneda,
+    tipo_cambio: formularioDocumento.tipo_cambio,
+    observaciones: formularioDocumento.observaciones || undefined,
+    activo: formularioDocumento.activo
+  }
+
+  if (formularioDocumento.id_proveedor !== null) payload.id_proveedor = formularioDocumento.id_proveedor
+  if (formularioDocumento.id_orden_compra !== null) payload.id_orden_compra = formularioDocumento.id_orden_compra
+  if (formularioDocumento.id_tipo_documento !== null) payload.id_tipo_documento = formularioDocumento.id_tipo_documento
+  if (formularioDocumento.tipo_documento) payload.tipo_documento = formularioDocumento.tipo_documento
+  if (formularioDocumento.numero_documento) payload.numero_documento = formularioDocumento.numero_documento
+  if (formularioDocumento.fecha_documento) payload.fecha_documento = formularioDocumento.fecha_documento
+  if (formularioDocumento.serie) payload.serie = formularioDocumento.serie
+  if (formularioDocumento.folio) payload.folio = formularioDocumento.folio
+  if (formularioDocumento.uuid_fiscal) payload.uuid_fiscal = formularioDocumento.uuid_fiscal
+  if (formularioDocumento.rut_emisor) payload.rut_emisor = formularioDocumento.rut_emisor
+  if (formularioDocumento.rut_receptor) payload.rut_receptor = formularioDocumento.rut_receptor
+  if (formularioDocumento.forma_pago) payload.forma_pago = formularioDocumento.forma_pago
+  if (formularioDocumento.plazo_pago !== undefined && formularioDocumento.plazo_pago !== null) payload.plazo_pago = formularioDocumento.plazo_pago
+  if (formularioDocumento.fecha_vencimiento) payload.fecha_vencimiento = formularioDocumento.fecha_vencimiento
+  if (formularioDocumento.referencia_pago) payload.referencia_pago = formularioDocumento.referencia_pago
+  if (formularioDocumento.contenido_xml) payload.contenido_xml = formularioDocumento.contenido_xml
+  if (formularioDocumento.detalles && formularioDocumento.detalles.length) payload.detalles = formularioDocumento.detalles
+
+  return payload
+}
+
 const guardarDocumento = async () => {
   try {
     guardandoDocumento.value = true
 
     if (modoEdicion.value && documentoSeleccionado.value) {
-      await documentoStore.actualizarDocumento(
-        documentoSeleccionado.value.id_documento,
-        formularioDocumento
-      )
+      const payload = construirDocumentoUpdatePayload()
+      const idDocumento = documentoSeleccionado.value.id_documento
+      if (idDocumento == null) throw new Error('Documento sin identificador')
+      await documentoStore.actualizarDocumento(idDocumento, payload)
       $q.notify({
         type: 'positive',
         message: 'Documento actualizado exitosamente'
       })
     } else {
-      await documentoStore.crearDocumento(formularioDocumento)
+      const payload = construirDocumentoCreatePayload()
+      await documentoStore.crearDocumento(payload)
       $q.notify({
         type: 'positive',
         message: 'Documento creado exitosamente'
@@ -1558,6 +2042,9 @@ const guardarDocumento = async () => {
 }
 
 const verDocumento = async (documento: DocumentoCompra) => {
+  if (documento.id_documento === undefined) {
+    return
+  }
   try {
     const documentoCompleto = await documentoStore.obtenerDocumento(documento.id_documento)
     documentoSeleccionado.value = documentoCompleto
@@ -1613,6 +2100,16 @@ const editarDocumentoDesdeDetalle = () => {
 
 
 const eliminarDocumento = async (documento: DocumentoCompra) => {
+  if (documento.id_documento == null) {
+    $q.notify({
+      type: 'negative',
+      message: 'No es posible eliminar un documento sin identificador'
+    })
+    return
+  }
+
+  const idDocumento = documento.id_documento
+
   $q.dialog({
     title: 'Confirmar eliminación',
     message: `¿Está seguro de que desea eliminar el documento ${documento.numero_documento}?`,
@@ -1620,7 +2117,7 @@ const eliminarDocumento = async (documento: DocumentoCompra) => {
     persistent: true
   }).onOk(async () => {
     try {
-      await documentoStore.eliminarDocumento(documento.id_documento)
+      await documentoStore.eliminarDocumento(idDocumento)
       $q.notify({
         type: 'positive',
         message: 'Documento eliminado exitosamente'
@@ -1733,18 +2230,13 @@ const procesarArchivoXML = async () => {
 
     // Crear FormData para enviar el archivo
     const formData = new FormData()
-    formData.append('archivo_xml', archivoXML.value)
+    formData.append('archivo', archivoXML.value)
 
-    // Llamar al store para procesar el XML
-    const resultado = await documentoStore.procesarArchivoXML(formData)
+    // Validar XML sin guardar
+    const response = await apiStore.post('/importacion-dte/validar-xml', formData)
 
-    if (resultado.success) {
-      datosExtraidos.value = resultado.datos
-
-      // Buscar proveedores por RUT
-      if (resultado.datos.rut_emisor) {
-        await buscarProveedoresPorRUT(resultado.datos.rut_emisor)
-      }
+    if (response.success) {
+      datosExtraidos.value = response.data.datos
 
       pasoImportacion.value = 2
 
@@ -1754,7 +2246,7 @@ const procesarArchivoXML = async () => {
         caption: 'Se extrajeron los datos del documento'
       })
     } else {
-      errorProcesamiento.value = resultado.error || 'Error procesando el archivo XML'
+      errorProcesamiento.value = response.error || 'Error procesando el archivo XML'
     }
   } catch (error: any) {
     console.error('Error procesando XML:', error)
@@ -1766,9 +2258,9 @@ const procesarArchivoXML = async () => {
 
 const buscarProveedoresPorRUT = async (rut: string) => {
   try {
-    const proveedores = await documentoStore.buscarProveedoresPorRUT(rut)
+    const proveedores = await documentoStore.buscarProveedoresPorRUT(rut) as ProveedorBusqueda[]
 
-    proveedoresEncontrados.value = proveedores.map(proveedor => {
+    proveedoresEncontrados.value = proveedores.map((proveedor: ProveedorBusqueda) => {
       const proveedorRfc = proveedor.rfc || proveedor.rut_proveedor || proveedor.rut || 'Sin RUT'
       return {
         label: `${proveedor.razon_social} - ${proveedorRfc}`,
@@ -1784,7 +2276,10 @@ const buscarProveedoresPorRUT = async (rut: string) => {
 
     // Si encontramos un proveedor exacto, seleccionarlo automáticamente
     if (proveedores.length === 1) {
-      configuracionImportacion.value.id_proveedor = proveedores[0].id_proveedor
+      const unicoProveedor = proveedores[0]
+      if (unicoProveedor) {
+        configuracionImportacion.value.id_proveedor = unicoProveedor.id_proveedor
+      }
     }
 
     // Si no hay proveedores, agregar opción para crear nuevo
@@ -1794,7 +2289,7 @@ const buscarProveedoresPorRUT = async (rut: string) => {
         value: 'nuevo',
         rut: rut,
         rfc: rut,
-        razon_social: datosExtraidos.value.nombre_emisor || 'Nuevo Proveedor'
+        razon_social: datosExtraidos.value?.nombre_emisor || 'Nuevo Proveedor'
       })
     }
   } catch (error) {
@@ -1803,43 +2298,38 @@ const buscarProveedoresPorRUT = async (rut: string) => {
 }
 
 const importarDocumento = async () => {
-  if (!datosExtraidos.value) return
+  if (!archivoXML.value) return
 
   try {
     importandoDocumento.value = true
 
-    // Preparar datos para importación
-    const datosImportacion = {
-      ...datosExtraidos.value,
-      id_proveedor: configuracionImportacion.value.id_proveedor,
-      validar_automaticamente: configuracionImportacion.value.validar_automaticamente,
-      importar_detalles: configuracionImportacion.value.importar_detalles,
-      archivo_xml_original: archivoXML.value?.name
-    }
+    // Crear FormData con el archivo XML
+    const formData = new FormData()
+    formData.append('archivo', archivoXML.value)
 
-    // Llamar al store para importar el documento
-    const resultado = await documentoStore.importarDocumentoDesdeXML(datosImportacion)
+    // Llamar al endpoint de importación DTE
+    const response = await apiStore.post('/importacion-dte/procesar-xml', formData)
 
-    if (resultado.success) {
+    if (response.success) {
       pasoImportacion.value = 3
 
       $q.notify({
         type: 'positive',
-        message: 'Documento importado exitosamente',
-        caption: `Documento ${resultado.documento.numero_documento} creado`
+        message: 'Documento DTE importado exitosamente',
+        caption: `Documento folio ${response.data.folio} creado con ${response.data.detalles?.length || 0} líneas de detalle`
       })
 
       // Recargar la lista de documentos
       await cargarDatos()
     } else {
-      throw new Error(resultado.error || 'Error importando el documento')
+      throw new Error(response.error || 'Error importando el documento')
     }
   } catch (error: any) {
     console.error('Error importando documento:', error)
     $q.notify({
       type: 'negative',
-      message: 'Error al importar el documento',
-      caption: error.message
+      message: 'Error al importar el documento DTE',
+      caption: error.message || 'Error desconocido'
     })
   } finally {
     importandoDocumento.value = false
@@ -1848,8 +2338,15 @@ const importarDocumento = async () => {
 
 
 // Lifecycle
-onMounted(() => {
-  cargarDatos()
+onMounted(async () => {
+  await cargarDatos()
+  await cargarTiposDocumentos()
+
+  // Verificar si se viene desde una orden de compra
+  if (route.query.fromOrden) {
+    const idOrden = parseInt(route.query.fromOrden as string)
+    await cargarDatosDesdeOrden(idOrden)
+  }
 })
 </script>
 

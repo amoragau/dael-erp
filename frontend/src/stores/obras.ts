@@ -13,7 +13,6 @@ export interface Obra {
   // Ubicación física
   direccion?: string
   ciudad?: string
-  estado?: string
   codigo_postal?: string
   pais?: string
   coordenadas_gps?: string
@@ -64,7 +63,6 @@ export interface ObraCreate {
   // Ubicación física
   direccion?: string
   ciudad?: string
-  estado?: string
   codigo_postal?: string
   pais?: string
   coordenadas_gps?: string
@@ -106,7 +104,6 @@ export interface ObraUpdate {
   // Ubicación física
   direccion?: string
   ciudad?: string
-  estado?: string
   codigo_postal?: string
   pais?: string
   coordenadas_gps?: string
@@ -353,6 +350,31 @@ export const useObraStore = defineStore('obras', () => {
     }
   }
 
+  const eliminarObra = async (id: number, _permanente: boolean = false): Promise<void> => {
+    try {
+      const response = await apiStore.delete(`/obras/${id}`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al eliminar obra')
+      }
+    } catch (error) {
+      console.error('Error al eliminar obra:', error)
+      throw error
+    }
+  }
+
+  const activarObra = async (id: number): Promise<Obra> => {
+    try {
+      const response = await apiStore.patch(`/obras/${id}/toggle`)
+      if (!response.success) {
+        throw new Error(response.error || 'Error al activar obra')
+      }
+      return response.data
+    } catch (error) {
+      console.error('Error al activar obra:', error)
+      throw error
+    }
+  }
+
   const suspenderObra = async (id: number, motivo: string): Promise<Obra> => {
     try {
       const response = await apiStore.patch(`/obras/${id}/suspender`, { motivo })
@@ -511,6 +533,8 @@ export const useObraStore = defineStore('obras', () => {
     cambiarEstadoObra,
     iniciarObra,
     finalizarObra,
+    eliminarObra,
+    activarObra,
     suspenderObra,
     reanudarObra,
 

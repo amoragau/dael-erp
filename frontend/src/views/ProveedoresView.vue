@@ -2,63 +2,90 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Información Comercial de Proveedores</h4>
-          <p class="text-grey-7 q-mb-none">Gestión integral de proveedores con datos fiscales y condiciones comerciales</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="business" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Información Comercial de <span class="text-weight-bold text-primary">Proveedores</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión integral de proveedores con datos fiscales y condiciones comerciales</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Proveedor"
           @click="abrirFormularioProveedor"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por nombre, código o RUT..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.clasificacion"
-              :options="clasificacionOptions"
-              label="Clasificación"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarProveedores"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por nombre, código o RUT..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.clasificacion"
+                :options="clasificacionOptions"
+                label="Clasificación"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="buscarProveedores"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -95,7 +122,7 @@
         <template v-slot:body-cell-limite_credito="props">
           <q-td :props="props">
             <span v-if="props.value && props.value > 0" class="text-weight-medium">
-              ${{ Number(props.value).toLocaleString() }}
+              {{ formatCurrency(props.value) }}
             </span>
             <span v-else class="text-grey-5">Sin límite</span>
           </q-td>
@@ -303,7 +330,7 @@
                       <div class="row q-gutter-md">
                         <div class="col-12 col-md-6">
                           <q-input
-                            v-model="formProveedor.rut"
+                            v-model="formProveedor.rfc"
                             label="RUT"
                             outlined
                             dense
@@ -717,7 +744,7 @@
                   <q-item>
                     <q-item-section>
                       <q-item-label caption>RUT</q-item-label>
-                      <q-item-label>{{ proveedorDetalle.rut || '-' }}</q-item-label>
+                      <q-item-label>{{ proveedorDetalle.rfc || '-' }}</q-item-label>
                     </q-item-section>
                   </q-item>
                   <q-item>
@@ -749,7 +776,7 @@
                       <q-item-label caption>Límite de Crédito</q-item-label>
                       <q-item-label>
                         <span v-if="proveedorDetalle.limite_credito && proveedorDetalle.limite_credito > 0">
-                          ${{ Number(proveedorDetalle.limite_credito).toLocaleString() }}
+                          {{ formatCurrency(proveedorDetalle.limite_credito) }}
                         </span>
                         <span v-else>Sin límite</span>
                       </q-item-label>
@@ -1098,6 +1125,7 @@ import {
   type SucursalProveedor,
   type SucursalProveedorCreate
 } from '../stores/proveedores'
+import { formatCurrency } from '@/utils/formatters'
 
 const $q = useQuasar()
 const proveedorStore = useProveedorStore()
@@ -1172,7 +1200,7 @@ const formProveedor = ref<ProveedorCreate & { id_proveedor?: number }>({
   razon_social: '',
 
   // Datos fiscales
-  rut: '',
+  rfc: '',
   giro_comercial: '',
   direccion_fiscal: '',
   ciudad_fiscal: '',
@@ -1258,7 +1286,7 @@ const columnsProveedores = [
     name: 'rut',
     label: 'RUT',
     align: 'left' as const,
-    field: 'rut'
+    field: 'rfc'
   },
   {
     name: 'dias_credito',
@@ -1386,7 +1414,7 @@ const cargarProveedores = async () => {
       proveedoresFiltered = response.filter((proveedor: any) =>
         proveedor.codigo_proveedor.toLowerCase().includes(busqueda) ||
         proveedor.nombre_proveedor.toLowerCase().includes(busqueda) ||
-        (proveedor.rut && proveedor.rut.toLowerCase().includes(busqueda)) ||
+        (proveedor.rfc && proveedor.rfc.toLowerCase().includes(busqueda)) ||
         (proveedor.razon_social && proveedor.razon_social.toLowerCase().includes(busqueda))
       )
     }
@@ -1414,6 +1442,13 @@ const cargarProveedores = async () => {
 const buscarProveedores = async () => {
   paginacion.value.page = 1
   await cargarProveedores()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.clasificacion = null
+  buscarProveedores()
 }
 
 const abrirFormularioProveedor = () => {
@@ -1516,7 +1551,7 @@ const resetFormProveedor = () => {
     razon_social: '',
 
     // Datos fiscales
-    rut: '',
+    rfc: '',
     giro_comercial: '',
     direccion_fiscal: '',
     ciudad_fiscal: '',

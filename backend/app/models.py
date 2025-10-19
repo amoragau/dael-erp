@@ -100,6 +100,11 @@ class Proveedor(Base):
     nombre_proveedor = Column(String(200), nullable=False)
     razon_social = Column(String(200))
     rfc = Column(String(20))
+    giro_comercial = Column(String(200))
+    acteco_1 = Column(String(10))
+    acteco_2 = Column(String(10))
+    acteco_3 = Column(String(10))
+    acteco_4 = Column(String(10))
     direccion = Column(Text)
     ciudad = Column(String(100))
     estado = Column(String(50))
@@ -115,11 +120,35 @@ class Proveedor(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
     fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-    # Relación con sucursales
+    # Relaciones
     sucursales = relationship("SucursalProveedor", back_populates="proveedor")
+    direcciones = relationship("DireccionProveedor", back_populates="proveedor", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Proveedor(id={self.id_proveedor}, codigo='{self.codigo_proveedor}', nombre='{self.nombre_proveedor}')>"
+
+class DireccionProveedor(Base):
+    __tablename__ = "direcciones_proveedor"
+
+    id_direccion = Column(Integer, primary_key=True, autoincrement=True)
+    id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False, index=True)
+    tipo_direccion = Column(Enum('FISCAL', 'COMERCIAL', 'ENTREGA', 'FACTURACION', 'OTRO'), default='COMERCIAL')
+    direccion = Column(Text, nullable=False)
+    comuna = Column(String(100))
+    ciudad = Column(String(100))
+    region = Column(String(100))
+    codigo_postal = Column(String(20))
+    pais = Column(String(100), default='Chile')
+    es_principal = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relación con proveedor
+    proveedor = relationship("Proveedor", back_populates="direcciones")
+
+    def __repr__(self):
+        return f"<DireccionProveedor(id={self.id_direccion}, proveedor_id={self.id_proveedor}, tipo='{self.tipo_direccion}')>"
 
 class SucursalProveedor(Base):
     __tablename__ = "sucursales_proveedor"
@@ -2220,6 +2249,8 @@ class OrdenCompra(Base):
     # Referencias
     id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False, index=True)
     id_usuario_solicitante = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=False, index=True)
+    id_centro_costo = Column(Integer, ForeignKey("centros_costo.id_centro_costo"), nullable=False, index=True)
+    id_empresa = Column(Integer, ForeignKey("empresas.id_empresa"), nullable=True, index=True)
     id_usuario_aprobador = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     id_estado = Column(Integer, ForeignKey("estados_orden_compra.id_estado"), nullable=False, index=True)
 
@@ -2232,6 +2263,7 @@ class OrdenCompra(Base):
     # Totales
     subtotal = Column(DECIMAL(15,4), nullable=False, default=0)
     impuestos = Column(DECIMAL(15,4), nullable=False, default=0)
+    iva_porcentaje = Column(DECIMAL(5,2), nullable=False, default=19.00)
     descuentos = Column(DECIMAL(15,4), nullable=False, default=0)
     total = Column(DECIMAL(15,4), nullable=False, default=0)
 
@@ -2257,6 +2289,8 @@ class OrdenCompra(Base):
     # Relationships
     proveedor = relationship("Proveedor")
     usuario_solicitante = relationship("Usuarios", foreign_keys=[id_usuario_solicitante])
+    centro_costo = relationship("CentroCosto")
+    empresa = relationship("Empresa")
     usuario_aprobador = relationship("Usuarios", foreign_keys=[id_usuario_aprobador])
     estado = relationship("EstadoOrdenCompra")
     detalles = relationship("OrdenCompraDetalle", back_populates="orden_compra", cascade="all, delete-orphan")
@@ -2428,6 +2462,24 @@ class VistaOrdenesDetalleCompleto(Base):
 # MODELOS PARA WORKFLOW DE ÓRDENES DE COMPRA - NUEVOS
 # ========================================
 
+class TipoDocumentoCompra(Base):
+    __tablename__ = "tipos_documentos_compra"
+
+    id_tipo_documento = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False, unique=True)
+    codigo_dte = Column(String(10), nullable=True, unique=True, index=True)
+    descripcion = Column(Text, nullable=True)
+    requiere_folio = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp())
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relación con documentos de compra
+    documentos_compra = relationship("DocumentoCompra", back_populates="tipo_documento_rel")
+
+    def __repr__(self):
+        return f"<TipoDocumentoCompra(id={self.id_tipo_documento}, nombre='{self.nombre}', codigo_dte='{self.codigo_dte}')>"
+
 class DocumentoCompra(Base):
     __tablename__ = "documentos_compra"
 
@@ -2439,8 +2491,11 @@ class DocumentoCompra(Base):
     # Relación opcional con orden de compra
     id_orden_compra = Column(Integer, ForeignKey("ordenes_compra.id_orden_compra"), nullable=True, index=True)
 
+    # Tipo de documento (relacionado a tabla tipos_documentos_compra)
+    id_tipo_documento = Column(Integer, ForeignKey("tipos_documentos_compra.id_tipo_documento"), nullable=True, index=True)
+
     # Información básica del documento
-    tipo_documento = Column(Enum('FACTURA', 'FACTURA_EXENTA', 'BOLETA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO', 'OTRO'), nullable=False, index=True)
+    tipo_documento = Column(Enum('FACTURA', 'FACTURA_EXENTA', 'BOLETA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO', 'OTRO'), nullable=True, index=True)  # Mantener por compatibilidad
     numero_documento = Column(String(100), nullable=False, index=True)
     fecha_documento = Column(Date, nullable=False, index=True)
 
@@ -2480,12 +2535,15 @@ class DocumentoCompra(Base):
     usuario_modificacion = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
 
     # Relationships
+    tipo_documento_rel = relationship("TipoDocumentoCompra", back_populates="documentos_compra")
     orden_compra = relationship("OrdenCompra", back_populates="documentos_compra")
     detalles = relationship("DocumentoCompraDetalle", back_populates="documento", cascade="all, delete-orphan")
     archivos = relationship("DocumentoCompraArchivo", back_populates="documento", cascade="all, delete-orphan")
+    referencias = relationship("ReferenciaDocumento", back_populates="documento", cascade="all, delete-orphan")
     usuario_creador = relationship("Usuarios", foreign_keys=[usuario_creacion])
     usuario_modificador = relationship("Usuarios", foreign_keys=[usuario_modificacion])
     usuario_bodeguero = relationship("Usuarios", foreign_keys=[usuario_ingreso_bodega])
+    proveedor = relationship("Proveedor")
 
     def __repr__(self):
         return f"<DocumentoCompra(id={self.id_documento}, tipo='{self.tipo_documento}', numero='{self.numero_documento}')>"
@@ -2560,5 +2618,92 @@ class DocumentoCompraArchivo(Base):
 
     def __repr__(self):
         return f"<DocumentoCompraArchivo(id={self.id_archivo}, documento={self.id_documento}, tipo='{self.tipo_archivo}')>"
+
+
+class ReferenciaDocumento(Base):
+    __tablename__ = "referencias_documento"
+
+    id_referencia = Column(Integer, primary_key=True, autoincrement=True)
+    id_documento = Column(Integer, ForeignKey("documentos_compra.id_documento"), nullable=False, index=True)
+
+    # Información de la referencia
+    numero_linea_ref = Column(Integer, nullable=False)
+    tipo_documento_ref = Column(String(10), nullable=True)
+    folio_ref = Column(String(50), nullable=True, index=True)
+    fecha_ref = Column(Date, nullable=True)
+
+    # Códigos de referencia según normativa SII
+    codigo_ref = Column(Enum('1', '2', '3'), nullable=True)
+    razon_ref = Column(Text, nullable=True)
+
+    # Campos adicionales
+    indicador_global = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True)
+    fecha_creacion = Column(TIMESTAMP, default=func.current_timestamp())
+    fecha_actualizacion = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    # Relationships
+    documento = relationship("DocumentoCompra", back_populates="referencias")
+
+    def __repr__(self):
+        return f"<ReferenciaDocumento(id={self.id_referencia}, documento={self.id_documento}, folio_ref='{self.folio_ref}')>"
+
+
+# ============================================
+# CENTROS DE COSTO
+# ============================================
+
+class CentroCosto(Base):
+    __tablename__ = "centros_costo"
+
+    id_centro_costo = Column(Integer, primary_key=True, index=True)
+    codigo_centro_costo = Column(String(20), unique=True, nullable=False, index=True)
+    nombre_centro_costo = Column(String(100), nullable=False, index=True)
+    descripcion = Column(Text)
+    id_responsable = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    presupuesto_anual = Column(DECIMAL(15, 2), default=0)
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, default=func.now())
+    fecha_modificacion = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    usuario_creacion = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    usuario_modificacion = Column(Integer, ForeignKey("usuarios.id_usuario"))
+
+    # Relationships
+    responsable = relationship("Usuarios", foreign_keys=[id_responsable])
+    usuario_creo = relationship("Usuarios", foreign_keys=[usuario_creacion])
+    usuario_modifico = relationship("Usuarios", foreign_keys=[usuario_modificacion])
+
+    def __repr__(self):
+        return f"<CentroCosto(id={self.id_centro_costo}, codigo='{self.codigo_centro_costo}', nombre='{self.nombre_centro_costo}')>"
+
+
+class Empresa(Base):
+    __tablename__ = "empresas"
+
+    id_empresa = Column(Integer, primary_key=True, index=True)
+    rut_empresa = Column(String(20), unique=True, nullable=False, index=True)
+    razon_social = Column(String(200), nullable=False, index=True)
+    nombre_fantasia = Column(String(200))
+    giro = Column(String(200))
+    direccion = Column(String(255))
+    comuna = Column(String(100))
+    ciudad = Column(String(100))
+    region = Column(String(100))
+    telefono = Column(String(20))
+    email = Column(String(100))
+    sitio_web = Column(String(200))
+    logo_url = Column(String(500))
+    activo = Column(Boolean, default=True, index=True)
+    fecha_creacion = Column(TIMESTAMP, default=func.now())
+    fecha_modificacion = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    usuario_creacion = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    usuario_modificacion = Column(Integer, ForeignKey("usuarios.id_usuario"))
+
+    # Relationships
+    usuario_creo = relationship("Usuarios", foreign_keys=[usuario_creacion])
+    usuario_modifico = relationship("Usuarios", foreign_keys=[usuario_modificacion])
+
+    def __repr__(self):
+        return f"<Empresa(id={self.id_empresa}, rut='{self.rut_empresa}', razon_social='{self.razon_social}')>"
 
 

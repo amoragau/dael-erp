@@ -6309,10 +6309,45 @@ class OrdenCompraCRUD:
         """Obtener orden por número"""
         return db.query(models.OrdenCompra).filter(models.OrdenCompra.numero_orden == numero_orden).first()
 
+    def generar_siguiente_numero(self, db: Session) -> str:
+        """Generar el siguiente número de orden de compra de forma incremental"""
+        # Obtener la última orden creada
+        ultima_orden = db.query(models.OrdenCompra).order_by(
+            models.OrdenCompra.id_orden_compra.desc()
+        ).first()
+
+        if not ultima_orden:
+            # Si no hay órdenes, empezar desde 1
+            return "OC-0001"
+
+        # Extraer el número de la última orden
+        # Formato esperado: OC-XXXX donde XXXX es un número
+        try:
+            ultimo_numero = ultima_orden.numero_orden
+            # Si el formato es OC-XXXX, extraer XXXX
+            if ultimo_numero.startswith("OC-"):
+                numero_parte = ultimo_numero.split("-")[1]
+                siguiente = int(numero_parte) + 1
+            else:
+                # Si no sigue el formato, buscar el máximo ID y sumar 1
+                siguiente = ultima_orden.id_orden_compra + 1
+
+            # Formatear con 4 dígitos
+            return f"OC-{str(siguiente).zfill(4)}"
+        except (ValueError, IndexError):
+            # Si hay error al parsear, usar el ID como base
+            siguiente = ultima_orden.id_orden_compra + 1
+            return f"OC-{str(siguiente).zfill(4)}"
+
     def get_ordenes(self, db: Session, skip: int = 0, limit: int = 100,
                    filtros: Optional[schemas.OrdenCompraFilters] = None) -> List[models.OrdenCompra]:
         """Obtener órdenes con filtros"""
-        query = db.query(models.OrdenCompra).filter(models.OrdenCompra.activo == True)
+        from sqlalchemy.orm import joinedload
+
+        query = db.query(models.OrdenCompra).options(
+            joinedload(models.OrdenCompra.proveedor),
+            joinedload(models.OrdenCompra.estado)
+        ).filter(models.OrdenCompra.activo == True)
 
         if filtros:
             if filtros.id_proveedor:
@@ -6443,6 +6478,104 @@ class OrdenCompraCRUD:
         db.commit()
         db.refresh(db_orden)
         return db_orden
+
+    def rechazar_orden(self, db: Session, orden_id: int, motivo: str) -> Optional[models.OrdenCompra]:
+        """Rechazar orden"""
+        db_orden = self.get_orden(db, orden_id)
+        if not db_orden:
+            return None
+
+        # Cambiar a estado rechazado (estado 8)
+        estado_rechazado = db.query(models.EstadoOrdenCompra).filter(
+            models.EstadoOrdenCompra.id_estado == 8
+        ).first()
+        if not estado_rechazado:
+            raise ValueError("No existe el estado RECHAZADA (id=8)")
+
+        db_orden.id_estado = estado_rechazado.id_estado
+        db_orden.motivo_cancelacion = motivo
+        db_orden.fecha_cancelacion = func.current_timestamp()
+
+        db.commit()
+        db.refresh(db_orden)
+        return db_orden
+
+    def duplicar_orden(self, db: Session, orden_id: int) -> models.OrdenCompra:
+        """Duplicar orden de compra con sus detalles"""
+        # Obtener la orden original
+        orden_original = self.get_orden(db, orden_id)
+        if not orden_original:
+            raise ValueError(f"La orden con ID {orden_id} no existe")
+
+        # Obtener los detalles de la orden original
+        detalles_originales = orden_compra_detalle_crud.get_detalles_by_orden(db, orden_id)
+
+        # Generar nuevo número de orden
+        nuevo_numero = self.generar_siguiente_numero(db)
+
+        # Obtener estado inicial
+        estado_inicial = estado_orden_compra_crud.get_estado_inicial(db)
+        if not estado_inicial:
+            raise ValueError("No hay estado inicial configurado")
+
+        # Crear nueva orden copiando datos de la original
+        nueva_orden_data = {
+            'numero_orden': nuevo_numero,
+            'id_proveedor': orden_original.id_proveedor,
+            'id_usuario_solicitante': orden_original.id_usuario_solicitante,
+            'id_centro_costo': orden_original.id_centro_costo,
+            'id_empresa': orden_original.id_empresa,
+            'fecha_orden': func.current_date(),
+            'fecha_requerida': orden_original.fecha_requerida,
+            'fecha_esperada_entrega': orden_original.fecha_esperada_entrega,
+            'observaciones': orden_original.observaciones,
+            'terminos_pago': orden_original.terminos_pago,
+            'moneda': orden_original.moneda,
+            'tipo_cambio': orden_original.tipo_cambio,
+            'direccion_entrega': orden_original.direccion_entrega,
+            'contacto_entrega': orden_original.contacto_entrega,
+            'telefono_contacto': orden_original.telefono_contacto,
+            'subtotal': orden_original.subtotal,
+            'impuestos': orden_original.impuestos,
+            'iva_porcentaje': orden_original.iva_porcentaje,
+            'descuentos': orden_original.descuentos,
+            'total': orden_original.total,
+            'id_estado': estado_inicial.id_estado,
+            'activo': True
+        }
+
+        db_nueva_orden = models.OrdenCompra(**nueva_orden_data)
+        db.add(db_nueva_orden)
+        db.commit()
+        db.refresh(db_nueva_orden)
+
+        # Duplicar los detalles
+        for detalle_original in detalles_originales:
+            detalle_data = {
+                'id_orden_compra': db_nueva_orden.id_orden_compra,
+                'id_producto': detalle_original.id_producto,
+                'numero_linea': detalle_original.numero_linea,
+                'cantidad_solicitada': detalle_original.cantidad_solicitada,
+                'precio_unitario': detalle_original.precio_unitario,
+                'descuento_porcentaje': detalle_original.descuento_porcentaje,
+                'descuento_importe': detalle_original.descuento_importe,
+                'precio_neto': detalle_original.precio_neto,
+                'importe_total': detalle_original.importe_total,
+                'cantidad_recibida': 0,
+                'cantidad_pendiente': detalle_original.cantidad_solicitada,
+                'observaciones': detalle_original.observaciones,
+                'codigo_producto_proveedor': detalle_original.codigo_producto_proveedor,
+                'fecha_entrega_esperada': detalle_original.fecha_entrega_esperada,
+                'activo': True
+            }
+
+            db_nuevo_detalle = models.OrdenCompraDetalle(**detalle_data)
+            db.add(db_nuevo_detalle)
+
+        db.commit()
+        db.refresh(db_nueva_orden)
+
+        return db_nueva_orden
 
 
 class OrdenCompraDetalleCRUD:
@@ -6927,7 +7060,14 @@ def get_documentos_compra(
     tipo_documento: Optional[str] = None
 ) -> List[models.DocumentoCompra]:
     """Obtener documentos de compra con filtros"""
-    query = db.query(models.DocumentoCompra)
+    from sqlalchemy.orm import joinedload
+
+    query = db.query(models.DocumentoCompra).options(
+        joinedload(models.DocumentoCompra.proveedor),
+        joinedload(models.DocumentoCompra.tipo_documento_rel),
+        joinedload(models.DocumentoCompra.detalles),
+        joinedload(models.DocumentoCompra.referencias)
+    )
 
     if activo is not None:
         query = query.filter(models.DocumentoCompra.activo == activo)
@@ -6940,7 +7080,14 @@ def get_documentos_compra(
 
 def get_documento_compra(db: Session, documento_id: int) -> Optional[models.DocumentoCompra]:
     """Obtener documento por ID"""
-    return db.query(models.DocumentoCompra).filter(models.DocumentoCompra.id_documento == documento_id).first()
+    from sqlalchemy.orm import joinedload
+
+    return db.query(models.DocumentoCompra).options(
+        joinedload(models.DocumentoCompra.proveedor),
+        joinedload(models.DocumentoCompra.tipo_documento_rel),
+        joinedload(models.DocumentoCompra.detalles),
+        joinedload(models.DocumentoCompra.referencias)
+    ).filter(models.DocumentoCompra.id_documento == documento_id).first()
 
 def create_documento_compra(db: Session, documento: schemas.DocumentoCompraCreate) -> models.DocumentoCompra:
     """Crear nuevo documento de compra"""
@@ -7188,3 +7335,375 @@ def create_documento_desde_orden_compra(
 # Instancias globales
 vista_ordenes_compra_resumen_crud = VistaOrdenesCompraResumenCRUD()
 vista_ordenes_detalle_completo_crud = VistaOrdenesDetalleCompletoCRUD()
+
+
+# ========================================
+# CRUD PARA CENTROS DE COSTO
+# ========================================
+
+class CentroCostoCRUD:
+    """CRUD operations for Centros de Costo"""
+
+    def get_all(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        activo: Optional[bool] = None
+    ) -> List[models.CentroCosto]:
+        """Obtener todos los centros de costo con paginación opcional"""
+        query = db.query(models.CentroCosto)
+
+        if activo is not None:
+            query = query.filter(models.CentroCosto.activo == activo)
+
+        return query.offset(skip).limit(limit).all()
+
+    def get_by_id(self, db: Session, id_centro_costo: int) -> Optional[models.CentroCosto]:
+        """Obtener un centro de costo por su ID"""
+        return db.query(models.CentroCosto).filter(
+            models.CentroCosto.id_centro_costo == id_centro_costo
+        ).first()
+
+    def get_by_codigo(self, db: Session, codigo_centro_costo: str) -> Optional[models.CentroCosto]:
+        """Obtener un centro de costo por su código"""
+        return db.query(models.CentroCosto).filter(
+            models.CentroCosto.codigo_centro_costo == codigo_centro_costo
+        ).first()
+
+    def create(
+        self,
+        db: Session,
+        centro_costo: schemas.CentroCostoCreate,
+        usuario_id: Optional[int] = None
+    ) -> models.CentroCosto:
+        """Crear un nuevo centro de costo"""
+        db_centro_costo = models.CentroCosto(
+            codigo_centro_costo=centro_costo.codigo_centro_costo,
+            nombre_centro_costo=centro_costo.nombre_centro_costo,
+            descripcion=centro_costo.descripcion,
+            id_responsable=centro_costo.id_responsable,
+            presupuesto_anual=centro_costo.presupuesto_anual,
+            activo=centro_costo.activo,
+            usuario_creacion=usuario_id
+        )
+
+        db.add(db_centro_costo)
+        db.commit()
+        db.refresh(db_centro_costo)
+
+        return db_centro_costo
+
+    def update(
+        self,
+        db: Session,
+        id_centro_costo: int,
+        centro_costo: schemas.CentroCostoUpdate,
+        usuario_id: Optional[int] = None
+    ) -> Optional[models.CentroCosto]:
+        """Actualizar un centro de costo existente"""
+        db_centro_costo = self.get_by_id(db, id_centro_costo)
+
+        if not db_centro_costo:
+            return None
+
+        update_data = centro_costo.model_dump(exclude_unset=True)
+
+        for field, value in update_data.items():
+            setattr(db_centro_costo, field, value)
+
+        if usuario_id:
+            db_centro_costo.usuario_modificacion = usuario_id
+
+        db.commit()
+        db.refresh(db_centro_costo)
+
+        return db_centro_costo
+
+    def delete(
+        self,
+        db: Session,
+        id_centro_costo: int,
+        usuario_id: Optional[int] = None
+    ) -> Optional[models.CentroCosto]:
+        """Desactivar un centro de costo (soft delete)"""
+        db_centro_costo = self.get_by_id(db, id_centro_costo)
+
+        if not db_centro_costo:
+            return None
+
+        db_centro_costo.activo = False
+
+        if usuario_id:
+            db_centro_costo.usuario_modificacion = usuario_id
+
+        db.commit()
+        db.refresh(db_centro_costo)
+
+        return db_centro_costo
+
+    def get_activos(self, db: Session) -> List[models.CentroCosto]:
+        """Obtener todos los centros de costo activos"""
+        return db.query(models.CentroCosto).filter(models.CentroCosto.activo == True).all()
+
+    def search(
+        self,
+        db: Session,
+        search_term: str,
+        activo: Optional[bool] = None
+    ) -> List[models.CentroCosto]:
+        """Buscar centros de costo por código o nombre"""
+        query = db.query(models.CentroCosto).filter(
+            (models.CentroCosto.codigo_centro_costo.contains(search_term)) |
+            (models.CentroCosto.nombre_centro_costo.contains(search_term))
+        )
+
+        if activo is not None:
+            query = query.filter(models.CentroCosto.activo == activo)
+
+        return query.all()
+
+
+# Instancia global de CentroCostoCRUD
+centros_costo_crud = CentroCostoCRUD()
+
+
+# ========================================
+# CRUD PARA EMPRESAS
+# ========================================
+
+class EmpresaCRUD:
+    """CRUD operations for Empresas"""
+
+    def get_all(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        activo: Optional[bool] = None
+    ) -> List[models.Empresa]:
+        """Obtener todas las empresas con paginación opcional"""
+        query = db.query(models.Empresa)
+
+        if activo is not None:
+            query = query.filter(models.Empresa.activo == activo)
+
+        return query.offset(skip).limit(limit).all()
+
+    def get_by_id(self, db: Session, id_empresa: int) -> Optional[models.Empresa]:
+        """Obtener una empresa por su ID"""
+        return db.query(models.Empresa).filter(
+            models.Empresa.id_empresa == id_empresa
+        ).first()
+
+    def get_by_rut(self, db: Session, rut_empresa: str) -> Optional[models.Empresa]:
+        """Obtener una empresa por su RUT"""
+        return db.query(models.Empresa).filter(
+            models.Empresa.rut_empresa == rut_empresa
+        ).first()
+
+    def create(
+        self,
+        db: Session,
+        empresa: schemas.EmpresaCreate,
+        usuario_id: Optional[int] = None
+    ) -> models.Empresa:
+        """Crear una nueva empresa"""
+        db_empresa = models.Empresa(
+            rut_empresa=empresa.rut_empresa,
+            razon_social=empresa.razon_social,
+            nombre_fantasia=empresa.nombre_fantasia,
+            giro=empresa.giro,
+            direccion=empresa.direccion,
+            comuna=empresa.comuna,
+            ciudad=empresa.ciudad,
+            region=empresa.region,
+            telefono=empresa.telefono,
+            email=empresa.email,
+            sitio_web=empresa.sitio_web,
+            logo_url=empresa.logo_url,
+            activo=empresa.activo,
+            usuario_creacion=usuario_id
+        )
+
+        db.add(db_empresa)
+        db.commit()
+        db.refresh(db_empresa)
+
+        return db_empresa
+
+    def update(
+        self,
+        db: Session,
+        id_empresa: int,
+        empresa: schemas.EmpresaUpdate,
+        usuario_id: Optional[int] = None
+    ) -> Optional[models.Empresa]:
+        """Actualizar una empresa existente"""
+        db_empresa = self.get_by_id(db, id_empresa)
+
+        if not db_empresa:
+            return None
+
+        update_data = empresa.model_dump(exclude_unset=True)
+
+        for field, value in update_data.items():
+            setattr(db_empresa, field, value)
+
+        if usuario_id:
+            db_empresa.usuario_modificacion = usuario_id
+
+        db.commit()
+        db.refresh(db_empresa)
+
+        return db_empresa
+
+    def delete(
+        self,
+        db: Session,
+        id_empresa: int,
+        usuario_id: Optional[int] = None
+    ) -> Optional[models.Empresa]:
+        """Desactivar una empresa (soft delete)"""
+        db_empresa = self.get_by_id(db, id_empresa)
+
+        if not db_empresa:
+            return None
+
+        db_empresa.activo = False
+
+        if usuario_id:
+            db_empresa.usuario_modificacion = usuario_id
+
+        db.commit()
+        db.refresh(db_empresa)
+
+        return db_empresa
+
+    def get_activos(self, db: Session) -> List[models.Empresa]:
+        """Obtener todas las empresas activas"""
+        return db.query(models.Empresa).filter(models.Empresa.activo == True).all()
+
+    def search(
+        self,
+        db: Session,
+        search_term: str,
+        activo: Optional[bool] = None
+    ) -> List[models.Empresa]:
+        """Buscar empresas por RUT o razón social"""
+        query = db.query(models.Empresa).filter(
+            (models.Empresa.rut_empresa.contains(search_term)) |
+            (models.Empresa.razon_social.contains(search_term))
+        )
+
+        if activo is not None:
+            query = query.filter(models.Empresa.activo == activo)
+
+        return query.all()
+
+
+# Instancia global de EmpresaCRUD
+empresas_crud = EmpresaCRUD()
+
+
+# ========================================
+# CRUD PARA TIPOS DE DOCUMENTOS DE COMPRA
+# ========================================
+
+class TipoDocumentoCompraCRUD:
+    """CRUD para tipos de documentos de compra"""
+
+    def get_tipo_documento(self, db: Session, tipo_documento_id: int) -> Optional[models.TipoDocumentoCompra]:
+        """Obtener tipo de documento por ID"""
+        return db.query(models.TipoDocumentoCompra).filter(
+            models.TipoDocumentoCompra.id_tipo_documento == tipo_documento_id
+        ).first()
+
+    def get_tipo_documento_by_nombre(self, db: Session, nombre: str) -> Optional[models.TipoDocumentoCompra]:
+        """Obtener tipo de documento por nombre"""
+        return db.query(models.TipoDocumentoCompra).filter(
+            models.TipoDocumentoCompra.nombre == nombre
+        ).first()
+
+    def get_tipo_documento_by_codigo_dte(self, db: Session, codigo_dte: str) -> Optional[models.TipoDocumentoCompra]:
+        """Obtener tipo de documento por código DTE"""
+        return db.query(models.TipoDocumentoCompra).filter(
+            models.TipoDocumentoCompra.codigo_dte == codigo_dte
+        ).first()
+
+    def get_tipos_documentos(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        activo: Optional[bool] = None
+    ) -> List[models.TipoDocumentoCompra]:
+        """Obtener lista de tipos de documentos con paginación"""
+        query = db.query(models.TipoDocumentoCompra)
+
+        if activo is not None:
+            query = query.filter(models.TipoDocumentoCompra.activo == activo)
+
+        return query.offset(skip).limit(limit).all()
+
+    def create_tipo_documento(
+        self,
+        db: Session,
+        tipo_documento: schemas.TipoDocumentoCompraCreate
+    ) -> models.TipoDocumentoCompra:
+        """Crear nuevo tipo de documento"""
+        db_tipo_documento = models.TipoDocumentoCompra(**tipo_documento.dict())
+        db.add(db_tipo_documento)
+        db.commit()
+        db.refresh(db_tipo_documento)
+        return db_tipo_documento
+
+    def update_tipo_documento(
+        self,
+        db: Session,
+        tipo_documento_id: int,
+        tipo_documento_update: schemas.TipoDocumentoCompraUpdate
+    ) -> Optional[models.TipoDocumentoCompra]:
+        """Actualizar tipo de documento"""
+        db_tipo_documento = self.get_tipo_documento(db, tipo_documento_id)
+        if not db_tipo_documento:
+            return None
+
+        update_data = tipo_documento_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_tipo_documento, field, value)
+
+        db.commit()
+        db.refresh(db_tipo_documento)
+        return db_tipo_documento
+
+    def delete_tipo_documento(self, db: Session, tipo_documento_id: int) -> bool:
+        """Eliminar tipo de documento (soft delete)"""
+        db_tipo_documento = self.get_tipo_documento(db, tipo_documento_id)
+        if not db_tipo_documento:
+            return False
+
+        db_tipo_documento.activo = False
+        db.commit()
+        return True
+
+    def search(
+        self,
+        db: Session,
+        search_term: str,
+        activo: Optional[bool] = None
+    ) -> List[models.TipoDocumentoCompra]:
+        """Buscar tipos de documentos por nombre o código DTE"""
+        query = db.query(models.TipoDocumentoCompra).filter(
+            (models.TipoDocumentoCompra.nombre.contains(search_term)) |
+            (models.TipoDocumentoCompra.codigo_dte.contains(search_term))
+        )
+
+        if activo is not None:
+            query = query.filter(models.TipoDocumentoCompra.activo == activo)
+
+        return query.all()
+
+
+# Instancia global de TipoDocumentoCompraCRUD
+tipos_documentos_compra_crud = TipoDocumentoCompraCRUD()

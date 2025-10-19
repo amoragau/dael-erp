@@ -2,16 +2,24 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Configuración de Alertas</h4>
-          <p class="text-grey-7 q-mb-none">Gestiona las reglas de alertas automáticas del sistema</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="notifications" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Configuración de <span class="text-weight-bold text-primary">Alertas</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestiona las reglas de alertas automáticas del sistema</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nueva Alerta"
           @click="abrirFormularioAlerta"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
@@ -1307,7 +1315,7 @@ const aplicarFiltros = async () => {
 
 const filtrarPorCategoria = async (categoria: string) => {
   if (categoria === 'all') {
-    delete filtros.value.tipo_condicion
+    filtros.value.tipo_condicion = null
   } else {
     // Filter by category logic
   }

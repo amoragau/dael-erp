@@ -53,6 +53,10 @@ from routes import ordenes_compra
 from routes import recepciones_mercancia
 from routes import vistas_ordenes_compra
 from routes import documentos_compra
+from routes import tipos_documentos_compra
+from routes import importacion_dte
+from routes import centros_costo
+from routes import empresas
 
 # Cargar variables de entorno
 load_dotenv()
@@ -130,6 +134,14 @@ app.include_router(vistas_ordenes_compra.router, prefix="/api/v1/vistas-ordenes-
 
 # Nuevas rutas de documentos de compra
 app.include_router(documentos_compra.router, prefix="/api/v1", tags=["Documentos de Compra"])
+app.include_router(tipos_documentos_compra.router, prefix="/api/v1")
+app.include_router(importacion_dte.router, prefix="/api/v1")
+
+# Rutas de centros de costo
+app.include_router(centros_costo.router, prefix="/api/v1")
+
+# Rutas de empresas
+app.include_router(empresas.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

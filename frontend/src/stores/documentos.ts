@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApiStore } from './api'
+import type { OrdenCompra } from './ordenesCompra'
 
 export interface DocumentoCompraDetalle {
   id_detalle?: number
@@ -42,6 +43,7 @@ export interface DocumentoCompra {
   id_documento?: number
   id_proveedor: number
   id_orden_compra?: number
+  id_tipo_documento?: number
   tipo_documento: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento: string
   fecha_documento: string
@@ -50,6 +52,10 @@ export interface DocumentoCompra {
   uuid_fiscal?: string
   rut_emisor?: string
   rut_receptor?: string
+  forma_pago?: 'CONTADO' | 'CREDITO' | 'CHEQUE' | 'TRANSFERENCIA' | 'TARJETA_CREDITO' | 'TARJETA_DEBITO' | 'OTRO'
+  plazo_pago?: number
+  fecha_vencimiento?: string
+  referencia_pago?: string
   subtotal: number
   impuestos: number
   descuentos: number
@@ -59,6 +65,7 @@ export interface DocumentoCompra {
   contenido_xml?: string
   estado: 'PENDIENTE' | 'VALIDADO' | 'DISPONIBLE_BODEGA' | 'INGRESADO_BODEGA' | 'ANULADO'
   disponible_bodega: boolean
+  validado?: boolean
   fecha_ingreso_bodega?: string
   usuario_ingreso_bodega?: number
   errores_procesamiento?: string
@@ -75,7 +82,8 @@ export interface DocumentoCompra {
 export interface DocumentoCreate {
   id_proveedor: number
   id_orden_compra?: number
-  tipo_documento: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
+  id_tipo_documento?: number
+  tipo_documento?: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento: string
   fecha_documento: string
   serie?: string
@@ -83,6 +91,10 @@ export interface DocumentoCreate {
   uuid_fiscal?: string
   rut_emisor?: string
   rut_receptor?: string
+  forma_pago?: 'CONTADO' | 'CREDITO' | 'CHEQUE' | 'TRANSFERENCIA' | 'TARJETA_CREDITO' | 'TARJETA_DEBITO' | 'OTRO'
+  plazo_pago?: number
+  fecha_vencimiento?: string
+  referencia_pago?: string
   subtotal: number
   impuestos: number
   descuentos: number
@@ -98,6 +110,7 @@ export interface DocumentoCreate {
 export interface DocumentoUpdate {
   id_proveedor?: number
   id_orden_compra?: number
+  id_tipo_documento?: number
   tipo_documento?: 'FACTURA' | 'FACTURA_EXENTA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_DESPACHO' | 'OTRO'
   numero_documento?: string
   fecha_documento?: string
@@ -106,6 +119,10 @@ export interface DocumentoUpdate {
   uuid_fiscal?: string
   rut_emisor?: string
   rut_receptor?: string
+  forma_pago?: 'CONTADO' | 'CREDITO' | 'CHEQUE' | 'TRANSFERENCIA' | 'TARJETA_CREDITO' | 'TARJETA_DEBITO' | 'OTRO'
+  plazo_pago?: number
+  fecha_vencimiento?: string
+  referencia_pago?: string
   subtotal?: number
   impuestos?: number
   descuentos?: number
@@ -264,7 +281,7 @@ export const useDocumentoStore = defineStore('documentos', () => {
 
 
   // Búsqueda de órdenes de compra (para el selector)
-  const buscarOrdenesCompra = async (searchTerm: string) => {
+  const buscarOrdenesCompra = async (searchTerm: string): Promise<OrdenCompra[]> => {
     try {
       const response = await apiStore.get(`/ordenes-compra/search?q=${encodeURIComponent(searchTerm)}&limit=20`)
       if (!response.success) {

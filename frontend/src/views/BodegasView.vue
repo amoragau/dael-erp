@@ -2,63 +2,76 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Gestión de Bodegas</h4>
-          <p class="text-grey-7 q-mb-none">Administra las bodegas y sus estantes</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="warehouse" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Gestión de <span class="text-weight-bold text-primary">Bodegas</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Administración de almacenes y ubicaciones de inventario</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nueva Bodega"
           @click="abrirFormularioBodega"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por código o nombre..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.certificacion"
-              :options="certificacionOptions"
-              label="Certificación"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 180px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarBodegas"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por código o nombre..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.certificacion"
+                :options="certificacionOptions"
+                label="Certificación"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarBodegas" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -854,6 +867,13 @@ const cargarBodegas = async () => {
 const buscarBodegas = async () => {
   paginacion.value.page = 1
   await cargarBodegas()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.certificacion = null
+  buscarBodegas()
 }
 
 const abrirFormularioBodega = () => {

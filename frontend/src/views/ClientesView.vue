@@ -2,63 +2,90 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Información Comercial de Clientes</h4>
-          <p class="text-grey-7 q-mb-none">Gestión integral de clientes con datos fiscales y condiciones comerciales</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="people" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Información Comercial de <span class="text-weight-bold text-primary">Clientes</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión integral de clientes con datos fiscales y condiciones comerciales</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nuevo Cliente"
           @click="abrirFormularioCliente"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por nombre, código o RUT..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.tipo"
-              :options="tipoClienteOptions"
-              label="Tipo Cliente"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarClientes"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por nombre, código o RUT..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.tipo"
+                :options="tipoClienteOptions"
+                label="Tipo Cliente"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3 row q-gutter-sm justify-end items-center">
+              <q-btn
+                color="primary"
+                icon="search"
+                label="Buscar"
+                @click="buscarClientes"
+                unelevated
+                no-caps
+              />
+              <q-btn
+                color="grey-6"
+                icon="clear"
+                label="Limpiar"
+                @click="limpiarFiltros"
+                flat
+                no-caps
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -588,8 +615,8 @@
                       <q-item-label caption>Días de Crédito</q-item-label>
                       <q-item-label>
                         <q-badge
-                          :color="clienteDetalle.dias_credito > 0 ? 'blue' : 'grey'"
-                          :label="clienteDetalle.dias_credito > 0 ? `${clienteDetalle.dias_credito} días` : 'Contado'"
+                          :color="diasCreditoDetalle > 0 ? 'blue' : 'grey'"
+                          :label="diasCreditoDetalle > 0 ? `${diasCreditoDetalle} días` : 'Contado'"
                         />
                       </q-item-label>
                     </q-item-section>
@@ -702,6 +729,7 @@ const showCreateClienteDialog = ref(false)
 const editandoCliente = ref(false)
 const showDetalleDialog = ref(false)
 const clienteDetalle = ref<Cliente | null>(null)
+const diasCreditoDetalle = computed(() => clienteDetalle.value?.dias_credito ?? 0)
 const tabActivo = ref('basica')
 
 // Filters
@@ -875,6 +903,13 @@ const cargarClientes = async () => {
 const buscarClientes = async () => {
   paginacion.value.page = 1
   await cargarClientes()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.tipo = null
+  buscarClientes()
 }
 
 const abrirFormularioCliente = () => {

@@ -2,74 +2,88 @@
   <q-page padding>
     <div class="q-pa-md">
       <!-- Header -->
-      <div class="row items-center justify-between q-mb-md">
+      <div class="row items-center justify-between q-mb-xl">
         <div>
-          <h4 class="q-my-none">Información de Proyectos y Obras</h4>
-          <p class="text-grey-7 q-mb-none">Gestión integral de obras con control financiero y almacenes de proyecto</p>
+          <div class="row items-center q-mb-sm">
+            <q-icon name="engineering" size="32px" color="primary" class="q-mr-md" />
+            <div>
+              <h4 class="q-my-none text-h4 text-weight-light">Gestión de <span class="text-weight-bold text-primary">Obras</span></h4>
+              <p class="text-grey-6 q-mb-none text-body2">Gestión integral de obras con control financiero y almacenes de proyecto</p>
+            </div>
+          </div>
         </div>
         <q-btn
           color="primary"
           icon="add"
           label="Nueva Obra"
           @click="abrirFormularioObra"
+          unelevated
+          class="q-px-lg q-py-sm"
+          no-caps
         />
       </div>
 
       <!-- Filters -->
-      <q-card flat bordered class="q-mb-md">
-        <q-card-section>
-          <div class="row q-gutter-md items-center">
-            <q-input
-              v-model="filtros.busqueda"
-              placeholder="Buscar por código, nombre..."
-              outlined
-              dense
-              clearable
-              style="min-width: 300px"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-            <q-select
-              v-model="filtros.estado"
-              :options="estadoObrasOptions"
-              label="Estado"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-select
-              v-model="filtros.cliente_id"
-              :options="clienteOptions"
-              label="Cliente"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 200px"
-            />
-            <q-select
-              v-model="filtros.activo"
-              :options="activoOptions"
-              label="Estado General"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              style="min-width: 150px"
-            />
-            <q-btn
-              color="primary"
-              icon="search"
-              label="Buscar"
-              @click="buscarObras"
-            />
+      <q-card flat class="q-mb-lg shadow-light">
+        <q-card-section class="q-pa-lg">
+          <div class="text-h6 text-weight-medium q-mb-md text-grey-8">
+            <q-icon name="filter_list" class="q-mr-sm" />
+            Filtros de búsqueda
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="filtros.busqueda"
+                placeholder="Buscar por código, nombre..."
+                outlined
+                dense
+                clearable
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" color="grey-5" />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.estado"
+                :options="estadoObrasOptions"
+                label="Estado"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="filtros.cliente_id"
+                :options="clienteOptions"
+                label="Cliente"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-select
+                v-model="filtros.activo"
+                :options="activoOptions"
+                label="Estado General"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-2 row q-gutter-sm justify-end items-center">
+              <q-btn color="primary" icon="search" label="Buscar" @click="buscarObras" unelevated no-caps />
+              <q-btn color="grey-6" icon="clear" label="Limpiar" @click="limpiarFiltros" flat no-caps />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -620,8 +634,8 @@
                       <q-item-label caption>Estado</q-item-label>
                       <q-item-label>
                         <q-badge
-                          :color="getEstadoColor(obraDetalle.estado)"
-                          :label="formatEstado(obraDetalle.estado)"
+                          :color="getEstadoColor(obraDetalle?.estado ?? 'planificacion')"
+                          :label="formatEstado(obraDetalle?.estado ?? 'planificacion')"
                           text-color="white"
                         />
                       </q-item-label>
@@ -1078,6 +1092,14 @@ const cargarClientes = async () => {
 const buscarObras = async () => {
   paginacion.value.page = 1
   await cargarObras()
+}
+
+const limpiarFiltros = () => {
+  filtros.value.busqueda = ''
+  filtros.value.estado = null
+  filtros.value.cliente_id = null
+  filtros.value.activo = null
+  buscarObras()
 }
 
 const abrirFormularioObra = () => {
